@@ -586,6 +586,10 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   font-variant-numeric: tabular-nums;
 }
 .daycol.is-droptarget { background: var(--surface-3); }
+.gridwrap.wisch-links  .grid { animation: wischL .2s ease-out; }
+.gridwrap.wisch-rechts .grid { animation: wischR .2s ease-out; }
+@keyframes wischL { from { transform: translateX(26px); opacity: .45 } }
+@keyframes wischR { from { transform: translateX(-26px); opacity: .45 } }
 .block__ghost.is-holding {
   opacity: 0; animation: hold var(--holdms, 380ms) ease-out forwards;
 }
@@ -4370,8 +4374,8 @@ document.addEventListener("keydown", e => {
   if (openModal) return;
   const tag = (e.target.tagName || "").toLowerCase();
   if (tag === "input" || tag === "textarea" || tag === "select") return;
-  if (e.key === "ArrowLeft") { $("#prevWeek").click(); }
-  if (e.key === "ArrowRight") { $("#nextWeek").click(); }
+  if (e.key === "ArrowLeft")  { if (isMobile) tagWechseln(-1); else $("#prevWeek").click(); }
+  if (e.key === "ArrowRight") { if (isMobile) tagWechseln(1);  else $("#nextWeek").click(); }
   if (e.key.toLowerCase() === "t") { $("#todayBtn").click(); }
   if (e.key.toLowerCase() === "n") {
     e.preventDefault();
@@ -4380,6 +4384,67 @@ document.addEventListener("keydown", e => {
     newBlock(selectedDayIdx, iso(d), s, s + 60);
   }
 });
+
+/* ============================================================
+   Wischen wechselt den Tag
+
+   Die Idee, am Tagesende oben wieder anzufangen, löst das falsche Problem:
+   ein Tag hat einen Anfang und ein Ende, und das ist Information — wer unten
+   ankommt, weiß, dass der Tag zu Ende ist. Eine Endlosschleife nimmt genau
+   diese Orientierung weg; man weiß nicht mehr, ob man bei heute 8 Uhr oder
+   morgen 8 Uhr steht. Kein Kalender macht das.
+
+   Das eigentliche Bedürfnis — nicht anstoßen, weiterkommen — gehört auf die
+   andere Achse: seitwärts wischen wechselt den Tag, und über Sonntag hinaus
+   geht es in die nächste Woche. Dort ist die Bewegung wirklich endlos, ohne
+   dass man die Orientierung verliert.
+   ============================================================ */
+function wischenEinrichten() {
+  const wrap = $("#gridWrap");
+  if (!wrap || wrap.dataset.wisch) return;
+  wrap.dataset.wisch = "1";
+
+  let x0 = 0, y0 = 0, aktiv = false, entschieden = false;
+
+  wrap.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse") return;      // Maus zieht Blöcke, nicht Tage
+    if (!isMobile) return;
+    if (e.target.closest(".block")) return;     // Block verschieben hat Vorrang
+    x0 = e.clientX; y0 = e.clientY;
+    aktiv = true; entschieden = false;
+  }, { passive: true });
+
+  wrap.addEventListener("pointermove", e => {
+    if (!aktiv || entschieden) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (Math.abs(dy) > 24) { aktiv = false; return; }   // das ist Scrollen
+    if (Math.abs(dx) < 55) return;
+    entschieden = true; aktiv = false;
+    tagWechseln(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  const ende = () => { aktiv = false; };
+  wrap.addEventListener("pointerup", ende, { passive: true });
+  wrap.addEventListener("pointercancel", ende, { passive: true });
+}
+
+/* Einen Tag weiter oder zurück — über den Wochenrand hinweg. */
+function tagWechseln(richtung) {
+  let i = selectedDayIdx + richtung;
+  if (i > 6)      { anchor = addDays(mondayOf(anchor), 7);  i = 0; }
+  else if (i < 0) { anchor = addDays(mondayOf(anchor), -7); i = 6; }
+  selectedDayIdx = i;
+
+  const wrap = $("#gridWrap");
+  if (wrap) {
+    wrap.classList.remove("wisch-links", "wisch-rechts");
+    void wrap.offsetWidth;
+    wrap.classList.add(richtung > 0 ? "wisch-links" : "wisch-rechts");
+    setTimeout(() => wrap.classList.remove("wisch-links", "wisch-rechts"), 220);
+  }
+  renderAll();
+  if (navigator.vibrate) navigator.vibrate(6);
+}
 
 window.matchMedia(MOBILE_Q).addEventListener("change", e => {
   isMobile = e.matches;
@@ -4451,6 +4516,7 @@ function maybeWelcome() {
 /* ============================================================ Start */
 function renderAll() {
   renderHeader();
+  wischenEinrichten();
   renderDaySwitch();
   renderGrid();
   renderTasks();
