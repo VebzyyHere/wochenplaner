@@ -94,6 +94,11 @@ html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area,
 
 /* ============================================================ Base */
 * { box-sizing: border-box; }
+/* Das hidden-Attribut bringt nur einen schwachen Browser-Standard mit, den
+   jede Klassenregel schlaegt. Ohne das hier bleibt ein verborgener Knopf
+   unsichtbar, faengt aber weiter Klicks ab — genau das hat auf dem iPhone
+   das Zahnrad blockiert. */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -272,6 +277,35 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .syncbadge.is-work::before { background: var(--focus); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 @media (max-width: 560px) { .syncbadge { font-size: 0; padding: 0; min-width: 40px; justify-content: center; } }
+
+/* ============================================================ Einstellungs-Menü */
+.setmenu { display: flex; flex-direction: column; gap: 2px; margin: 0 calc(var(--s-2) * -1); padding-bottom: var(--s-3); }
+.setmenu__item {
+  display: flex; align-items: center; gap: var(--s-3);
+  width: 100%; text-align: left;
+  padding: 13px var(--s-2); min-height: 58px;
+  border: none; background: transparent; border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--border);
+}
+.setmenu__item:last-child { border-bottom: 0; }
+.setmenu__item:hover { background: var(--surface-2); }
+.setmenu__item:active { background: var(--surface-3); }
+.setmenu__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.setmenu__name { font-size: 15px; font-weight: 600; }
+.setmenu__kurz {
+  font-size: 12.5px; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.setmenu__pfeil { flex: none; font-size: 20px; color: var(--text-faint); line-height: 1; }
+.setback {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: none; padding: 4px 0; margin: 0 0 var(--s-4);
+  font-size: 15px; font-weight: 600; color: var(--text-muted);
+  min-height: 40px;
+}
+.setback:hover { color: var(--text); }
+.setback span { font-size: 20px; line-height: 1; }
+.sheet__row[hidden], .setmenu[hidden], .setback[hidden] { display: none; }
 
 /* Konto in den Einstellungen */
 .acct { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s-3); }
@@ -832,7 +866,6 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 
     <button class="syncbadge" id="syncBadge" hidden></button>
     <button class="btn btn--sm" id="todayBtn">Heute</button>
-    <button class="btn btn--icon btn--ghost" id="themeBtn" aria-label="Hell/Dunkel wechseln" title="Hell/Dunkel">◐</button>
     <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙</button>
   </header>
 
@@ -1478,6 +1511,11 @@ function renderHeader() {
     : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
   $("#weekLabel").innerHTML = "KW " + isoWeek(mon) + "<small>" + range + "</small>";
   $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
+  // In der laufenden Woche braucht niemand einen Knopf, der dorthin führt.
+  // Am Telefon war die Kopfzeile bis auf null Pixel gefüllt — das Zahnrad
+  // wurde angeschnitten. Der Knopf erscheint nur, wenn er etwas tut.
+  const heuteBtn = $("#todayBtn");
+  if (heuteBtn) heuteBtn.hidden = iso(mon) === iso(mondayOf(new Date()));
 }
 
 /* ============================================================ Tag-Umschalter (Mobile) */
@@ -3380,14 +3418,14 @@ $("#settingsBtn").onclick = () => {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Einstellungen</h2>" +
-      "<div class='sheet__row'><label class='label' for='sName'>Wer plant hier?</label>" +
+      "<div class='sheet__row' data-page='person'><label class='label' for='sName'>Wer plant hier?</label>" +
       "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
       "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
-      "<div class='sheet__row sheet__cols'>" +
+      "<div class='sheet__row sheet__cols' data-page='zeit'>" +
         "<div><label class='label' for='sFrom'>Tag beginnt</label><input class='field' id='sFrom' type='number' min='0' max='12' step='1'></div>" +
         "<div><label class='label' for='sTo'>Tag endet</label><input class='field' id='sTo' type='number' min='13' max='24' step='1'></div>" +
       "</div>" +
-      "<div class='sheet__row'><span class='label'>Schlaf & Ruhe</span>" +
+      "<div class='sheet__row' data-page='zeit'><span class='label'>Schlaf & Ruhe</span>" +
         "<label class='switch'><input type='checkbox' id='sSleepOn'> Feste Schlafenszeit</label>" +
         "<div id='sSleepBody' style='margin-top:12px'>" +
           "<div class='sheet__cols' style='margin-bottom:12px'>" +
@@ -3399,14 +3437,16 @@ $("#settingsBtn").onclick = () => {
           "<div id='sSleepHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
         "</div>" +
       "</div>" +
-      "<div class='sheet__row' id='sAcctRow'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
-      "<div class='sheet__row'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
+      "<div class='sheet__row' id='sAcctRow' data-page='konto'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
+      "<div class='sheet__row' data-page='bereiche'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
       "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
-      "<div class='sheet__row'><span class='label'>Orte und Fahrzeiten</span>" +
+      "<div class='sheet__row' data-page='orte'><span class='label'>Orte und Fahrzeiten</span>" +
         "<div class='arealist' id='sOrte'></div>" +
         "<div class='chipset' id='sOrtNeu' style='margin-top:10px'></div>" +
         "<div id='sWege' style='margin-top:14px'></div></div>" +
-      "<div class='sheet__row'><span class='label'>Daten</span>" +
+      "<div class='sheet__row' data-page='ansicht'><span class='label'>Darstellung</span>" +
+        "<div class='chipset' id='sTheme'></div></div>" +
+      "<div class='sheet__row' data-page='daten'><span class='label'>Daten</span>" +
       "<div style='display:flex;gap:8px;flex-wrap:wrap'>" +
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
       "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
@@ -3615,12 +3655,25 @@ $("#settingsBtn").onclick = () => {
         () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurückgesetzt"); });
     };
 
-    const foot = document.createElement("div");
-    foot.className = "sheet__foot";
-    foot.innerHTML = "<span class='spacer'></span>";
-    const ok = document.createElement("button");
-    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Fertig";
-    ok.onclick = () => {
+    // Hell/Dunkel wohnt jetzt hier statt in der Kopfzeile — dort war kein
+    // Platz mehr, und umgestellt wird es ohnehin einmal und nie wieder.
+    {
+      const wrap = s.querySelector("#sTheme");
+      const paintTheme = () => {
+        wrap.innerHTML = "";
+        [["auto", "Wie das Gerät"], ["light", "Hell"], ["dark", "Dunkel"]].forEach(([wert, text]) => {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.setAttribute("aria-pressed", String(state.settings.theme === wert));
+          c.textContent = text;
+          c.onclick = () => { state.settings.theme = wert; save(); applyTheme(); paintTheme(); };
+          wrap.appendChild(c);
+        });
+      };
+      paintTheme();
+    }
+
+    const uebernehmen = () => {
       state.profile.name = name.value.trim();
       const a = clamp(parseInt(f.value, 10) || 0, 0, 12);
       const b = clamp(parseInt(t.value, 10) || 24, 13, 24);
@@ -3631,12 +3684,118 @@ $("#settingsBtn").onclick = () => {
         to: parseTime(slTo.value),
         wind: clamp(parseInt(slWind.value, 10) || 0, 0, 180)
       };
-      save(); close(); renderAll();
+      save();
     };
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Fertig";
+    ok.onclick = () => { uebernehmen(); close(); renderAll(); };
     foot.appendChild(ok);
     s.appendChild(foot);
+
+    baueEinstellungsMenue(s, uebernehmen, ok);
   }, { wide: true });
 };
+
+/* ============================================================
+   Einstellungen als Menü statt als eine lange Rolle
+
+   Alles auf einmal waren am Telefon 1395 Pixel — zweieinhalb
+   Bildschirmhöhen Scrollen, 35 Bedienelemente, kein Überblick.
+   Hier bleibt der gesamte Aufbau unverändert: die Abschnitte stehen
+   weiter im Dokument, es wird nur immer genau einer gezeigt. Dadurch
+   funktionieren sämtliche Eingaben und Knöpfe unverändert weiter.
+   ============================================================ */
+
+const SETTINGS_SEITEN = [
+  { id: "person",   name: "Wer plant hier?",     kurz: () => state.profile.name || "kein Name" },
+  { id: "zeit",     name: "Tag und Nachtruhe",   kurz: () => {
+      const sl = state.settings.sleep || {};
+      return pad2(state.settings.dayStart) + "–" + pad2(state.settings.dayEnd) + " Uhr"
+        + (sl.on ? " · Schlaf ab " + fmtTime(sl.from) : " · keine Schlafenszeit");
+    } },
+  { id: "bereiche", name: "Bereiche",            kurz: () => {
+      const mitZiel = state.areas.filter(a => a.plan.goal > 0).length;
+      return state.areas.length + " Bereiche" + (mitZiel ? ", " + mitZiel + " mit Wochenziel" : "");
+    } },
+  { id: "orte",     name: "Orte und Fahrzeiten", kurz: () => {
+      const n = (state.orte || []).length;
+      return n ? n + (n === 1 ? " Ort" : " Orte") : "noch keine Orte";
+    } },
+  { id: "ansicht",  name: "Darstellung",         kurz: () => (
+      { auto: "Wie das Gerät", light: "Hell", dark: "Dunkel" }[state.settings.theme] || "Wie das Gerät") },
+  { id: "konto",    name: "Konto",               kurz: () => (Sync.active() ? "angemeldet" : "nur dieses Gerät"),
+    wennVerfuegbar: () => Sync.configured() },
+  { id: "daten",    name: "Daten und Sicherung", kurz: () => (
+      state.backupAt ? "zuletzt gesichert am " + new Date(state.backupAt).toLocaleDateString("de-DE")
+                     : "noch nie gesichert") }
+];
+
+function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
+  const titel = s.querySelector(".sheet__title");
+  const abschnitte = {};
+  s.querySelectorAll(".sheet__row[data-page]").forEach(r => {
+    (abschnitte[r.dataset.page] = abschnitte[r.dataset.page] || []).push(r);
+  });
+
+  const menue = document.createElement("div");
+  menue.className = "setmenu";
+  titel.after(menue);
+
+  const zurueck = document.createElement("button");
+  zurueck.type = "button";
+  zurueck.className = "setback";
+  zurueck.innerHTML = "<span aria-hidden='true'>‹</span> Einstellungen";
+  zurueck.hidden = true;
+  titel.after(zurueck);
+
+  const zeigeMenue = () => {
+    uebernehmen();                       // Eingaben nicht verlieren beim Wechseln
+    titel.textContent = "Einstellungen";
+    titel.hidden = false;
+    zurueck.hidden = true;
+    menue.hidden = false;
+    fertigKnopf.textContent = "Fertig";
+    Object.values(abschnitte).flat().forEach(r => { r.hidden = true; });
+    baueListe();
+    s.scrollTop = 0;
+  };
+
+  const zeigeSeite = seite => {
+    uebernehmen();
+    titel.hidden = true;
+    zurueck.hidden = false;
+    menue.hidden = true;
+    fertigKnopf.textContent = "Fertig";
+    Object.entries(abschnitte).forEach(([id, rows]) => {
+      rows.forEach(r => { r.hidden = id !== seite.id; });
+    });
+    s.scrollTop = 0;
+  };
+
+  const baueListe = () => {
+    menue.innerHTML = "";
+    SETTINGS_SEITEN.forEach(seite => {
+      if (seite.wennVerfuegbar && !seite.wennVerfuegbar()) return;
+      if (!abschnitte[seite.id]) return;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "setmenu__item";
+      b.innerHTML =
+        "<span class='setmenu__txt'><span class='setmenu__name'>" + escapeHtml(seite.name) + "</span>" +
+        "<span class='setmenu__kurz'>" + escapeHtml(seite.kurz()) + "</span></span>" +
+        "<span class='setmenu__pfeil' aria-hidden='true'>›</span>";
+      b.onclick = () => zeigeSeite(seite);
+      menue.appendChild(b);
+    });
+  };
+
+  zurueck.onclick = zeigeMenue;
+  zeigeMenue();
+}
 
 /* ============================================================ Konto */
 function paintAccount(row, box, closeSheet) {
@@ -4204,13 +4363,8 @@ $("#todayBtn").onclick = () => {
   selectedDayIdx = (new Date().getDay() + 6) % 7;
   renderAll();
 };
-$("#themeBtn").onclick = () => {
-  const order = ["auto", "light", "dark"];
-  const i = order.indexOf(state.settings.theme);
-  state.settings.theme = order[(i + 1) % 3];
-  save(); applyTheme();
-  toast({ auto: "Folgt dem Gerät", light: "Hell", dark: "Dunkel" }[state.settings.theme]);
-};
+/* Hell/Dunkel wird in den Einstellungen umgeschaltet — siehe Abschnitt
+   „Darstellung". In der Kopfzeile war dafür am Telefon kein Platz. */
 
 document.addEventListener("keydown", e => {
   if (openModal) return;
