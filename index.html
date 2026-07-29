@@ -349,6 +349,19 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
   border-top: 1px dashed var(--border);
 }
 .goalrow__body[hidden] { display: none; }
+.goalrow__art { display: flex; gap: 6px; margin-top: var(--s-2); flex-wrap: wrap; }
+.goalrow__art .chip { font-size: 12px; padding: 5px 10px; min-height: 32px; }
+.goalrow__arthint { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
+.wegrow { display: flex; align-items: center; gap: var(--s-2); margin-bottom: 6px; }
+.wegrow__txt { flex: 1; font-size: 13px; min-width: 0; }
+.wegrow__min { width: 74px; flex: none; text-align: right; }
+.ampel { display: flex; align-items: center; gap: 8px; font-size: 12px;
+  color: var(--text-muted); margin-bottom: var(--s-2); }
+.ampel__bar { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-3);
+  overflow: hidden; position: relative; }
+.ampel__fill { height: 100%; border-radius: 99px; transition: width .25s; }
+.ampel__mark { position: absolute; top: -2px; bottom: -2px; width: 1px;
+  background: var(--text-faint); opacity: .55; }
 .goalrow__sub { font-size: 12px; color: var(--text-faint); margin: 0 0 var(--s-2); }
 
 /* Vorschlagsblöcke im Raster */
@@ -963,6 +976,7 @@ const Store = (() => {
   // Leute, die denselben Rechner benutzen, gegenseitig den Plan.
   let scope = "local";
   let available = false;
+  let full = false;              // Browser-Speicher voll — einmal melden, nicht dauernd
   try {
     localStorage.setItem("__wp_test", "1");
     localStorage.removeItem("__wp_test");
@@ -994,8 +1008,17 @@ const Store = (() => {
     },
     save(data) {
       if (!available) return;
-      try { localStorage.setItem(key(), JSON.stringify(data)); } catch (e) {}
+      try { localStorage.setItem(key(), JSON.stringify(data)); full = false; }
+      catch (e) {
+        // Ein voller Speicher wurde bisher verschluckt: die App meldete
+        // „gespeichert", und beim nächsten Öffnen war alles weg.
+        if (!full) {
+          full = true;
+          try { window.dispatchEvent(new CustomEvent("wp-speicher-voll")); } catch (e2) {}
+        }
+      }
     },
+    get full() { return full; },
     clear() { if (available) { try { localStorage.removeItem(key()); } catch (e) {} } }
   };
 })();
@@ -1044,6 +1067,68 @@ const DEFAULT_AREAS = [
   { id: "a7", name: "Alltag",           hue: 330 }
 ];
 
+/* ============================================================
+   Art einer Tätigkeit — die eine Eigenschaft, aus der sich fast alles ableitet.
+
+   Vorher musste man je Bereich vier Zahlen raten (kürzester Block, längster
+   Block, frühestens, spätestens) und die Wirkung war unsichtbar. Die Art ist
+   eine Entscheidung, die man versteht: „Sport ist Körper". Daraus ergeben sich
+   Blocklänge, Pause danach und die bevorzugte Tageszeit.
+
+   Die Pausenlänge folgt der geistigen Last: nach Kopfarbeit reichen fünf
+   Minuten nicht, nach einem Spaziergang schon.
+   ============================================================ */
+const ARTEN = {
+  kopf: {
+    label: "Kopf", kurz: "Kopf",
+    hint: "Arbeit, Lernen, alles was Konzentration kostet",
+    min: 60, max: 120, pause: 20,
+    // Früher am Tag ist besser, Vormittag bekommt einen Bonus
+    zeit: (start, tagAnfang) => -(Math.max(0, start - tagAnfang) / 60 * 2.5)
+                              + (start >= 480 && start <= 780 ? 10 : 0)
+  },
+  koerper: {
+    label: "Körper", kurz: "Körper",
+    hint: "Sport, Bewegung, alles Körperliche",
+    min: 45, max: 90, pause: 15,
+    zeit: (start) => -Math.abs(start - 16 * 60) / 60 * 1.2
+  },
+  erholung: {
+    label: "Erholung", kurz: "Erholung",
+    hint: "Freizeit, Hobby, Zeit mit Menschen, Pausen für dich",
+    min: 60, max: 180, pause: 10,
+    // Erholung gehört in den Feierabend, nicht in den Vormittag —
+    // und auch nicht in die letzte Stunde vor dem Schlafen.
+    zeit: (start) => -Math.abs(start - 18.5 * 60) / 60 * 3
+  },
+  orga: {
+    label: "Alltag", kurz: "Alltag",
+    hint: "Haushalt, Erledigungen, Organisation",
+    min: 30, max: 90, pause: 10,
+    zeit: (start, tagAnfang) => -(Math.max(0, start - tagAnfang) / 60 * 1)
+  }
+};
+const ART_REIHE = ["kopf", "koerper", "erholung", "orga"];
+
+/* Art eines Bereichs, immer mit gültigem Rückfall. */
+function artOf(area) {
+  return ARTEN[(area && area.plan && area.plan.art)] || ARTEN.orga;
+}
+
+/* Erste Zuordnung für bestehende und neue Bereiche. Die sieben Standard-
+   bereiche kennen wir; bei eigenen Namen raten wir über Stichworte und
+   landen sonst bei „Alltag", der neutralen Art. */
+const ART_STANDARD = { a1: "kopf", a2: "kopf", a3: "koerper",
+                       a4: "erholung", a5: "erholung", a6: "erholung", a7: "orga" };
+function artRaten(area) {
+  if (ART_STANDARD[area.id]) return ART_STANDARD[area.id];
+  const n = String(area.name || "").toLowerCase();
+  if (/arbeit|job|büro|buero|uni|lern|studi|schule|projekt|fokus|deep/.test(n)) return "kopf";
+  if (/sport|lauf|gym|fitness|yoga|schwimm|rad|training|bewegung/.test(n)) return "koerper";
+  if (/freizeit|pause|hobby|menschen|freund|familie|serie|entspann|ruhe|spiel|musik|lesen/.test(n)) return "erholung";
+  return "orga";
+}
+
 /* Plan-Einstellungen eines Bereichs — steuern Wochenziel und Vorschlag.
    goal 0 = kein Wochenziel. from/to null = ganzer sichtbarer Tag. */
 function defaultPlan() {
@@ -1053,8 +1138,12 @@ function defaultPlan() {
     // dass der Planer ihm etwas zum Streichen vorschlaegt, das ihm wichtig war.
     must: true,
     // pad: Wegzeit vor und nach einem Block dieses Bereichs, in Minuten.
-    // Eine Stunde Heimfahrt gehoert zur Arbeit, auch wenn sie nicht im Plan steht.
-    pad: 0
+    // Ab v1.7 nur noch Altlast — die Wegzeit hängt jetzt am Ortswechsel.
+    pad: 0,
+    // art: steuert Blocklänge, Pause danach und bevorzugte Tageszeit
+    art: "orga",
+    // ortId: Standardort für diesen Bereich, leer erlaubt
+    ortId: null
   };
 }
 
@@ -1068,11 +1157,14 @@ function defaultSleep() {
 
 function freshState() {
   return {
-    version: 5,
+    version: 6,
     profile: { id: uid(), name: "" },
     settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
     settingsAt: 0,
-    areas: DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan() })),
+    areas: DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan(), })).map(a =>
+      ({ ...a, plan: { ...a.plan, art: ART_STANDARD[a.id] || "orga" } })),
+    orte: [],        // { id, name } — Wegzeiten hängen an Ortspaaren, nicht an Bereichen
+    wege: {},        // { "id1>id2": minuten }
     blocks: [],
     tasks: [],
     days: {},
@@ -1103,9 +1195,12 @@ function migrate(s) {
       min:  clamp(+p.min || d.min, 15, 240),
       max:  clamp(+p.max || d.max, 15, 480),
       must: p.must === undefined ? true : !!p.must,
-      pad:  clamp(+p.pad || 0, 0, 180)
+      pad:  clamp(+p.pad || 0, 0, 180),
+      art:  ARTEN[p.art] ? p.art : null,
+      ortId: p.ortId || null
     };
     if (a.plan.max < a.plan.min) a.plan.max = a.plan.min;
+    if (!a.plan.art) a.plan.art = artRaten(a);
   });
   // v4: Schlafenszeit mit Ruhezeit
   {
@@ -1122,7 +1217,80 @@ function migrate(s) {
   if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
   if (typeof s.settingsAt !== "number") s.settingsAt = 0;
   if (typeof s.backupAt !== "number") s.backupAt = 0;
-  s.version = 5;
+
+  // Tagfenster absichern. Geclampt wurde bisher nur im Einstellungsdialog —
+  // ein gesyncter oder importierter Stand mit dayEnd < dayStart zerlegt das Raster.
+  s.settings.dayStart = clamp(+s.settings.dayStart || 7, 0, 22);
+  s.settings.dayEnd   = clamp(+s.settings.dayEnd   || 22, s.settings.dayStart + 1, 24);
+
+  // v6: Orte und Wegzeiten.
+  //
+  // Bisher hing die Wegzeit am Bereich: „Arbeit +60 min". Das legte eine Stunde
+  // Anfahrt auch zwischen zwei Arbeitsblöcke am selben Schreibtisch und null
+  // Minuten zwischen Arbeit und Uni. Eine Fahrt entsteht aber nicht durch die
+  // Tätigkeit, sondern durch den Ortswechsel.
+  //
+  // Aus jedem Bereich mit Wegzeit wird ein Ort, dazu ein Heimatort. Wer vorher
+  // „Arbeit +60" hatte, bekommt „Zuhause ↔ Arbeit = 60 min" — dieselbe Wirkung,
+  // nur an der richtigen Stelle. Blöcke ohne eigenen Ort gelten als zuhause.
+  if (!Array.isArray(s.orte)) s.orte = [];
+  if (!s.wege || typeof s.wege !== "object") s.wege = {};
+  {
+    const mitWeg = s.areas.filter(a => a.plan.pad > 0 && !a.plan.ortId);
+    if (mitWeg.length && !s.settings.heimOrt) {
+      const heim = { id: "o-heim", name: "Zuhause" };
+      s.orte.push(heim);
+      s.settings.heimOrt = heim.id;
+      mitWeg.forEach(a => {
+        const o = { id: "o-" + a.id, name: a.name };
+        s.orte.push(o);
+        a.plan.ortId = o.id;
+        s.wege[wegKey(heim.id, o.id)] = a.plan.pad;
+      });
+    }
+    s.areas.forEach(a => { a.plan.pad = 0; });   // Altfeld stillgelegt
+    // Schlüssel sind immer sortiert („a>b" mit a < b) — sonst findet weg() nichts
+    Object.keys(s.wege).forEach(k => {
+      const t = k.split(">");
+      if (t.length !== 2) { delete s.wege[k]; return; }
+      const richtig = wegKey(t[0], t[1]);
+      if (richtig !== k) { s.wege[richtig] = s.wege[k]; delete s.wege[k]; }
+    });
+    const ortIds = new Set(s.orte.map(o => o.id));
+    if (s.settings.heimOrt && !ortIds.has(s.settings.heimOrt)) s.settings.heimOrt = null;
+    s.areas.forEach(a => { if (a.plan.ortId && !ortIds.has(a.plan.ortId)) a.plan.ortId = null; });
+    s.blocks.forEach(b => { if (b.ortId && !ortIds.has(b.ortId)) delete b.ortId; });
+    Object.keys(s.wege).forEach(k => {
+      if (!k.split(">").every(id => ortIds.has(id))) delete s.wege[k];
+    });
+  }
+
+  // Wöchentliche Blöcke gelten ab ihrem Anlegedatum, nicht seit Anbeginn
+  s.blocks.forEach(b => {
+    if (b.repeat === "weekly" && !b.since) b.since = b.date || "1970-01-01";
+  });
+
+  // Verwaiste Verweise reparieren. Wird ein Bereich auf einem Gerät gelöscht,
+  // zeigen die Blöcke des anderen ins Leere — areaById fällt still auf den
+  // ersten Bereich zurück, und „Laufen" zählt plötzlich auf das Arbeitsziel.
+  {
+    const ids = new Set(s.areas.map(a => a.id));
+    const heimat = () => {
+      let rest = s.areas.find(a => a.name === "Sonstiges");
+      if (!rest) {
+        rest = { id: "arest", name: "Sonstiges", hue: 210, plan: defaultPlan() };
+        rest.plan.goal = 0;
+        s.areas.push(rest);
+        ids.add(rest.id);
+      }
+      return rest.id;
+    };
+    [...s.blocks, ...s.tasks].forEach(r => {
+      if (r.areaId && !ids.has(r.areaId)) r.areaId = heimat();
+    });
+  }
+
+  s.version = 6;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -1332,11 +1500,21 @@ function renderDaySwitch() {
 }
 
 /* ============================================================ Blöcke einer Spalte */
+/* Liegt dieser Block an diesem Tag?
+
+   Wöchentliche Blöcke galten bisher für *jeden* passenden Wochentag — auch für
+   Wochen, die längst vorbei sind. Wer im August „Sport montags" anlegt, hatte
+   damit rückwirkend auch jeden Montag im Januar erfüllt. „since" ist das Datum,
+   ab dem die Serie gilt; bei alten Daten setzt migrate() es auf das Anlegedatum. */
+function onDay(b, dayKey, dayIdx) {
+  if (b.repeat !== "weekly") return b.date === dayKey;
+  return b.day === dayIdx && (!b.since || dayKey >= b.since);
+}
+
 function blocksFor(date, dayIdx) {
   const key = iso(date);
-  return state.blocks.filter(b =>
-    b.repeat === "weekly" ? b.day === dayIdx : b.date === key
-  ).sort((a, b) => a.start - b.start);
+  return state.blocks.filter(b => onDay(b, key, dayIdx))
+    .sort((a, b) => a.start - b.start);
 }
 
 /* Überlappungen nebeneinander legen */
@@ -1392,8 +1570,7 @@ function areaMinutes(areaId, sug) {
     state.blocks.forEach(b => {
       if (b.areaId !== areaId) return;
       if (!!b.sug !== !!sug) return;
-      const here = b.repeat === "weekly" ? b.day === day.i : b.date === day.key;
-      if (here) sum += b.end - b.start;
+      if (onDay(b, day.key, day.i)) sum += b.end - b.start;
     });
   });
   return sum;
@@ -1439,11 +1616,183 @@ function restSpans() {
     .filter(s => s.end > s.start);
 }
 
+/* ============================================================
+   Orte und Wege
+
+   weg(a, b) ist symmetrisch und null, wenn einer der beiden Orte fehlt oder
+   beide gleich sind. Ein Block ohne eigenen Ort erbt den seines Bereichs und
+   sonst den Heimatort — sonst wäre die Matrix voller Lücken und die Wegzeit
+   verschwände, sobald irgendwo nichts eingetragen ist.
+   ============================================================ */
+function ortOf(block) {
+  if (!block) return null;
+  if (block.ortId) return block.ortId;
+  const a = areaById(block.areaId);
+  return (a && a.plan.ortId) || state.settings.heimOrt || null;
+}
+function ortName(id) {
+  const o = (state.orte || []).find(x => x.id === id);
+  return o ? o.name : "";
+}
+function wegKey(a, b) { return a < b ? a + ">" + b : b + ">" + a; }
+function weg(a, b) {
+  if (!a || !b || a === b) return 0;
+  return +(state.wege || {})[wegKey(a, b)] || 0;
+}
+/* Alle Ortspaare, die im Plan tatsächlich vorkommen — nur die muss man pflegen. */
+function ortPaare() {
+  const ids = new Set();
+  (state.orte || []).forEach(o => ids.add(o.id));
+  const liste = [...ids];
+  const out = [];
+  for (let i = 0; i < liste.length; i++)
+    for (let j = i + 1; j < liste.length; j++)
+      out.push({ a: liste[i], b: liste[j], key: wegKey(liste[i], liste[j]) });
+  return out;
+}
+
+/* Ortsauswahl als Chip-Reihe. Wird im Bereichs- und im Eintrags-Dialog
+   benutzt. Ein neuer Ort entsteht inline — ein zweiter Dialog würde den
+   ersten schließen. */
+function ortChips(wrap, getId, setId) {
+  const paint = () => {
+    wrap.innerHTML = "";
+    const mach = (id, txt) => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.setAttribute("aria-pressed", String((getId() || null) === id));
+      c.textContent = txt;
+      c.onclick = () => { setId(id); paint(); };
+      wrap.appendChild(c);
+    };
+    mach(null, "— egal —");
+    (state.orte || []).forEach(o => mach(o.id, o.name));
+
+    const neu = document.createElement("button");
+    neu.type = "button"; neu.className = "chip";
+    neu.textContent = "＋ Ort";
+    neu.onclick = () => {
+      wrap.innerHTML = "";
+      const inp = document.createElement("input");
+      inp.className = "field"; inp.placeholder = "z.B. Büro, Uni, Halle";
+      inp.style.maxWidth = "190px"; inp.autocomplete = "off";
+      const ok = document.createElement("button");
+      ok.type = "button"; ok.className = "btn btn--sm"; ok.textContent = "Anlegen";
+      const fertig = () => {
+        const name = inp.value.trim();
+        if (!name) { paint(); return; }
+        if (!Array.isArray(state.orte)) state.orte = [];
+        const o = { id: "o-" + uid(), name };
+        state.orte.push(o);
+        // Der erste Ort ist der Heimatort: alles ohne eigenen Ort gilt als dort.
+        if (!state.settings.heimOrt) state.settings.heimOrt = o.id;
+        setId(o.id);
+        paint();
+      };
+      ok.onclick = fertig;
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); fertig(); }
+        if (e.key === "Escape") { e.preventDefault(); paint(); }
+      });
+      wrap.append(inp, ok);
+      inp.focus();
+    };
+    wrap.appendChild(neu);
+  };
+  paint();
+  return paint;
+}
+
+/* ============================================================
+   Wie voll ist die Woche, bevor überhaupt verteilt wird?
+
+   Der Planer hat bisher immer verteilt und am Ende gemeldet, was nicht passte.
+   Andersherum ist es ehrlicher: Wer sich 58 Stunden vornimmt, hat kein
+   Platzproblem, sondern ein Zielproblem. Und ein Tag, der bis zum Rand
+   verplant ist, hält nicht — unverplante Zeit ist keine Lücke im Plan,
+   sondern Teil davon.
+   ============================================================ */
+const VERPLANT_GRENZE = 0.65;
+function wochenKapazitaet() {
+  const tage = weekDays();
+  let wach = 0;
+  tage.forEach(() => {
+    let frei = (state.settings.dayEnd - state.settings.dayStart) * 60;
+    restSpans().forEach(r => {
+      frei -= Math.max(0, Math.min(state.settings.dayEnd * 60, r.end)
+                        - Math.max(state.settings.dayStart * 60, r.start));
+    });
+    wach += Math.max(0, frei);
+  });
+
+  let fest = 0;
+  tage.forEach(day => state.blocks.forEach(b => {
+    if (!b.sug && onDay(b, day.key, day.i)) fest += b.end - b.start;
+  }));
+
+  // Offene Wochenziele plus die Pausen, die dazugehören
+  let offen = 0, pausen = 0;
+  state.areas.forEach(a => {
+    const rest = Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false));
+    if (!rest) return;
+    offen += rest;
+    const A = artOf(a);
+    pausen += Math.ceil(rest / A.max) * A.pause;
+  });
+
+  const bedarf = fest + offen + pausen;
+  const grenze = wach * VERPLANT_GRENZE;
+  return { wach, fest, offen, pausen, bedarf, grenze,
+           quote: wach ? bedarf / wach : 0, ok: bedarf <= grenze };
+}
+
+/* Zeichnet die Auslastungs-Ampel. Grün bis 60 %, gelb bis 70 %, darüber rot —
+   die Zahlen kommen aus der Beobachtung, dass Pläne reißen, weil man sich zu
+   viel vornimmt, nicht weil man schlecht sortiert. */
+function ampelFarbe(q) {
+  return q <= 0.60 ? "var(--ok, #3ba776)" : q <= 0.70 ? "var(--warn, #d1a13a)" : "var(--danger)";
+}
+function ampelZeichnen(el) {
+  if (!el) return;
+  const k = wochenKapazitaet();
+  const pct = Math.round(k.quote * 100);
+  el.innerHTML =
+    "<div class='ampel'><span>Woche zu <b style='color:var(--text)'>" + pct + " %</b> verplant</span>" +
+    "<span class='ampel__bar'><span class='ampel__fill' style='width:" +
+      Math.min(100, pct) + "%;background:" + ampelFarbe(k.quote) + "'></span>" +
+      "<span class='ampel__mark' style='left:" + Math.round(VERPLANT_GRENZE * 100) + "%'></span>" +
+    "</span><span style='color:var(--text-faint)'>" + fmtDur(Math.round(k.bedarf)) + " von " +
+      fmtDur(Math.round(k.wach)) + "</span></div>" +
+    (k.ok ? "" :
+      "<div class='goalrow__sub' style='margin:-2px 0 10px'>Über der Marke bei " +
+      Math.round(VERPLANT_GRENZE * 100) + " % wird es eng — Pläne reißen an zu vollen Tagen, " +
+      "nicht an schlechter Sortierung.</div>");
+  return k;
+}
+
+/* Mindestpause nach einem Block, bevor der Planer etwas Neues vorschlägt.
+
+   Der Stress entsteht am Übergang, nicht im Termin — und je länger der Block,
+   desto länger muss die Pause sein. Kurze Pausen reichen für die Stimmung, für
+   Kopfarbeit nicht. Ohne diese Regel klebte alles aneinander: „Längster Block
+   120 min" teilte die Zeit zwar, trennte sie aber nicht.
+
+   Das gilt nur für den Vorschlag. Von Hand darf man weiter alles aneinanderlegen. */
+const PAUSE_MIN = 5;
+function pauseNach(len, area) {
+  const grund = area ? artOf(area).pause : 15;
+  // Kurze Blöcke brauchen weniger, sehr lange etwas mehr als die Grundpause.
+  if (len < 45) return Math.max(PAUSE_MIN, Math.round(grund * 0.5 / 5) * 5);
+  if (len >= 150) return grund + 10;
+  return grund;
+}
+
 /* Freie Lücken eines Tages innerhalb des erlaubten Fensters.
    Vergangenes wird ausgelassen — ein Vorschlag für gestern hilft niemandem.
    Schlaf- und Ruhezeit zählen wie ein belegter Block: der Vorschlag geht
    darum herum, von Hand eintragen darf man dort trotzdem. */
-function freeGaps(day, plan) {
+function freeGaps(day, plan, area) {
+  const areaId = area && area.id;
   const todayKey = iso(new Date());
   if (day.key < todayKey) return [];
 
@@ -1457,14 +1806,23 @@ function freeGaps(day, plan) {
     cursor = Math.max(cursor, Math.ceil((now + 10) / 15) * 15);
   }
 
-  // Jeder Block belegt zusaetzlich seine Wegzeit. Wer um 13:30 aus der
-  // Arbeit kommt und eine Stunde nach Hause faehrt, faengt nicht um 13:30
-  // mit Lernen an — und der Planer soll das auch nicht behaupten.
+  // Der Abstand zu einem vorhandenen Block ist der größte von dreien:
+  // seine Wegzeit, die Wegzeit dessen, was hier hin soll, und die Mindestpause.
+  //
+  // Bisher zählte nur die erste. Wer eine Stunde zur Uni fährt, bekam den
+  // Uni-Block trotzdem auf die Minute an die Arbeit geklebt — der Puffer hing
+  // am falschen Bereich.
+  //
+  // Der Abstand ist der größere von zwei Dingen: die Fahrt zwischen den beiden
+  // Orten und die Pause nach dem vorhandenen Block. Gleicher Ort heißt keine
+  // Fahrt — zwei Lernblöcke hintereinander sitzen am selben Schreibtisch.
+  const zielOrt = area ? (area.plan.ortId || state.settings.heimOrt || null) : null;
   const busy = state.blocks
-    .filter(b => b.repeat === "weekly" ? b.day === day.i : b.date === day.key)
+    .filter(b => onDay(b, day.key, day.i))
     .map(b => {
-      const pad = (areaById(b.areaId).plan || {}).pad || 0;
-      return { start: b.start - pad, end: b.end + pad };
+      const pause = pauseNach(b.end - b.start, areaById(b.areaId));
+      const fahrt = weg(ortOf(b), zielOrt);
+      return { start: b.start - Math.max(fahrt, pause), end: b.end + Math.max(fahrt, pause) };
     })
     .concat(restSpans())
     .sort((a, b) => a.start - b.start);
@@ -1481,56 +1839,155 @@ function freeGaps(day, plan) {
     .filter(g => g.end - g.start >= 15);
 }
 
+/* Wie voll ist ein Tag schon — inklusive der Vorschläge, die dieser
+   Durchlauf bereits gesetzt hat. */
+function tagesLast(day) {
+  return state.blocks.reduce((s, b) =>
+    s + (onDay(b, day.key, day.i) ? b.end - b.start : 0), 0);
+}
+function bereichAmTag(areaId, day) {
+  return state.blocks.reduce((s, b) =>
+    s + (b.areaId === areaId && onDay(b, day.key, day.i) ? b.end - b.start : 0), 0);
+}
+
 function dayWeight(day) {
   const e = (state.days[day.key] || {}).energy;
   return ENERGY_WEIGHT[e] || 1;
 }
 
+/* Bewertet einen möglichen Platz. Je höher, desto besser.
+
+   Der alte Verteiler nahm immer die erste freie Lücke und schrieb den Block an
+   deren Anfang. Das ist der Grund, warum der Vormittag zugemauert wurde und der
+   Abend leer blieb, und warum der Montag zwölf Stunden trug, während der Sonntag
+   fünfeinhalb hatte. Hier werden stattdessen mehrere Plätze verglichen. */
+function slotScore(start, len, area, day, gap) {
+  let s = 100;
+  const vorne = start - gap.start;
+  const hinten = gap.end - (start + len);
+
+  // Fragmentierung: bestraft wird, was übrig bleibt, nicht das Teilen an sich.
+  // Eine Lücke von acht Stunden in zwei Hälften zu schneiden ist harmlos —
+  // sogar gut, weil links und rechts Luft entsteht. Schlecht sind unbrauchbare
+  // Reste. (Eine pauschale Strafe fürs Teilen drückte jeden Block an den
+  // Anfang der Lücke und damit die Erholung zurück in den Vormittag.)
+  if (vorne > 0 && vorne < 45) s -= 14;
+  if (hinten > 0 && hinten < 45) s -= 14;
+  const kleinereSeite = (vorne > 0 && hinten > 0) ? Math.min(vorne, hinten) : Infinity;
+  if (kleinereSeite < 90) s -= 8;
+
+  // Tagesbalance. Quadratisch, damit ein schon voller Tag schnell unattraktiv
+  // wird — sonst frisst der erste Tag der Woche alles.
+  const fenster = Math.max(60, (state.settings.dayEnd - state.settings.dayStart) * 60);
+  const anteil = Math.min(1.6, tagesLast(day) / (fenster * 0.65));
+  s -= anteil * anteil * 55;
+
+  // Derselbe Bereich soll sich über die Woche verteilen, nicht an einem Tag klumpen.
+  s -= bereichAmTag(area.id, day) / 15 * 5;
+
+  // Tagesform: an einem Tag mit wenig Energie landet weniger.
+  // Ist nichts eingetragen, ist das Gewicht 1 und dieser Term null.
+  s += (dayWeight(day) - 1) * 18;
+
+  // Tageszeit — hängt an der Art. Kopfarbeit früh, Erholung in den Feierabend.
+  // Ohne diesen Term landet alles am Tagesende, weil dort nichts zerschnitten
+  // wird und keine Restlücke bleibt.
+  const tagAnfang = Math.max(state.settings.dayStart * 60,
+    ...restSpans().filter(r => r.start <= state.settings.dayStart * 60).map(r => r.end), 0);
+  const A = artOf(area);
+  s += A.zeit(start, tagAnfang);
+  // Direkt aus dem Bett in einen Block will niemand — und direkt bis ins Bett
+  // auch nicht. Ohne die zweite Regel landet Erholung immer am Tagesende, weil
+  // dort keine Restlücke übrig bleibt, die man zerschneiden könnte.
+  if (start < tagAnfang + 45) s -= 12;
+  const abendRuhe = restSpans().filter(r => r.end >= 1440).map(r => r.start);
+  const tagEnde = Math.min(state.settings.dayEnd * 60,
+    ...(abendRuhe.length ? abendRuhe : [1440]));
+  if (start + len > tagEnde - 45) s -= 18;
+
+  // Lange Blöcke lieber am Stück als zerstückelt.
+  s += Math.min(len, A.max) / 60 * 3;
+
+  // Ortswechsel kosten. Wer schon am selben Ort ist, spart die Fahrt;
+  // der dritte Ort an einem Tag ist einer zu viel.
+  const zielOrt = area.plan.ortId || state.settings.heimOrt || null;
+  if (zielOrt) {
+    const heute = state.blocks.filter(b => onDay(b, day.key, day.i));
+    const orte = new Set(heute.map(b => ortOf(b)).filter(Boolean));
+    if (orte.has(zielOrt)) s += 8;
+    else if (orte.size >= 2) s -= 16;
+    const davor = heute.filter(b => b.end <= start).sort((x, y) => y.end - x.end)[0];
+    if (davor && weg(ortOf(davor), zielOrt) > 0) s -= 6;
+  }
+
+  return s;
+}
+
 /* Verteilt die offenen Minuten eines Bereichs auf die Woche.
-   Gleichmäßig über die erlaubten Tage, gewichtet nach Tagesform. */
+   Jeder Block sucht sich seinen Platz einzeln und nimmt den bestbewerteten. */
 function placeArea(area, open) {
   const p = area.plan;
-  const cand = weekDays()
-    .filter(day => p.days.includes(day.i))
-    .map(day => ({ day, gaps: freeGaps(day, p), w: dayWeight(day) }))
-    .filter(c => c.gaps.length);
-  if (!cand.length) return 0;
+  const tage = weekDays().filter(day => p.days.includes(day.i));
+  if (!tage.length) return 0;
 
-  const sumW = cand.reduce((s, c) => s + c.w, 0);
-  cand.forEach(c => { c.share = Math.round(open * c.w / sumW / 15) * 15; });
+  // Blocklängen kommen aus der Art, nicht mehr aus zwei Zahlenfeldern,
+  // die niemand sinnvoll raten konnte.
+  const A = artOf(area);
+  const minLen = Math.min(A.min, Math.max(15, Math.floor(open / 15) * 15));
 
-  // Kürzeste sinnvolle Blocklänge. Ist das ganze Ziel kleiner als die
-  // Mindestlänge, darf der Block entsprechend kleiner sein.
-  const minLen = Math.min(p.min, Math.max(15, Math.floor(open / 15) * 15));
-  let placed = 0;
+  // Auf wie viele Tage lässt sich das Ziel sinnvoll verteilen? Genau hier lag
+  // der zweite Fehler: „Sport 3 h" ergab rechnerisch 30 Minuten pro Tag, das
+  // war weniger als die Mindestlänge — also wurde an keinem Tag etwas gesetzt
+  // und der Auffangdurchlauf kippte alle drei Stunden auf den Montag.
+  // Zielblocklänge: eine Stunde ist der brauchbarste Default, aber innerhalb
+  // dessen, was der Bereich erlaubt. Daraus ergibt sich, auf wie viele Tage
+  // sich das Ziel sinnvoll verteilen lässt.
+  const zielLen = clamp(60, A.min, A.max);
+  const maxTage = clamp(Math.round(open / zielLen), 1,
+                        Math.min(tage.length, Math.max(1, Math.floor(open / minLen))));
+  const proTag = Math.max(minLen, Math.ceil(open / maxTage / 15) * 15);
 
-  const fill = (c, wanted) => {
-    let need = wanted;
-    for (const g of c.gaps) {
-      while (need >= minLen) {
-        const room = g.end - g.start;
-        if (room < minLen) break;
-        const len = Math.floor(Math.min(p.max, need, room) / 15) * 15;
-        if (len < minLen) break;
-        state.blocks.push({
-          id: uid(), title: area.name, areaId: area.id,
-          day: c.day.i, date: c.day.key, repeat: "none",
-          start: g.start, end: g.start + len, frog: false, sug: true
-        });
-        // Der eigene Puffer gilt auch zum naechsten eigenen Block
-        g.start += len + p.pad;
-        need -= len;
-        placed += len;
+  let rest = open, placed = 0;
+
+  // Erst mit Tagesobergrenze verteilen, dann ohne — sonst bleibt bei einer
+  // vollen Woche etwas liegen, das durchaus noch gepasst hätte.
+  for (const grenze of [proTag, Infinity]) {
+    let schutz = 0;
+    while (rest >= minLen && schutz++ < 60) {
+      let best = null;
+      for (const day of tage) {
+        const schon = bereichAmTag(area.id, day);
+        if (schon >= grenze) continue;
+        // Auch die Blocklänge an die Tagesgrenze binden — sonst schöpft der
+        // erste Block die Obergrenze in einem Rutsch aus und der Bereich landet
+        // doch wieder nur an zwei Tagen.
+        const platzHeute = grenze === Infinity ? Infinity : grenze - schon;
+        for (const g of freeGaps(day, p, area)) {
+          const room = g.end - g.start;
+          const len = Math.floor(Math.min(A.max, rest, room, platzHeute) / 15) * 15;
+          if (len < minLen) continue;
+          // Anfang, kurz nach Anfang, Mitte und Ende der Lücke vergleichen
+          const starts = [g.start, g.start + 45,
+                          g.start + Math.floor((room - len) / 2 / 15) * 15, g.end - len];
+          new Set(starts).forEach(st => {
+            if (st < g.start || st + len > g.end) return;
+            const sc = slotScore(st, len, area, day, g);
+            if (!best || sc > best.sc) best = { sc, day, start: st, len };
+          });
+        }
       }
-      if (need < minLen) break;
+      if (!best) break;
+      state.blocks.push({
+        id: uid(), title: area.name, areaId: area.id,
+        day: best.day.i, date: best.day.key, repeat: "none",
+        start: best.start, end: best.start + best.len, frog: false, sug: true
+      });
+      rest -= best.len;
+      placed += best.len;
     }
-    return wanted - need;
-  };
+    if (rest < minLen) break;
+  }
 
-  let rest = open;
-  cand.forEach(c => { rest -= fill(c, Math.min(c.share, rest)); });
-  // Was nirgends passte, noch einmal über alle Tage schieben
-  if (rest >= minLen) cand.forEach(c => { if (rest >= minLen) rest -= fill(c, rest); });
   // Restminuten unter der Mindestlänge nicht als Zwergblock anlegen,
   // sondern an vorhandene Vorschläge anhängen
   if (rest >= 15) placed += growSuggestions(area, rest);
@@ -1539,7 +1996,12 @@ function placeArea(area, open) {
 }
 
 /* Hängt übrig gebliebene Minuten an bestehende Vorschläge an,
-   statt 15-Minuten-Krümel ins Raster zu streuen. */
+   statt 15-Minuten-Krümel ins Raster zu streuen.
+
+   Diese Funktion kannte weder die Nachtruhe noch überlappende Termine: sie
+   dehnte Vorschläge in die Schlafenszeit hinein und quer über Arzttermine
+   hinweg, weil `x.start >= b.end` einen Block, der schon vorher beginnt,
+   nicht findet. Beides ist jetzt Teil der Obergrenze. */
 function growSuggestions(area, rest) {
   const p = area.plan;
   const hi = Math.min(state.settings.dayEnd * 60, p.to == null ? 1440 : p.to);
@@ -1547,18 +2009,26 @@ function growSuggestions(area, rest) {
 
   for (const day of weekDays()) {
     if (!p.days.includes(day.i)) continue;
-    const all = state.blocks
-      .filter(b => b.repeat === "weekly" ? b.day === day.i : b.date === day.key)
+    if (day.key < iso(new Date())) continue;
+    const all = state.blocks.filter(b => onDay(b, day.key, day.i))
       .sort((a, b) => a.start - b.start);
 
     for (const b of all) {
       if (rest - used < 15) return used;
       if (!b.sug || b.areaId !== area.id) continue;
-      const next = all.find(x => x !== b && x.start >= b.end);
-      const nextPad = next ? ((areaById(next.areaId).plan || {}).pad || 0) : 0;
-      const limit = next ? Math.min(hi, next.start - Math.max(p.pad, nextPad)) : hi;
+
+      // Alles, was nach dem Ende dieses Blocks noch im Weg steht — auch wenn es
+      // davor beginnt und ihn überlappt. Dazu die Nachtruhe.
+      const zielOrt = area.plan.ortId || state.settings.heimOrt || null;
+      const hindernisse = all
+        .filter(x => x !== b && x.end > b.end)
+        .map(x => x.start - Math.max(weg(ortOf(x), zielOrt),
+                                     pauseNach(x.end - x.start, areaById(x.areaId))))
+        .concat(restSpans().filter(r => r.end > b.end).map(r => r.start));
+
+      const limit = Math.min(hi, ...hindernisse.filter(v => v >= b.end));
       const grow = Math.floor(
-        Math.min(limit - b.end, p.max - (b.end - b.start), rest - used) / 15) * 15;
+        Math.min(limit - b.end, artOf(area).max - (b.end - b.start), rest - used) / 15) * 15;
       if (grow >= 15) { b.end += grow; used += grow; }
     }
   }
@@ -1632,6 +2102,12 @@ function renderGoals() {
 
   const withGoal = state.areas.filter(a => a.plan.goal > 0);
 
+  if (withGoal.length) {
+    const amp = document.createElement("div");
+    ampelZeichnen(amp);
+    list.appendChild(amp);
+  }
+
   if (!withGoal.length) {
     list.innerHTML =
       "<div class='empty'><b>Noch keine Wochenziele</b>Für alles ohne feste Uhrzeit: sag, wie viele Stunden " +
@@ -1704,11 +2180,42 @@ function renderGoals() {
     b.className = "btn btn--primary btn--sm";
     b.textContent = "Vorschlagen";
     b.onclick = () => {
-      const r = buildSuggestions();
-      save(); renderAll();
-      if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
-      else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
-      else toast("Vorschlag steht — schau, ob's dir passt");
+      const verteilen = () => {
+        const r = buildSuggestions();
+        save(); renderAll();
+        if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+        else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
+        else toast("Vorschlag steht — schau, ob's dir passt");
+      };
+      const k = wochenKapazitaet();
+      if (k.ok) { verteilen(); return; }
+      // Nicht erst verteilen und danach melden, was nicht passte.
+      modal((sh, close) => {
+        sh.innerHTML =
+          "<h2 class='sheet__title'>Das wird eng</h2>" +
+          "<p style='margin:0 0 14px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+          "Deine Ziele und Termine summieren sich mit den nötigen Pausen auf <b>" +
+          fmtDur(Math.round(k.bedarf)) + "</b>. In dieser Woche stehen dir " +
+          fmtDur(Math.round(k.wach)) + " wache Stunden zur Verfügung — realistisch verplanbar " +
+          "sind davon etwa <b>" + fmtDur(Math.round(k.grenze)) + "</b>.</p>" +
+          "<p style='margin:0 0 14px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+          "Ein Plan ohne Luft hält nicht: Es kommt immer etwas dazwischen, und dann " +
+          "kippt der ganze Tag statt nur ein Block. Nimm lieber " +
+          fmtDur(Math.round(k.bedarf - k.grenze)) + " aus den Wochenzielen heraus.</p>" +
+          "<div id='wAmpel'></div>";
+        ampelZeichnen(sh.querySelector("#wAmpel"));
+        const foot = document.createElement("div");
+        foot.className = "sheet__foot";
+        const trotz = document.createElement("button");
+        trotz.className = "btn"; trotz.type = "button"; trotz.textContent = "Trotzdem verteilen";
+        trotz.onclick = () => { close(); verteilen(); };
+        const sp = document.createElement("span"); sp.className = "spacer";
+        const ziele = document.createElement("button");
+        ziele.className = "btn btn--primary"; ziele.type = "button"; ziele.textContent = "Ziele anpassen";
+        ziele.onclick = () => { close(); goalsSheet(); };
+        foot.append(trotz, sp, ziele);
+        sh.appendChild(foot);
+      });
     };
     foot.appendChild(b);
     const n = naechste(); if (n) foot.appendChild(n);
@@ -1736,10 +2243,13 @@ function goalsSheet() {
       "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
       "Für alles, was keine feste Uhrzeit hat. Trag Stunden pro Woche ein — der Planer " +
       "rechnet mit, was noch fehlt, und kann den Rest auf die Woche verteilen. " +
-      "0 lassen heißt: kein Ziel.</p>" +
+      "0 lassen heißt: kein Ziel. Die <b>Art</b> sagt ihm, wie lang die Blöcke sein " +
+      "dürfen, wie viel Pause danach nötig ist und wann am Tag es am besten passt.</p>" +
+      "<div id='gAmpel'></div>" +
       "<div class='goallist' id='gList'></div>";
 
     const wrap = s.querySelector("#gList");
+    ampelZeichnen(s.querySelector("#gAmpel"));
 
     state.areas.forEach(a => {
       const p = a.plan;
@@ -1757,6 +2267,8 @@ function goalsSheet() {
           "<button class='goalrow__more' type='button' aria-expanded='false' " +
                   "aria-label='Zeiten für " + escapeHtml(a.name) + "'>⌄</button>" +
         "</div>" +
+        "<div class='goalrow__art'></div>" +
+        "<div class='goalrow__arthint'></div>" +
         "<div class='goalrow__body' hidden>" +
           "<label class='switch' style='margin-bottom:14px'>" +
             "<input type='checkbox' class='gMust'> Muss sein — nicht zum Streichen vorschlagen</label>" +
@@ -1766,14 +2278,8 @@ function goalsSheet() {
             "<div><label class='label'>Frühestens</label><input class='field gFrom' type='time' step='900'></div>" +
             "<div><label class='label'>Spätestens</label><input class='field gTo' type='time' step='900'></div>" +
           "</div>" +
-          "<div class='sheet__cols' style='margin-bottom:12px'>" +
-            "<div><label class='label'>Kürzester Block (min)</label><input class='field gMin' type='number' min='15' max='240' step='15'></div>" +
-            "<div><label class='label'>Längster Block (min)</label><input class='field gMax' type='number' min='15' max='480' step='15'></div>" +
-          "</div>" +
-          "<label class='label'>Wegzeit davor und danach (min)</label>" +
-          "<input class='field gPad' type='number' min='0' max='180' step='15' style='max-width:140px'>" +
-          "<div class='goalrow__sub' style='margin:8px 0 0'>Zum Beispiel eine Stunde Heimfahrt nach der Arbeit. " +
-          "So lange wird davor und danach nichts eingeplant.</div>" +
+          "<p class='goalrow__sub'>Wo findet das statt? Daraus rechnet der Planer die Fahrzeit.</p>" +
+          "<div class='chipset gOrte'></div>" +
         "</div>";
 
       const hIn   = row.querySelector(".goalrow__h");
@@ -1782,26 +2288,43 @@ function goalsSheet() {
       const dayW  = row.querySelector(".gDays");
       const from  = row.querySelector(".gFrom");
       const to    = row.querySelector(".gTo");
-      const minIn = row.querySelector(".gMin");
-      const maxIn = row.querySelector(".gMax");
       const mustIn = row.querySelector(".gMust");
-      const padIn = row.querySelector(".gPad");
+      const artW  = row.querySelector(".goalrow__art");
+      const artHint = row.querySelector(".goalrow__arthint");
+      const orteW = row.querySelector(".gOrte");
 
       const tags = row.querySelector(".goalrow__tags");
       const paintTags = () => {
         tags.innerHTML =
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
-          (p.pad ? "<span class='tag'>+" + p.pad + " min Weg</span>" : "");
+          (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "");
       };
       paintTags();
 
+      // Art — die eine sichtbare Entscheidung je Bereich
+      const paintArt = () => {
+        artW.innerHTML = "";
+        ART_REIHE.forEach(k => {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.setAttribute("aria-pressed", String(p.art === k));
+          c.textContent = ARTEN[k].label;
+          c.onclick = () => { p.art = k; paintArt(); };
+          artW.appendChild(c);
+        });
+        const A = ARTEN[p.art] || ARTEN.orga;
+        artHint.textContent = A.hint + " · Blöcke " + A.min + "–" + A.max +
+          " min, danach " + A.pause + " min Pause.";
+      };
+      paintArt();
+
+      // Ort
+      ortChips(orteW, () => p.ortId, id => { p.ortId = id; paintTags(); });
+
       mustIn.checked = p.must;
-      padIn.value = p.pad;
       hIn.value = p.goal || 0;
       from.value = fmtTime(p.from == null ? state.settings.dayStart * 60 : p.from);
       to.value   = fmtTime(p.to   == null ? state.settings.dayEnd * 60   : p.to);
-      minIn.value = p.min;
-      maxIn.value = p.max;
 
       const days = new Set(p.days);
       const paintDays = () => {
@@ -1831,15 +2354,14 @@ function goalsSheet() {
 
       row._commit = () => {
         p.must = mustIn.checked;
-        p.pad = clamp(parseInt(padIn.value, 10) || 0, 0, 180);
         p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
         p.days = [...days].sort((x, y) => x - y);
         const f = parseTime(from.value), t = parseTime(to.value);
         p.from = f > 0 ? f : null;
         p.to   = t < 1440 && t > f ? t : null;
-        p.min  = clamp(parseInt(minIn.value, 10) || 45, 15, 240);
-        p.max  = clamp(parseInt(maxIn.value, 10) || 120, 15, 480);
-        if (p.max < p.min) p.max = p.min;
+        // Blocklängen kommen aus der Art — die beiden Zahlenfelder sind weg.
+        const A = ARTEN[p.art] || ARTEN.orga;
+        p.min = A.min; p.max = A.max;
       };
 
       wrap.appendChild(row);
@@ -1853,6 +2375,10 @@ function goalsSheet() {
     cancel.onclick = close;
     const ok = document.createElement("button");
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Speichern";
+    wrap.addEventListener("input", () => {
+      wrap.querySelectorAll(".goalrow").forEach(r => r._commit());
+      ampelZeichnen(s.querySelector("#gAmpel"));
+    });
     ok.onclick = () => {
       wrap.querySelectorAll(".goalrow").forEach(r => r._commit());
       save(); close(); renderAll();
@@ -1964,7 +2490,11 @@ function renderGrid() {
     grid.appendChild(col);
   });
 
-  wrap.scrollTop = keepScroll || Math.max(0, ((new Date().getHours() - 1 - dayStart) * hourH));
+  // keepScroll === 0 ist falsy — wer ganz oben stand, wurde vom Minutentakt
+  // sonst jede Minute zurück zur aktuellen Uhrzeit gerissen.
+  wrap.scrollTop = keepScroll > 0
+    ? keepScroll
+    : Math.max(0, ((new Date().getHours() - 1 - dayStart) * hourH));
 }
 
 function blockEl({ b, col, of }, hourH) {
@@ -2166,7 +2696,9 @@ function attachColumnHandlers(col, hourH) {
     e.preventDefault();
     const t = state.tasks.find(x => x.id === dragTaskId);
     if (!t) return;
-    const s = minAt(e.clientY);
+    // Startzeit klemmen, nicht die Endzeit — sonst entsteht beim Fallenlassen
+    // ganz unten ein Block „22:00–22:00" ohne Dauer.
+    const s = Math.min(minAt(e.clientY), state.settings.dayEnd * 60 - 30);
     state.blocks.push({
       id: uid(), title: t.title, areaId: t.areaId || state.areas[0].id,
       day: +col.dataset.day, date: col.dataset.date, repeat: "none",
@@ -2309,6 +2841,8 @@ function blockSheet(draft) {
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
+        "<div id='bOrtHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>" +
       "<div class='sheet__row sheet__cols'>" +
         "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
         "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
@@ -2336,11 +2870,31 @@ function blockSheet(draft) {
         c.setAttribute("aria-pressed", String(a.id === draft.areaId));
         c.innerHTML = "<span class='chip__dot'></span>";
         c.append(a.name);
-        c.onclick = () => { draft.areaId = a.id; paintAreas(); };
+        c.onclick = () => { draft.areaId = a.id; paintAreas(); paintOrtHint(); };
         areaWrap.appendChild(c);
       });
     };
     paintAreas();
+
+    // Ort — daraus rechnet der Planer die Fahrzeit zum nächsten Block
+    const ortHint = s.querySelector("#bOrtHint");
+    const paintOrtHint = () => {
+      const gewaehlt = draft.ortId || (areaById(draft.areaId).plan || {}).ortId || null;
+      if (!gewaehlt || !(state.orte || []).length) {
+        ortHint.textContent = (state.orte || []).length
+          ? "Ohne Ort rechnet der Planer keine Fahrzeit."
+          : "Sobald du zwei Orte angelegt hast, kannst du in den Einstellungen eintragen, wie lange du zwischen ihnen brauchst.";
+        return;
+      }
+      const andere = (state.orte || []).filter(o => o.id !== gewaehlt)
+        .map(o => o.name + " " + (weg(gewaehlt, o.id) || 0) + " min");
+      ortHint.textContent = andere.length
+        ? "Fahrzeit von hier: " + andere.join(" · ")
+        : "Noch kein zweiter Ort angelegt.";
+    };
+    const repaintOrte = ortChips(s.querySelector("#bOrte"),
+      () => draft.ortId, id => { draft.ortId = id; paintOrtHint(); });
+    paintOrtHint();
 
     // Tage
     const dayWrap = s.querySelector("#bDays");
@@ -2372,8 +2926,18 @@ function blockSheet(draft) {
       const del = document.createElement("button");
       del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
       del.onclick = () => {
-        state.blocks = state.blocks.filter(x => x.id !== draft.id);
-        save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
+        const weg = () => {
+          state.blocks = state.blocks.filter(x => x.id !== draft.id);
+          save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
+        };
+        // Eine Serie zu löschen trifft jede Woche, nicht nur die angezeigte.
+        // Das passierte bisher ohne jede Nachfrage.
+        if (draft.repeat === "weekly")
+          confirmSheet("Wöchentlicher Eintrag",
+            "„" + (draft.title || "Ohne Titel") + "\" steht in jeder Woche. Löschen entfernt " +
+            "ihn aus allen Wochen — auch aus den kommenden.",
+            "Aus allen Wochen löschen", weg);
+        else weg();
       };
       foot.appendChild(del);
     }
@@ -2393,7 +2957,10 @@ function blockSheet(draft) {
         list.forEach(d => state.blocks.push({
           id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
           day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
-          start: st, end: en, frog: false
+          since: iso(addDays(mon, d)), ortId: draft.ortId || null,
+          // Der Frosch kam aus dem Entwurf und wurde hier stillschweigend
+          // wieder auf false gesetzt — je nach Weg blieb er erhalten oder nicht.
+          start: st, end: en, frog: !!draft.frog
         }));
       } else {
         const b = state.blocks.find(x => x.id === draft.id);
@@ -2402,7 +2969,13 @@ function blockSheet(draft) {
         b.day = list[0];
         b.date = iso(addDays(mon, list[0]));
         b.repeat = weekly ? "weekly" : "none";
+        b.ortId = draft.ortId || null;
+        if (weekly && !b.since) b.since = b.date;
+        if (!weekly) delete b.since;
         b.start = st; b.end = en;
+        // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
+        // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
+        delete b.sug;
       }
       save(); close(); renderAll();
     };
@@ -2589,18 +3162,22 @@ function renderEnergyAction() {
   b.className = "btn btn--sm";
   b.style.marginTop = "12px";
   b.style.width = "100%";
-  b.textContent = "Was kann heute weg? (" + weg.length + ")";
+  b.textContent = (iso(addDays(mondayOf(anchor), selectedDayIdx)) === iso(new Date())
+    ? "Was kann heute weg? (" : "Was kann an dem Tag weg? (") + weg.length + ")";
   b.onclick = relieveSheet;
   box.appendChild(b);
 }
 
 function relieveSheet() {
   modal((s, close) => {
-    const tag = DAY_LONG[selectedDayIdx];
+    // Beim Vorausplanen stand hier "heute" über einem Tag in zehn Tagen.
+    const d = addDays(mondayOf(anchor), selectedDayIdx);
+    const heute = iso(d) === iso(new Date());
+    const tag = DAY_LONG[selectedDayIdx] + (heute ? "" : ", " + d.getDate() + "." + (d.getMonth() + 1) + ".");
     s.innerHTML =
-      "<h2 class='sheet__title'>Was kann heute weg?</h2>" +
+      "<h2 class='sheet__title'>Was kann " + (heute ? "heute" : "am " + tag) + " weg?</h2>" +
       "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
-      "Wenig Energie an diesem " + tag + ". Das hier ist nicht als Pflicht markiert — " +
+      "Wenig Energie am " + tag + ". Das hier ist nicht als Pflicht markiert — " +
       "du kannst es streichen oder auf einen anderen Tag schieben. " +
       "Was du stehen lässt, bleibt einfach im Plan.</p>" +
       "<div class='relief' id='reliefList'></div>";
@@ -2684,16 +3261,39 @@ function moveSheet(id) {
       c.disabled = vergangen || selbst;
       if (c.disabled) c.style.opacity = ".4";
       c.onclick = () => {
-        const platz = freeGaps(day, { from: null, to: null, days: [day.i] })
-          .find(g => g.end - g.start >= laenge);
-        if (!platz) { hint.textContent = "Am " + DAY_LONG[day.i] + " ist kein Platz von " + fmtDur(laenge) + " frei."; return; }
-        blk.repeat = "none";
-        blk.day = day.i;
-        blk.date = day.key;
-        blk.start = platz.start;
-        blk.end = platz.start + laenge;
-        save(); close(); renderAll();
-        toast("Auf " + DAY_LONG[day.i] + ", " + fmtTime(blk.start) + " geschoben");
+        const passende = freeGaps(day, { from: null, to: null, days: [day.i] }, areaById(blk.areaId))
+          .filter(g => g.end - g.start >= laenge);
+        if (!passende.length) { hint.textContent = "Am " + DAY_LONG[day.i] + " ist kein Platz von " + fmtDur(laenge) + " frei."; return; }
+
+        // Die Stelle nehmen, die der bisherigen Uhrzeit am nächsten liegt.
+        // Vorher war es immer die früheste — der Serienabend landete dadurch
+        // um sieben Uhr morgens.
+        let ziel = null;
+        passende.forEach(g => {
+          const st = clamp(blk.start, g.start, g.end - laenge);
+          const d = Math.abs(st - blk.start);
+          if (!ziel || d < ziel.d) ziel = { st, d };
+        });
+
+        const schieben = () => {
+          blk.repeat = "none";
+          delete blk.since;
+          blk.day = day.i;
+          blk.date = day.key;
+          blk.start = ziel.st;
+          blk.end = ziel.st + laenge;
+          save(); close(); renderAll();
+          toast("Auf " + DAY_LONG[day.i] + ", " + fmtTime(blk.start) + " geschoben");
+        };
+
+        // Eine Serie zu verschieben hat sie bisher stillschweigend in einen
+        // einzelnen Termin verwandelt — also von jedem Montag gelöscht.
+        if (blk.repeat === "weekly")
+          confirmSheet("Wöchentlicher Eintrag",
+            "„" + (blk.title || "Ohne Titel") + "\" steht bisher in jeder Woche. Verschieben " +
+            "macht daraus einen einzelnen Termin — aus den anderen Wochen verschwindet er.",
+            "Trotzdem verschieben", schieben);
+        else schieben();
       };
       wrap.appendChild(c);
     });
@@ -2709,8 +3309,14 @@ function moveSheet(id) {
   });
 }
 
+/* Das einfache Anführungszeichen muss mit maskiert werden: an mehreren Stellen
+   landet Nutzertext in einfach gequoteten Attributen (aria-label). Ohne die
+   Maskierung kann ein Bereichsname aus dem Attribut ausbrechen und eigenen Code
+   mitbringen — der über den Abgleich auch auf dem zweiten Gerät läuft. */
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return String(s).replace(/[&<>"'`]/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;"
+  }[c]));
 }
 
 document.querySelectorAll(".energy__opt").forEach(btn => {
@@ -2796,6 +3402,10 @@ $("#settingsBtn").onclick = () => {
       "<div class='sheet__row' id='sAcctRow'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
       "<div class='sheet__row'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
       "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
+      "<div class='sheet__row'><span class='label'>Orte und Fahrzeiten</span>" +
+        "<div class='arealist' id='sOrte'></div>" +
+        "<div class='chipset' id='sOrtNeu' style='margin-top:10px'></div>" +
+        "<div id='sWege' style='margin-top:14px'></div></div>" +
       "<div class='sheet__row'><span class='label'>Daten</span>" +
       "<div style='display:flex;gap:8px;flex-wrap:wrap'>" +
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
@@ -2854,7 +3464,16 @@ $("#settingsBtn").onclick = () => {
         const inp = document.createElement("input");
         inp.className = "field"; inp.value = a.name;
         inp.setAttribute("aria-label", "Name des Bereichs");
-        inp.oninput = () => { a.name = inp.value; save(); renderAll(); };
+        // Nicht bei jedem Tastenanschlag speichern: das setzte die
+        // Rückgängig-Historie zurück, zeichnete das ganze Raster neu und
+        // schickte pro Zeichen einen Abgleich zum Server.
+        let tippTimer = null;
+        inp.oninput = () => {
+          a.name = inp.value;
+          clearTimeout(tippTimer);
+          tippTimer = setTimeout(() => { save(); renderAll(); }, 500);
+        };
+        inp.onchange = () => { clearTimeout(tippTimer); a.name = inp.value; save(); renderAll(); };
         const del = document.createElement("button");
         del.type = "button"; del.className = "btn btn--sm btn--danger"; del.textContent = "×";
         del.setAttribute("aria-label", "Bereich " + a.name + " löschen");
@@ -2873,6 +3492,114 @@ $("#settingsBtn").onclick = () => {
       });
     };
     paint();
+
+    // ---- Orte und Fahrzeiten
+    const orteWrap = s.querySelector("#sOrte");
+    const wegeWrap = s.querySelector("#sWege");
+    const paintOrte = () => {
+      orteWrap.innerHTML = "";
+      const liste = state.orte || [];
+      if (!liste.length) {
+        orteWrap.innerHTML = "<div style='font-size:12.5px;color:var(--text-faint);line-height:1.6'>" +
+          "Noch keine Orte. Wenn du welche anlegst, plant der Planer die Fahrt dazwischen " +
+          "ein — und lässt sie weg, wenn zwei Blöcke am selben Ort liegen.</div>";
+      }
+      liste.forEach(o => {
+        const row = document.createElement("div");
+        row.className = "arearow";
+        const inp = document.createElement("input");
+        inp.className = "field"; inp.value = o.name;
+        inp.setAttribute("aria-label", "Name des Orts");
+        let t = null;
+        inp.oninput = () => { o.name = inp.value; clearTimeout(t);
+                              t = setTimeout(() => { save(); paintWege(); }, 500); };
+        inp.onchange = () => { clearTimeout(t); o.name = inp.value; save(); paintWege(); renderAll(); };
+        const heim = document.createElement("button");
+        heim.className = "btn btn--sm"; heim.type = "button";
+        heim.textContent = state.settings.heimOrt === o.id ? "Zuhause ✓" : "als Zuhause";
+        heim.title = "Blöcke ohne eigenen Ort gelten als hier";
+        heim.onclick = () => { state.settings.heimOrt = o.id; save(); paintOrte(); };
+        const del = document.createElement("button");
+        del.className = "task__del"; del.innerHTML = "×";
+        del.setAttribute("aria-label", "Ort löschen");
+        del.onclick = () => {
+          state.orte = state.orte.filter(x => x.id !== o.id);
+          Object.keys(state.wege).forEach(k => { if (k.includes(o.id)) delete state.wege[k]; });
+          state.areas.forEach(a => { if (a.plan.ortId === o.id) a.plan.ortId = null; });
+          state.blocks.forEach(b => { if (b.ortId === o.id) delete b.ortId; });
+          if (state.settings.heimOrt === o.id) state.settings.heimOrt = (state.orte[0] || {}).id || null;
+          save(); paintOrte(); paintWege(); renderAll();
+        };
+        row.append(inp, heim, del);
+        orteWrap.appendChild(row);
+      });
+    };
+    const paintWege = () => {
+      const paare = ortPaare();
+      wegeWrap.innerHTML = paare.length
+        ? "<p class='goalrow__sub'>Wie lange brauchst du zwischen zwei Orten?</p>"
+        : "";
+      paare.forEach(pr => {
+        const row = document.createElement("div");
+        row.className = "wegrow";
+        const txt = document.createElement("span");
+        txt.className = "wegrow__txt";
+        txt.textContent = ortName(pr.a) + " ↔ " + ortName(pr.b);
+        const inp = document.createElement("input");
+        inp.className = "field wegrow__min"; inp.type = "number";
+        inp.min = "0"; inp.max = "240"; inp.step = "5";
+        inp.value = state.wege[pr.key] || 0;
+        inp.setAttribute("aria-label", "Fahrzeit " + ortName(pr.a) + " nach " + ortName(pr.b));
+        inp.onchange = () => {
+          const v = clamp(parseInt(inp.value, 10) || 0, 0, 240);
+          if (v) state.wege[pr.key] = v; else delete state.wege[pr.key];
+          inp.value = v; save();
+        };
+        const min = document.createElement("span");
+        min.style.cssText = "font-size:12.5px;color:var(--text-faint);flex:none";
+        min.textContent = "min";
+        row.append(txt, inp, min);
+        wegeWrap.appendChild(row);
+      });
+    };
+    paintOrte();
+    paintWege();
+    {
+      const neuWrap = s.querySelector("#sOrtNeu");
+      const knopf = () => {
+        neuWrap.innerHTML = "";
+        const b = document.createElement("button");
+        b.className = "btn btn--sm"; b.type = "button"; b.textContent = "+ Ort";
+        b.onclick = () => {
+          neuWrap.innerHTML = "";
+          const inp = document.createElement("input");
+          inp.className = "field"; inp.placeholder = "z.B. Büro, Uni, Halle";
+          inp.style.maxWidth = "190px"; inp.autocomplete = "off";
+          const ok = document.createElement("button");
+          ok.className = "btn btn--sm"; ok.type = "button"; ok.textContent = "Anlegen";
+          const fertig = () => {
+            const name = inp.value.trim();
+            if (name) {
+              if (!Array.isArray(state.orte)) state.orte = [];
+              const o = { id: "o-" + uid(), name };
+              state.orte.push(o);
+              if (!state.settings.heimOrt) state.settings.heimOrt = o.id;
+              save(); paintOrte(); paintWege();
+            }
+            knopf();
+          };
+          ok.onclick = fertig;
+          inp.addEventListener("keydown", e => {
+            if (e.key === "Enter") { e.preventDefault(); fertig(); }
+            if (e.key === "Escape") { e.preventDefault(); knopf(); }
+          });
+          neuWrap.append(inp, ok);
+          inp.focus();
+        };
+        neuWrap.appendChild(b);
+      };
+      knopf();
+    }
 
     s.querySelector("#sAddArea").onclick = () => {
       state.areas.push({ id: uid(), name: "Neuer Bereich", hue: (state.areas.length * 47 + 20) % 360, plan: defaultPlan() });
@@ -3087,9 +3814,42 @@ function importData() {
         const data = JSON.parse(r.result);
         if (!data || typeof data !== "object") throw new Error("bad");
         migrate(data);
-        state = data;
-        save(); closeModal(); renderAll();
-        toast("Sicherung geladen");
+
+        // Ersetzen ist nicht harmlos: alles, was es hier gibt und in der
+        // Sicherung nicht, bekommt beim Speichern einen Grabstein — und den
+        // schiebt der Abgleich auf alle anderen Geräte. Eine drei Monate alte
+        // Sicherung auf dem Handy hat so den Plan auf dem PC gelöscht.
+        const uebernehmen = (neu, wort) => {
+          state = neu;
+          save(); closeModal(); renderAll();
+          toast(wort);
+        };
+
+        modal((s, close) => {
+          s.innerHTML =
+            "<h2 class='sheet__title'>Sicherung laden</h2>" +
+            "<p style='margin:0 0 10px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+            "Die Datei enthält <b>" + (data.blocks || []).length + " Einträge</b> und <b>" +
+            (data.tasks || []).length + " Aufgaben</b>. Aktuell hier: " +
+            state.blocks.length + " Einträge, " + state.tasks.length + " Aufgaben.</p>" +
+            "<p style='margin:0 0 4px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+            "<b>Zusammenführen</b> behält beides und nimmt bei Unterschieden das Neuere. " +
+            "<b>Ersetzen</b> wirft den jetzigen Plan weg — auch auf deinen anderen Geräten.</p>";
+          const foot = document.createElement("div");
+          foot.className = "sheet__foot";
+          const ers = document.createElement("button");
+          ers.className = "btn btn--danger"; ers.type = "button"; ers.textContent = "Ersetzen";
+          ers.onclick = () => { close(); uebernehmen(data, "Sicherung geladen"); };
+          const sp = document.createElement("span"); sp.className = "spacer";
+          const abb = document.createElement("button");
+          abb.className = "btn"; abb.type = "button"; abb.textContent = "Abbrechen";
+          abb.onclick = close;
+          const zus = document.createElement("button");
+          zus.className = "btn btn--primary"; zus.type = "button"; zus.textContent = "Zusammenführen";
+          zus.onclick = () => { close(); uebernehmen(mergeStates(state, data), "Zusammengeführt"); };
+          foot.append(ers, sp, abb, zus);
+          s.appendChild(foot);
+        });
       } catch (e) {
         toast("Datei konnte nicht gelesen werden");
       }
@@ -3551,6 +4311,14 @@ if (!Store.available) {
     "Lade die Datei herunter und öffne sie direkt im Browser — dann bleibt alles erhalten.</div>";
 }
 
+window.addEventListener("wp-speicher-voll", () => {
+  $("#banner").innerHTML =
+    "<div class='banner'><b>Der Browser-Speicher ist voll.</b> Änderungen werden gerade " +
+    "<u>nicht</u> gespeichert. Mach über Einstellungen → Sicherung eine Kopie, bevor du " +
+    "weiterarbeitest.</div>";
+  toast("Speicher voll — bitte sichern", { label: "Sichern", run: exportData });
+});
+
 $("#syncBadge").onclick = () => {
   if (!Sync.configured()) return;
   if (!Sync.active()) signInSheet();
@@ -3569,7 +4337,20 @@ Sync.boot()
     maybeBackupNag();
   });
 
-setInterval(() => { if (!openModal) renderGrid(); }, 60000);
+let letzterTag = iso(new Date());
+setInterval(() => {
+  // Über Mitternacht hinweg zeigte die App weiter die abgelaufene Woche,
+  // weil "anchor" nur beim Laden gesetzt wurde.
+  const heute = iso(new Date());
+  if (heute !== letzterTag) {
+    letzterTag = heute;
+    if (iso(mondayOf(anchor)) !== iso(mondayOf(new Date()))) anchor = new Date();
+    selectedDayIdx = (new Date().getDay() + 6) % 7;
+    if (!openModal) renderAll();
+    return;
+  }
+  if (!openModal) renderGrid();
+}, 60000);
 // Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Sync.active()) Sync.pull();
