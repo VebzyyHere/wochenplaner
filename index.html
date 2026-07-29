@@ -1,0 +1,3034 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Wochenplaner",
+  "schemaVersion": 1,
+  "description": "Wochenplaner v1.4 — Wochenraster mit Bereichen, Wochenzielen in Stunden samt Verteil-Vorschlag, Schlafenszeit mit Ruhezeit, Aufgabenliste, Tagesform-Schalter und Pomodoro-Timer. Rückgängig für Löschungen. Vorbereitet für Konto und Abgleich zwischen Handy, Tablet und PC.",
+  "mcpTools": [],
+  "mcpServerNames": []
+}
+</script>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wochenplaner</title>
+<style>
+/* ============================================================
+   Design Tokens
+   Chrome bleibt achromatisch — die Farbe gehört den Bereichen.
+   In einem Planer IST die Farbe die Information.
+   ============================================================ */
+:root {
+  color-scheme: light dark;
+
+  --h-ink: 265;
+
+  --bg:         oklch(0.985 0.003 var(--h-ink));
+  --surface:    oklch(1 0 0);
+  --surface-2:  oklch(0.965 0.004 var(--h-ink));
+  --surface-3:  oklch(0.935 0.006 var(--h-ink));
+  --border:     oklch(0.90 0.006 var(--h-ink));
+  --border-strong: oklch(0.82 0.008 var(--h-ink));
+  --text:       oklch(0.24 0.015 var(--h-ink));
+  --text-muted: oklch(0.55 0.012 var(--h-ink));
+  --text-faint: oklch(0.68 0.010 var(--h-ink));
+
+  --ink:        oklch(0.30 0.030 var(--h-ink));
+  --ink-hover:  oklch(0.24 0.030 var(--h-ink));
+  --ink-active: oklch(0.19 0.030 var(--h-ink));
+  --focus:      oklch(0.58 0.170 var(--h-ink));
+
+  --danger:  oklch(0.55 0.190 25);
+  --success: oklch(0.55 0.140 150);
+  --warn:    oklch(0.66 0.150 75);
+
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px;
+  --s-6:24px; --s-8:32px; --s-12:48px;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-lg: 16px;
+  --shadow-1: 0 1px 2px oklch(0.2 0.02 var(--h-ink) / 0.08);
+  --shadow-2: 0 6px 20px oklch(0.2 0.02 var(--h-ink) / 0.14), 0 1px 3px oklch(0.2 0.02 var(--h-ink) / 0.08);
+  --shadow-3: 0 16px 48px oklch(0.2 0.02 var(--h-ink) / 0.22);
+
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html[data-theme="dark"] {
+  --bg:         oklch(0.165 0.012 var(--h-ink));
+  --surface:    oklch(0.205 0.014 var(--h-ink));
+  --surface-2:  oklch(0.245 0.015 var(--h-ink));
+  --surface-3:  oklch(0.285 0.016 var(--h-ink));
+  --border:     oklch(0.315 0.016 var(--h-ink));
+  --border-strong: oklch(0.40 0.018 var(--h-ink));
+  --text:       oklch(0.955 0.006 var(--h-ink));
+  --text-muted: oklch(0.735 0.012 var(--h-ink));
+  --text-faint: oklch(0.60 0.012 var(--h-ink));
+
+  --ink:        oklch(0.90 0.010 var(--h-ink));
+  --ink-hover:  oklch(0.96 0.010 var(--h-ink));
+  --ink-active: oklch(0.82 0.010 var(--h-ink));
+  --focus:      oklch(0.72 0.150 var(--h-ink));
+
+  --danger:  oklch(0.68 0.180 25);
+  --success: oklch(0.72 0.140 150);
+  --warn:    oklch(0.78 0.150 75);
+
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.35);
+  --shadow-2: 0 6px 20px oklch(0 0 0 / 0.45), 0 1px 3px oklch(0 0 0 / 0.3);
+  --shadow-3: 0 16px 48px oklch(0 0 0 / 0.6);
+
+}
+
+/* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
+   Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
+.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow {
+  --area-bg:     oklch(0.950 0.048 var(--h));
+  --area-bg-2:   oklch(0.900 0.075 var(--h));
+  --area-edge:   oklch(0.870 0.070 var(--h));
+  --area-line:   oklch(0.605 0.150 var(--h));
+  --area-text:   oklch(0.350 0.090 var(--h));
+  --area-dot:    oklch(0.605 0.150 var(--h));
+}
+html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow) {
+  --area-bg:     oklch(0.320 0.060 var(--h));
+  --area-bg-2:   oklch(0.400 0.085 var(--h));
+  --area-edge:   oklch(0.430 0.080 var(--h));
+  --area-line:   oklch(0.740 0.150 var(--h));
+  --area-text:   oklch(0.945 0.035 var(--h));
+  --area-dot:    oklch(0.740 0.150 var(--h));
+}
+
+/* ============================================================ Base */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.num { font-variant-numeric: tabular-nums; }
+.sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ============================================================ Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  min-height: 38px; padding: 0 var(--s-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px; font-weight: 500;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:active { transform: scale(0.98); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn--primary {
+  background: var(--ink); border-color: var(--ink);
+  color: var(--surface); font-weight: 600;
+}
+html[data-theme="dark"] .btn--primary { color: oklch(0.18 0.014 var(--h-ink)); }
+.btn--primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
+.btn--ghost { background: transparent; border-color: transparent; }
+.btn--ghost:hover { background: var(--surface-2); }
+.btn--danger { color: var(--danger); border-color: transparent; background: transparent; }
+.btn--danger:hover { background: oklch(0.55 0.19 25 / 0.12); }
+.btn--icon { min-width: 38px; padding: 0 var(--s-2); }
+.btn--sm { min-height: 32px; font-size: 13px; padding: 0 var(--s-2); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 12px;
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  background: var(--surface); font-size: 13px; font-weight: 500;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.chip:active { transform: scale(0.97); }
+.chip[aria-pressed="true"] {
+  background: var(--ink); border-color: var(--ink); color: var(--surface);
+}
+html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var(--h-ink)); }
+.chip__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
+
+.label {
+  display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: var(--s-2);
+}
+.field {
+  width: 100%; min-height: 40px; padding: 0 var(--s-3);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text);
+}
+.field:focus { outline: 2px solid var(--focus); outline-offset: -1px; border-color: transparent; }
+
+/* ============================================================ App shell */
+.app { display: flex; flex-direction: column; height: 100dvh; }
+
+.topbar {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  padding-top: max(var(--s-3), env(safe-area-inset-top));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex: none;
+}
+.brand { display: flex; align-items: baseline; gap: var(--s-2); margin-right: auto; min-width: 0; }
+.brand__name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand__who {
+  font-size: 13px; color: var(--text-muted); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.weeknav { display: flex; align-items: center; gap: var(--s-1); }
+.weeknav__label {
+  min-width: 148px; text-align: center; font-size: 14px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.weeknav__label small { display: block; font-weight: 500; color: var(--text-muted); font-size: 12px; }
+
+.main { display: flex; flex: 1; min-height: 0; }
+
+.panel {
+  width: 320px; flex: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  padding: var(--s-4);
+  display: flex; flex-direction: column; gap: var(--s-5);
+}
+.card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); padding: var(--s-4);
+}
+.card__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-2); margin-bottom: var(--s-3);
+}
+.card__title { font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--text-muted); }
+
+/* ============================================================ Tagesform (Signature) */
+.energy { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.energy__opt {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--s-3) var(--s-1); min-height: 74px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); font-size: 12px; font-weight: 600;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.energy__opt:active { transform: scale(0.97); }
+.energy__opt[aria-pressed="true"] { border-color: var(--ink); background: var(--surface-3); }
+.energy__bars { display: flex; align-items: flex-end; gap: 3px; height: 20px; }
+.energy__bars i { width: 5px; border-radius: 2px; background: var(--border-strong); display: block; }
+.energy__bars i:nth-child(1) { height: 8px; }
+.energy__bars i:nth-child(2) { height: 14px; }
+.energy__bars i:nth-child(3) { height: 20px; }
+.energy__opt[data-lvl="low"][aria-pressed="true"] .energy__bars i:nth-child(1) { background: var(--warn); }
+.energy__opt[data-lvl="mid"][aria-pressed="true"] .energy__bars i:nth-child(-n+2) { background: var(--focus); }
+.energy__opt[data-lvl="high"][aria-pressed="true"] .energy__bars i { background: var(--success); }
+.hint {
+  margin-top: var(--s-3); padding: var(--s-3);
+  border-radius: var(--radius-sm); background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  font-size: 13px; color: var(--text-muted); line-height: 1.5;
+}
+.hint b { color: var(--text); font-weight: 600; }
+
+/* ============================================================ Pomodoro */
+.pomo { text-align: center; }
+.pomo__time {
+  font-size: 42px; font-weight: 700; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.pomo__phase { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.pomo__track { height: 4px; border-radius: 2px; background: var(--surface-3); margin: var(--s-3) 0; overflow: hidden; }
+.pomo__bar { height: 100%; background: var(--ink); width: 0%; transition: width 1s linear; }
+.pomo__bar.is-break { background: var(--success); }
+.pomo__actions { display: flex; gap: var(--s-2); justify-content: center; }
+.pomo__meta { font-size: 12px; color: var(--text-faint); margin-top: var(--s-2); }
+
+/* ============================================================ Konto-Anzeige */
+.syncbadge {
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-muted); border-radius: 999px;
+  padding: 0 10px; min-height: 28px; font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.syncbadge::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-faint); flex: none;
+}
+.syncbadge:hover { background: var(--surface-2); color: var(--text); }
+.syncbadge.is-ok::before   { background: var(--success); }
+.syncbadge.is-warn::before { background: var(--warn); }
+.syncbadge.is-work::before { background: var(--focus); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (max-width: 560px) { .syncbadge { font-size: 0; padding: 0 8px; min-width: 28px; } }
+
+/* Konto in den Einstellungen */
+.acct { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s-3); }
+.acct__row { display: flex; align-items: center; gap: var(--s-3); }
+.acct__txt { flex: 1; min-width: 0; }
+.acct__what { font-size: 14px; font-weight: 600; }
+.acct__sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+/* ============================================================ Wochenziele */
+.goals { display: flex; flex-direction: column; gap: var(--s-4); }
+.goal__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); margin-bottom: 6px; }
+.goal__name {
+  font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.goal__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
+.goal__num { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
+.goal__track {
+  height: 7px; border-radius: 4px; background: var(--surface-3);
+  overflow: hidden; display: flex;
+}
+.goal__fill { background: var(--area-line); transition: width .25s; }
+.goal__fill--sug {
+  background-image: repeating-linear-gradient(
+    -45deg, var(--area-line) 0 3px, transparent 3px 7px);
+  opacity: .75; transition: width .25s;
+}
+.goal__rest { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+.goal__rest b { color: var(--text); font-weight: 600; }
+.goals__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
+.goals__foot .btn { flex: 1 1 auto; }
+
+/* Zieleditor */
+.goallist { display: flex; flex-direction: column; gap: var(--s-2); }
+.goalrow {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--s-3); background: var(--surface);
+}
+.goalrow__head { display: flex; align-items: center; gap: var(--s-2); }
+.goalrow__name {
+  flex: 1; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.goalrow__h { width: 78px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+.goalrow__unit { font-size: 12.5px; color: var(--text-faint); flex: none; }
+.goalrow__more {
+  border: none; background: transparent; color: var(--text-faint);
+  width: 30px; min-height: 30px; border-radius: var(--radius-sm); flex: none; font-size: 12px;
+}
+.goalrow__more:hover { background: var(--surface-2); color: var(--text); }
+.goalrow__body {
+  margin-top: var(--s-3); padding-top: var(--s-3);
+  border-top: 1px dashed var(--border);
+}
+.goalrow__body[hidden] { display: none; }
+.goalrow__sub { font-size: 12px; color: var(--text-faint); margin: 0 0 var(--s-2); }
+
+/* Vorschlagsblöcke im Raster */
+.block.is-sug {
+  border-style: dashed;
+  border-left-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  cursor: grab;
+}
+.block.is-sug::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--area-bg); opacity: .55;
+}
+.block.is-sug .block__title { opacity: .9; padding-right: 44px; }
+.block.is-sug .block__time { opacity: .6; }
+.block__sug { position: absolute; right: 3px; top: 3px; display: flex; gap: 3px; z-index: 3; }
+.block__sug button {
+  width: 19px; height: 19px; padding: 0; border-radius: 5px;
+  border: 1px solid var(--area-edge); background: var(--surface);
+  color: var(--area-text); font-size: 11px; line-height: 1;
+  display: grid; place-items: center; box-shadow: var(--shadow-1);
+}
+.block__sug button:hover { background: var(--area-bg-2); }
+.block.is-short .block__sug { top: 1px; }
+
+/* ============================================================ Aufgaben */
+.tasks { display: flex; flex-direction: column; gap: 2px; }
+.task {
+  display: flex; align-items: flex-start; gap: var(--s-2);
+  padding: var(--s-2); border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid transparent;
+  transition: background .15s, border-color .15s;
+  cursor: grab;
+}
+.task:hover { border-color: var(--border); }
+.task.is-dragging { opacity: .4; }
+.task__check {
+  appearance: none; width: 18px; height: 18px; margin: 2px 0 0; flex: none;
+  border: 1.5px solid var(--border-strong); border-radius: 5px; background: var(--surface);
+  cursor: pointer; transition: background .15s, border-color .15s; position: relative;
+}
+.task__check:checked { background: var(--ink); border-color: var(--ink); }
+.task__check:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1.5px;
+  width: 4px; height: 9px; border: solid var(--surface);
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+html[data-theme="dark"] .task__check:checked::after { border-color: oklch(0.18 0.014 var(--h-ink)); }
+.task__body { flex: 1; min-width: 0; }
+.task__title { font-size: 14px; word-break: break-word; }
+.task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
+.task__tags { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+.task__area { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-muted); }
+.task__frog {
+  border: 0; background: transparent; padding: 0 2px; font-size: 14px; line-height: 1;
+  filter: grayscale(1); opacity: .35; transition: filter .15s, opacity .15s;
+}
+.task__frog[aria-pressed="true"] { filter: none; opacity: 1; }
+.task__del {
+  border: 0; background: transparent; color: var(--text-faint); font-size: 18px;
+  line-height: 1; padding: 2px 6px; border-radius: 6px; opacity: 0;
+  transition: opacity .15s, color .15s;
+}
+.task:hover .task__del, .task:focus-within .task__del { opacity: 1; }
+.task__del:hover { color: var(--danger); background: var(--surface-2); }
+.taskadd { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
+.taskadd .field { min-height: 38px; }
+
+.empty {
+  text-align: center; padding: var(--s-5) var(--s-3);
+  color: var(--text-faint); font-size: 13px; line-height: 1.6;
+}
+.empty b { display: block; color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
+
+/* ============================================================ Wochenraster */
+.gridwrap { flex: 1; min-width: 0; overflow: auto; position: relative; background: var(--bg); }
+.grid {
+  display: grid;
+  grid-template-columns: var(--gutter) repeat(var(--cols), minmax(var(--colmin), 1fr));
+  min-width: 100%;
+  --gutter: 56px;
+  --colmin: 116px;
+  --hourh: 52px;
+}
+.grid__head {
+  position: sticky; top: 0; z-index: 20;
+  display: contents;
+}
+.dayhead {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  padding: var(--s-2) var(--s-2) var(--s-3);
+  text-align: center;
+}
+.dayhead--gutter { border-left: 0; }
+.dayhead__name { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.dayhead__num {
+  font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
+  width: 32px; height: 32px; line-height: 32px; margin: 2px auto 0;
+  border-radius: 50%;
+}
+.dayhead.is-today .dayhead__num { background: var(--ink); color: var(--surface); }
+html[data-theme="dark"] .dayhead.is-today .dayhead__num { color: oklch(0.18 0.014 var(--h-ink)); }
+.dayhead.is-today .dayhead__name { color: var(--text); }
+.dayhead__energy {
+  display: none; align-items: flex-end; gap: 2px; height: 11px; margin-top: 4px;
+}
+.dayhead[data-energy] .dayhead__energy { display: inline-flex; }
+.dayhead__energy i { width: 3px; border-radius: 1px; background: var(--border-strong); }
+.dayhead__energy i:nth-child(1){height:5px} .dayhead__energy i:nth-child(2){height:8px} .dayhead__energy i:nth-child(3){height:11px}
+.dayhead[data-energy="low"] .dayhead__energy i:nth-child(1){background:var(--warn)}
+.dayhead[data-energy="mid"] .dayhead__energy i:nth-child(-n+2){background:var(--focus)}
+.dayhead[data-energy="high"] .dayhead__energy i{background:var(--success)}
+
+.timecol { grid-column: 1; position: relative; background: var(--bg); }
+.timecol__mark {
+  position: absolute; right: var(--s-2); transform: translateY(-50%);
+  font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-faint);
+}
+.daycol {
+  position: relative; border-left: 1px solid var(--border);
+  background: var(--surface);
+  touch-action: pan-y;
+}
+.daycol.is-weekend { background: var(--surface-2); }
+.daycol__line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); pointer-events: none; }
+.daycol__line--half { border-top-style: dotted; opacity: .6; }
+.now {
+  position: absolute; left: 0; right: 0; height: 0; z-index: 6; pointer-events: none;
+  border-top: 2px solid var(--danger);
+}
+.now::before {
+  content: ""; position: absolute; left: -4px; top: -5px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--danger);
+}
+
+.block {
+  position: absolute; left: 3px; right: 3px; z-index: 8;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--area-edge);
+  border-left: 4px solid var(--area-line);
+  background: var(--area-bg);
+  color: var(--area-text);
+  padding: 4px 6px;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+  cursor: grab;
+  transition: box-shadow .15s, filter .15s;
+}
+.block:hover { box-shadow: var(--shadow-1); filter: brightness(0.985); z-index: 9; }
+html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
+.block.is-dragging { opacity: .75; box-shadow: var(--shadow-2); z-index: 30; cursor: grabbing; }
+.block__title { font-size: 12.5px; font-weight: 600; line-height: 1.25; word-break: break-word; }
+.block__time { font-size: 11px; opacity: .78; font-variant-numeric: tabular-nums; }
+.block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
+.block.is-short .block__time { display: none; }
+.block.is-frog::after {
+  content: "🐸"; position: absolute; right: 4px; top: 3px; font-size: 11px;
+}
+.block__resize {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
+  cursor: ns-resize; touch-action: none;
+}
+.block__ghost {
+  position: absolute; left: 3px; right: 3px; z-index: 12;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--area-line);
+  background: var(--area-bg);
+  opacity: .8; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 600; color: var(--area-text);
+  font-variant-numeric: tabular-nums;
+}
+.daycol.is-droptarget { background: var(--surface-3); }
+
+/* Nachtruhe — dezent hinterlegt, blockiert aber nichts */
+.rest {
+  position: absolute; left: 0; right: 0; z-index: 1; pointer-events: none;
+  background: var(--surface-3);
+  background-image: repeating-linear-gradient(
+    -45deg, transparent 0 5px, oklch(0.5 0.02 var(--h-ink) / 0.055) 5px 10px);
+}
+html[data-theme="dark"] .rest {
+  background-image: repeating-linear-gradient(
+    -45deg, transparent 0 5px, oklch(0 0 0 / 0.16) 5px 10px);
+}
+
+/* ============================================================ Mobile day switcher */
+.dayswitch { display: none; gap: 4px; padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
+.dayswitch__btn {
+  flex: 1 0 auto; min-width: 44px; min-height: 48px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; padding: 4px 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.dayswitch__btn span { font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+.dayswitch__btn b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.dayswitch__btn[aria-pressed="true"] { background: var(--surface-3); border-color: var(--border-strong); }
+.dayswitch__btn i { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.dayswitch__btn.has-items i { background: var(--text-faint); }
+
+/* ============================================================ Sheet / Modal */
+.scrim {
+  position: fixed; inset: 0; z-index: 60;
+  background: oklch(0.2 0.02 var(--h-ink) / 0.45);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--s-4);
+  animation: fade .15s ease;
+}
+@keyframes fade { from { opacity: 0 } }
+.sheet {
+  width: 100%; max-width: 460px; max-height: 88dvh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-3);
+  padding: var(--s-5);
+  animation: pop .18s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98) } }
+.sheet--wide { max-width: 560px; }
+.sheet__title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
+.sheet__row { margin-bottom: var(--s-4); }
+.sheet__cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.sheet__foot { display: flex; gap: var(--s-2); align-items: center; margin-top: var(--s-5); }
+.sheet__foot .spacer { flex: 1; }
+.chipset { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.switch { display: flex; align-items: center; gap: var(--s-2); font-size: 14px; cursor: pointer; }
+.switch input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+/* ============================================================ Areas editor */
+.arealist { display: flex; flex-direction: column; gap: var(--s-2); }
+.arearow { display: flex; align-items: center; gap: var(--s-2); }
+.arearow__swatch {
+  width: 30px; height: 30px; flex: none; border-radius: 8px;
+  background: var(--area-bg-2); border: 1px solid var(--area-line);
+  cursor: pointer;
+}
+.arearow .field { min-height: 36px; }
+
+/* ============================================================ Toast + banner */
+.toasts {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--s-5) + env(safe-area-inset-bottom)); z-index: 90;
+  display: flex; flex-direction: column; gap: var(--s-2); align-items: center;
+  pointer-events: none; width: min(92vw, 420px);
+}
+.toast {
+  background: var(--ink); color: var(--surface);
+  padding: 10px var(--s-4); border-radius: 999px; font-size: 13.5px; font-weight: 500;
+  box-shadow: var(--shadow-2); animation: pop .2s cubic-bezier(.2,.9,.3,1);
+  display: flex; align-items: center; gap: var(--s-3); max-width: 100%;
+}
+.toast__act {
+  pointer-events: auto; flex: none;
+  background: transparent; border: none; padding: 2px 2px; margin: -2px 0;
+  color: inherit; font-size: 13.5px; font-weight: 700;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.toast__act:hover { opacity: .75; }
+.toasts .toast { pointer-events: none; }
+.toasts .toast:has(.toast__act) { pointer-events: auto; }
+html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
+.banner {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  padding: 10px var(--s-4); font-size: 13px;
+  background: oklch(0.66 0.15 75 / 0.16);
+  border-bottom: 1px solid oklch(0.66 0.15 75 / 0.45);
+  color: var(--text);
+}
+.banner b { font-weight: 700; }
+
+/* ============================================================ Responsive */
+@media (max-width: 1000px) {
+  .panel { width: 288px; padding: var(--s-3); }
+  .grid { --colmin: 96px; }
+}
+@media (max-width: 780px) {
+  .main { flex-direction: column-reverse; }
+  .panel {
+    width: 100%; border-right: 0; border-top: 1px solid var(--border);
+    max-height: 46dvh; padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+  }
+  .dayswitch { display: flex; }
+  .grid { --gutter: 48px; --colmin: 0; --hourh: 48px; }
+  .brand { display: none; }
+  .weeknav { margin-right: auto; }
+  .weeknav__label { min-width: 92px; font-size: 13px; }
+  .topbar { padding: var(--s-2) var(--s-3); gap: var(--s-1); }
+  .btn--icon { min-width: 34px; }
+  .sheet { max-width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
+  .scrim { padding: 0; align-items: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="banner"></div>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__name">Wochenplaner</span>
+      <span class="brand__who" id="whoLabel"></span>
+    </div>
+
+    <div class="weeknav">
+      <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück">‹</button>
+      <div class="weeknav__label" id="weekLabel"></div>
+      <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
+    </div>
+
+    <button class="syncbadge" id="syncBadge" hidden></button>
+    <button class="btn btn--sm" id="todayBtn">Heute</button>
+    <button class="btn btn--icon btn--ghost" id="themeBtn" aria-label="Hell/Dunkel wechseln" title="Hell/Dunkel">◐</button>
+    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙</button>
+  </header>
+
+  <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
+
+  <div class="main">
+
+    <aside class="panel">
+
+      <!-- Tagesform -->
+      <section class="card">
+        <div class="card__head">
+          <h2 class="card__title">Tagesform</h2>
+          <span id="energyDay" style="font-size:12px;color:var(--text-faint)"></span>
+        </div>
+        <div class="energy" role="group" aria-label="Wie viel Energie hast du heute?">
+          <button class="energy__opt" data-lvl="low" aria-pressed="false">
+            <span class="energy__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+            Wenig
+          </button>
+          <button class="energy__opt" data-lvl="mid" aria-pressed="false">
+            <span class="energy__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+            Normal
+          </button>
+          <button class="energy__opt" data-lvl="high" aria-pressed="false">
+            <span class="energy__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+            Viel
+          </button>
+        </div>
+        <div class="hint" id="energyHint"></div>
+      </section>
+
+      <!-- Wochenziele -->
+      <section class="card">
+        <div class="card__head">
+          <h2 class="card__title">Wochenziele</h2>
+          <button class="btn btn--sm btn--ghost" id="goalsEdit">Ziele</button>
+        </div>
+        <div class="goals" id="goalsList"></div>
+        <div class="goals__foot" id="goalsFoot"></div>
+      </section>
+
+      <!-- Pomodoro -->
+      <section class="card pomo">
+        <div class="card__head">
+          <h2 class="card__title">Fokus-Timer</h2>
+          <span class="pomo__phase" id="pomoPhase">Bereit</span>
+        </div>
+        <div class="pomo__time num" id="pomoTime">25:00</div>
+        <div class="pomo__track"><div class="pomo__bar" id="pomoBar"></div></div>
+        <div class="pomo__actions">
+          <button class="btn btn--primary btn--sm" id="pomoStart">Start</button>
+          <button class="btn btn--sm" id="pomoReset">Zurücksetzen</button>
+        </div>
+        <div class="pomo__meta" id="pomoMeta"></div>
+      </section>
+
+      <!-- Aufgaben -->
+      <section class="card">
+        <div class="card__head">
+          <h2 class="card__title">Aufgaben</h2>
+          <button class="btn btn--sm btn--ghost" id="clearDone">Erledigte weg</button>
+        </div>
+        <form class="taskadd" id="taskForm">
+          <input class="field" id="taskInput" placeholder="Was steht an?" aria-label="Neue Aufgabe" autocomplete="off">
+          <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen">+</button>
+        </form>
+        <div class="tasks" id="taskList"></div>
+      </section>
+
+    </aside>
+
+    <div class="gridwrap" id="gridWrap">
+      <div class="grid" id="grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="modalRoot"></div>
+<script>
+"use strict";
+
+/* ============================================================
+   ┌──────────────────────────────────────────────────────────┐
+   │  HIER die beiden Werte aus Supabase eintragen,           │
+   │  dann funktioniert der Plan auf Handy, iPad und PC       │
+   │  mit demselben Konto. Solange sie leer sind, läuft       │
+   │  alles rein lokal — genau wie bisher.                    │
+   │                                                          │
+   │  Supabase → Projekt → Settings → API                     │
+   │    url : Project URL                                     │
+   │    key : anon public key                                 │
+   │                                                          │
+   │  Der anon key darf öffentlich sein, das ist so gedacht.  │
+   │  Die Daten schützt Row Level Security auf dem Server.    │
+   └──────────────────────────────────────────────────────────┘
+   ============================================================ */
+const SUPABASE = {
+  url: "",
+  key: ""
+};
+
+/* ============================================================
+   Speicher — versucht den Browser-Speicher, fällt sonst
+   auf reinen Arbeitsspeicher zurück (z.B. in Vorschau-Frames).
+   ============================================================ */
+const Store = (() => {
+  const BASE = "wochenplaner";
+  const LEGACY = "wochenplaner.v1";
+  // Pro Konto ein eigener Speicherplatz — sonst überschreiben sich zwei
+  // Leute, die denselben Rechner benutzen, gegenseitig den Plan.
+  let scope = "local";
+  let available = false;
+  try {
+    localStorage.setItem("__wp_test", "1");
+    localStorage.removeItem("__wp_test");
+    available = true;
+  } catch (e) { available = false; }
+
+  const key = () => BASE + "." + scope;
+
+  return {
+    available,
+    get scope() { return scope; },
+    setScope(s) { scope = s || "local"; },
+    load() {
+      if (!available) return null;
+      try {
+        let raw = localStorage.getItem(key());
+        // Alte Fassung übernehmen (v1.0–v1.2 lag unter einem festen Schlüssel)
+        if (!raw && scope === "local") {
+          raw = localStorage.getItem(LEGACY);
+          if (raw) localStorage.setItem(key(), raw);
+        }
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    },
+    loadScope(s) {
+      if (!available) return null;
+      try { const raw = localStorage.getItem(BASE + "." + s); return raw ? JSON.parse(raw) : null; }
+      catch (e) { return null; }
+    },
+    save(data) {
+      if (!available) return;
+      try { localStorage.setItem(key(), JSON.stringify(data)); } catch (e) {}
+    },
+    clear() { if (available) { try { localStorage.removeItem(key()); } catch (e) {} } }
+  };
+})();
+
+/* ============================================================ Hilfen */
+const $ = (sel, root = document) => root.querySelector(sel);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad2 = n => String(n).padStart(2, "0");
+const fmtTime = m => pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
+const parseTime = s => { const p = String(s).split(":"); return (+p[0] || 0) * 60 + (+p[1] || 0); };
+const iso = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+const DAY_LONG = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+const DAY_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+function mondayOf(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const off = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - off);
+  return d;
+}
+function addDays(date, n) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dn = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dn + 3);
+  const first = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const fdn = (first.getUTCDay() + 6) % 7;
+  first.setUTCDate(first.getUTCDate() - fdn + 3);
+  return 1 + Math.round((d - first) / 604800000);
+}
+
+/* ============================================================ Zustand */
+const DEFAULT_AREAS = [
+  { id: "a1", name: "Arbeit",           hue: 248 },
+  { id: "a2", name: "Uni & Lernen",     hue: 295 },
+  { id: "a3", name: "Sport",            hue: 152 },
+  { id: "a4", name: "Hobby",            hue: 88  },
+  { id: "a5", name: "Freizeit & Pausen",hue: 196 },
+  { id: "a6", name: "Menschen",         hue: 22  },
+  { id: "a7", name: "Alltag",           hue: 330 }
+];
+
+/* Plan-Einstellungen eines Bereichs — steuern Wochenziel und Vorschlag.
+   goal 0 = kein Wochenziel. from/to null = ganzer sichtbarer Tag. */
+function defaultPlan() {
+  return { goal: 0, days: [0, 1, 2, 3, 4, 5, 6], from: null, to: null, min: 45, max: 120 };
+}
+
+/* Schlafenszeit samt Ruhezeit davor und danach.
+   „wind" ist die Zeit zum Runterkommen und Fertigmachen — sie gehört
+   genauso zur Nacht wie der Schlaf selbst und wird nicht verplant.
+   Standardmäßig aus: der Planer setzt niemandem einen Rhythmus vor. */
+function defaultSleep() {
+  return { on: false, from: 22 * 60 + 30, to: 6 * 60 + 30, wind: 30 };
+}
+
+function freshState() {
+  return {
+    version: 4,
+    profile: { id: uid(), name: "" },
+    settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
+    settingsAt: 0,
+    areas: DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan() })),
+    blocks: [],
+    tasks: [],
+    days: {},
+    tombs: {},        // gelöschte IDs mit Zeitpunkt — sonst kommen sie beim Sync zurück
+    backupAt: 0       // wann zuletzt eine Sicherung gespeichert wurde
+  };
+}
+
+let state = Store.load() || freshState();
+migrate(state);
+
+function migrate(s) {
+  if (!s.profile) s.profile = { id: uid(), name: "" };
+  if (!s.settings) s.settings = { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() };
+  if (!Array.isArray(s.areas) || !s.areas.length) s.areas = DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan() }));
+  if (!Array.isArray(s.blocks)) s.blocks = [];
+  if (!Array.isArray(s.tasks)) s.tasks = [];
+  if (!s.days) s.days = {};
+  // v2: Wochenziele + bevorzugte Zeitfenster pro Bereich
+  s.areas.forEach(a => {
+    const d = defaultPlan();
+    const p = (a.plan && typeof a.plan === "object") ? a.plan : {};
+    a.plan = {
+      goal: Math.max(0, +p.goal || 0),
+      days: Array.isArray(p.days) && p.days.length ? p.days.filter(n => n >= 0 && n <= 6) : d.days,
+      from: (p.from === null || p.from === undefined) ? null : +p.from,
+      to:   (p.to   === null || p.to   === undefined) ? null : +p.to,
+      min:  clamp(+p.min || d.min, 15, 240),
+      max:  clamp(+p.max || d.max, 15, 480)
+    };
+    if (a.plan.max < a.plan.min) a.plan.max = a.plan.min;
+  });
+  // v4: Schlafenszeit mit Ruhezeit
+  {
+    const d = defaultSleep();
+    const sl = (s.settings.sleep && typeof s.settings.sleep === "object") ? s.settings.sleep : {};
+    s.settings.sleep = {
+      on:   !!sl.on,
+      from: clamp(typeof sl.from === "number" ? sl.from : d.from, 0, 1439),
+      to:   clamp(typeof sl.to   === "number" ? sl.to   : d.to,   0, 1439),
+      wind: clamp(typeof sl.wind === "number" ? sl.wind : d.wind, 0, 180)
+    };
+  }
+  // v3: Vorbereitung für den Abgleich zwischen Geräten
+  if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
+  if (typeof s.settingsAt !== "number") s.settingsAt = 0;
+  if (typeof s.backupAt !== "number") s.backupAt = 0;
+  s.version = 4;
+}
+
+let anchor = new Date();          // irgendein Tag der angezeigten Woche
+let selectedDayIdx = (new Date().getDay() + 6) % 7;   // für Mobile
+let isMobile = window.matchMedia("(max-width: 780px)").matches;
+
+/* ============================================================
+   Änderungen erkennen — Grundlage für den Abgleich zwischen Geräten.
+
+   Statt an jeder einzelnen Stelle im Code einen Zeitstempel zu setzen
+   (und garantiert eine zu vergessen), vergleicht der Planer beim
+   Speichern den neuen Stand mit dem letzten. Was sich geändert hat,
+   bekommt den aktuellen Zeitpunkt; was verschwunden ist, landet als
+   Grabstein in state.tombs.
+
+   Die Grabsteine sind der unscheinbare, aber entscheidende Teil: ohne
+   sie taucht ein auf dem Handy gelöschter Eintrag beim nächsten
+   Abgleich vom PC wieder auf.
+   ============================================================ */
+
+function recHash(r) {
+  const c = {};
+  Object.keys(r).sort().forEach(k => { if (k !== "at") c[k] = r[k]; });
+  return JSON.stringify(c);
+}
+
+function snapshot(s) {
+  const snap = { blocks: {}, tasks: {}, areas: {}, days: {} };
+  ["blocks", "tasks", "areas"].forEach(c =>
+    (s[c] || []).forEach(r => { snap[c][r.id] = recHash(r); }));
+  Object.keys(s.days || {}).forEach(k => { snap.days[k] = recHash(s.days[k]); });
+  snap.settings = JSON.stringify(s.settings);
+  return snap;
+}
+
+let lastSnap = snapshot(state);
+let lastSavedJson = JSON.stringify(state);
+let prevSavedJson = null;     // Stand vor der letzten Änderung — für „Rückgängig"
+
+function stampChanges() {
+  const now = Date.now();
+
+  ["blocks", "tasks", "areas"].forEach(c => {
+    const prev = lastSnap[c] || {};
+    const seen = new Set();
+    state[c].forEach(r => {
+      seen.add(r.id);
+      if (prev[r.id] !== recHash(r)) r.at = now;
+      if (typeof r.at !== "number") r.at = 0;
+    });
+    Object.keys(prev).forEach(id => { if (!seen.has(id)) state.tombs[id] = now; });
+  });
+
+  const prevDays = lastSnap.days || {};
+  const seenDays = new Set();
+  Object.keys(state.days).forEach(k => {
+    seenDays.add(k);
+    if (prevDays[k] !== recHash(state.days[k])) state.days[k].at = now;
+  });
+  Object.keys(prevDays).forEach(k => { if (!seenDays.has(k)) state.tombs["day:" + k] = now; });
+
+  if (lastSnap.settings !== JSON.stringify(state.settings)) state.settingsAt = now;
+
+  lastSnap = snapshot(state);
+}
+
+function save() {
+  prevSavedJson = lastSavedJson;
+  stampChanges();
+  Store.save(state);
+  lastSavedJson = JSON.stringify(state);
+  syncPush();
+}
+
+/* Stellt den Stand vor der letzten Änderung wieder her. Die zurückgeholten
+   Einträge bekommen dabei neue Zeitstempel, damit sie beim nächsten
+   Abgleich nicht erneut von der Löschung überholt werden. */
+function undoLast() {
+  if (!prevSavedJson) { toast("Nichts zum Rückgängigmachen"); return; }
+  try {
+    const s = JSON.parse(prevSavedJson);
+    migrate(s);
+    state = s;
+    save();
+    renderAll();
+    toast("Wiederhergestellt");
+  } catch (e) { toast("Konnte nicht wiederhergestellt werden"); }
+}
+
+const areaById = id => state.areas.find(a => a.id === id) || state.areas[0];
+function dayMeta(dateIso) {
+  if (!state.days[dateIso]) state.days[dateIso] = { energy: null };
+  return state.days[dateIso];
+}
+
+/* ============================================================ Theme */
+function applyTheme() {
+  const t = state.settings.theme;
+  const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = (t === "auto" ? (sysDark ? "dark" : "light") : t);
+}
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (state.settings.theme === "auto") applyTheme();
+});
+
+/* ============================================================ Toast */
+function toast(msg, action) {
+  const el = document.createElement("div");
+  el.className = "toast";
+  const txt = document.createElement("span");
+  txt.textContent = msg;
+  el.appendChild(txt);
+  const life = action ? 6000 : 2200;
+  if (action) {
+    const b = document.createElement("button");
+    b.className = "toast__act"; b.type = "button"; b.textContent = action.label;
+    b.onclick = () => { el.remove(); action.run(); };
+    el.appendChild(b);
+  }
+  $("#toasts").appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .3s"; }, life);
+  setTimeout(() => el.remove(), life + 400);
+}
+
+/* Toast mit Rückgängig — für alles, was etwas wegnimmt. */
+function toastUndo(msg) {
+  const snap = prevSavedJson;
+  toast(msg, { label: "Rückgängig", run: () => {
+    prevSavedJson = snap;
+    undoLast();
+  }});
+}
+
+/* ============================================================ Modal */
+let openModal = null;
+function modal(builder, opts = {}) {
+  closeModal();
+  const scrim = document.createElement("div");
+  scrim.className = "scrim";
+  const sheet = document.createElement("div");
+  sheet.className = "sheet" + (opts.wide ? " sheet--wide" : "");
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  scrim.appendChild(sheet);
+  builder(sheet, closeModal);
+  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeModal(); });
+  $("#modalRoot").appendChild(scrim);
+  openModal = scrim;
+  const focusable = sheet.querySelector("input, select, textarea, button");
+  if (focusable) setTimeout(() => focusable.focus(), 40);
+  return sheet;
+}
+function closeModal() { if (openModal) { openModal.remove(); openModal = null; } }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+function confirmSheet(title, text, confirmLabel, onYes) {
+  modal((s, close) => {
+    s.innerHTML = "<h2 class='sheet__title'></h2><p style='margin:0;color:var(--text-muted);font-size:14px;line-height:1.55'></p>";
+    s.querySelector("h2").textContent = title;
+    s.querySelector("p").textContent = text;
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const cancel = document.createElement("button");
+    cancel.className = "btn"; cancel.textContent = "Abbrechen";
+    cancel.onclick = close;
+    const yes = document.createElement("button");
+    yes.className = "btn btn--primary"; yes.textContent = confirmLabel;
+    yes.style.background = "var(--danger)"; yes.style.borderColor = "var(--danger)";
+    yes.style.color = "#fff";
+    yes.onclick = () => { close(); onYes(); };
+    foot.append(cancel, yes);
+    s.appendChild(foot);
+  });
+}
+
+/* ============================================================ Kopfzeile */
+function renderHeader() {
+  const mon = mondayOf(anchor);
+  const sun = addDays(mon, 6);
+  const sameMonth = mon.getMonth() === sun.getMonth();
+  const range = sameMonth
+    ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
+    : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
+  $("#weekLabel").innerHTML = "KW " + isoWeek(mon) + "<small>" + range + "</small>";
+  $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
+}
+
+/* ============================================================ Tag-Umschalter (Mobile) */
+function renderDaySwitch() {
+  const wrap = $("#daySwitch");
+  wrap.innerHTML = "";
+  const mon = mondayOf(anchor);
+  const todayIso = iso(new Date());
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(mon, i);
+    const b = document.createElement("button");
+    b.className = "dayswitch__btn";
+    b.setAttribute("aria-pressed", String(i === selectedDayIdx));
+    if (blocksFor(d, i).length) b.classList.add("has-items");
+    b.innerHTML = "<span>" + DAY_SHORT[i] + "</span><b>" + d.getDate() + "</b><i></i>";
+    if (iso(d) === todayIso) b.querySelector("b").style.color = "var(--focus)";
+    b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderEnergy(); };
+    wrap.appendChild(b);
+  }
+}
+
+/* ============================================================ Blöcke einer Spalte */
+function blocksFor(date, dayIdx) {
+  const key = iso(date);
+  return state.blocks.filter(b =>
+    b.repeat === "weekly" ? b.day === dayIdx : b.date === key
+  ).sort((a, b) => a.start - b.start);
+}
+
+/* Überlappungen nebeneinander legen */
+function layout(items) {
+  const cols = [];
+  const placed = items.map(b => ({ b, col: 0, of: 1 }));
+  placed.forEach(p => {
+    let c = 0;
+    while (cols[c] && cols[c] > p.b.start) c++;
+    cols[c] = p.b.end;
+    p.col = c;
+  });
+  const groups = [];
+  let cur = [], curEnd = -1;
+  placed.forEach(p => {
+    if (p.b.start >= curEnd && cur.length) { groups.push(cur); cur = []; }
+    cur.push(p); curEnd = Math.max(curEnd, p.b.end);
+  });
+  if (cur.length) groups.push(cur);
+  groups.forEach(g => { const n = Math.max(...g.map(p => p.col)) + 1; g.forEach(p => p.of = n); });
+  return placed;
+}
+
+/* ============================================================
+   Wochenziele — Stunden pro Woche statt fester Uhrzeit.
+
+   Ein Bereich kann ein Wochenziel haben ("10 h Lernen"). Der Planer
+   zählt, wie viel davon schon im Raster steht, und kann den Rest auf
+   Vorschlag verteilen. Vorschläge sind normale Blöcke mit sug:true —
+   dadurch lassen sie sich ziehen und ziehen wie alles andere, zählen
+   aber erst als erledigt geplant, wenn sie angenommen wurden.
+
+   Bewusst kein Übertrag in die nächste Woche: eine nicht volle Woche
+   ist kein Fehler, und ein wachsender Schuldenberg wäre das Gegenteil
+   von dem, was dieser Planer sein soll.
+   ============================================================ */
+
+const ENERGY_WEIGHT = { low: 0.55, mid: 1, high: 1.45 };
+
+function weekDays() {
+  const mon = mondayOf(anchor);
+  return [0, 1, 2, 3, 4, 5, 6].map(i => {
+    const d = addDays(mon, i);
+    return { i, d, key: iso(d) };
+  });
+}
+
+/* Minuten eines Bereichs in der angezeigten Woche.
+   sug=false: echte Einträge · sug=true: offene Vorschläge */
+function areaMinutes(areaId, sug) {
+  let sum = 0;
+  weekDays().forEach(day => {
+    state.blocks.forEach(b => {
+      if (b.areaId !== areaId) return;
+      if (!!b.sug !== !!sug) return;
+      const here = b.repeat === "weekly" ? b.day === day.i : b.date === day.key;
+      if (here) sum += b.end - b.start;
+    });
+  });
+  return sum;
+}
+
+function hasSuggestions() {
+  const keys = new Set(weekDays().map(d => d.key));
+  return state.blocks.some(b => b.sug && keys.has(b.date));
+}
+
+/* Stunden lesbar: 90 → „1,5 h", 45 → „45 min" */
+function fmtDur(min) {
+  if (min <= 0) return "0 h";
+  if (min < 60) return min + " min";
+  const h = min / 60;
+  return (Math.round(h * 10) / 10).toString().replace(".", ",") + " h";
+}
+
+/* ============================================================
+   Nachtruhe
+
+   Die Zeitspannen eines Tages, die zur Nacht gehören — Schlaf plus die
+   Ruhezeit davor und danach. Zurückgegeben als Minuten seit Mitternacht
+   des jeweiligen Tages, denn der Schlaf läuft über den Tageswechsel:
+   22:00 abends und 6:30 früh sind zwei Abschnitte desselben Kalendertags.
+   ============================================================ */
+function restSpans() {
+  const sl = state.settings.sleep;
+  if (!sl || !sl.on) return [];
+  const w = sl.wind || 0;
+  const from = sl.from, to = sl.to;
+
+  if (from > to) {
+    // Normalfall: über Mitternacht. Abends ab „from - Ruhezeit",
+    // morgens bis „to + Ruhezeit".
+    return [
+      { start: 0, end: Math.min(1440, to + w), kind: "morgen" },
+      { start: Math.max(0, from - w), end: 1440, kind: "abend" }
+    ].filter(s => s.end > s.start);
+  }
+  // Wer tagsüber schläft: ein zusammenhängender Abschnitt.
+  return [{ start: Math.max(0, from - w), end: Math.min(1440, to + w), kind: "tag" }]
+    .filter(s => s.end > s.start);
+}
+
+/* Freie Lücken eines Tages innerhalb des erlaubten Fensters.
+   Vergangenes wird ausgelassen — ein Vorschlag für gestern hilft niemandem.
+   Schlaf- und Ruhezeit zählen wie ein belegter Block: der Vorschlag geht
+   darum herum, von Hand eintragen darf man dort trotzdem. */
+function freeGaps(day, plan) {
+  const todayKey = iso(new Date());
+  if (day.key < todayKey) return [];
+
+  const lo = Math.max(state.settings.dayStart * 60, plan.from == null ? 0 : plan.from);
+  const hi = Math.min(state.settings.dayEnd * 60, plan.to == null ? 1440 : plan.to);
+  if (hi - lo < 15) return [];
+
+  let cursor = lo;
+  if (day.key === todayKey) {
+    const now = new Date().getHours() * 60 + new Date().getMinutes();
+    cursor = Math.max(cursor, Math.ceil((now + 10) / 15) * 15);
+  }
+
+  const busy = state.blocks
+    .filter(b => b.repeat === "weekly" ? b.day === day.i : b.date === day.key)
+    .map(b => ({ start: b.start, end: b.end }))
+    .concat(restSpans())
+    .sort((a, b) => a.start - b.start);
+
+  const gaps = [];
+  busy.forEach(b => {
+    if (b.start > cursor) gaps.push({ start: cursor, end: b.start });
+    cursor = Math.max(cursor, b.end);
+  });
+  gaps.push({ start: cursor, end: hi });
+
+  return gaps
+    .map(g => ({ start: Math.max(g.start, lo), end: Math.min(g.end, hi) }))
+    .filter(g => g.end - g.start >= 15);
+}
+
+function dayWeight(day) {
+  const e = (state.days[day.key] || {}).energy;
+  return ENERGY_WEIGHT[e] || 1;
+}
+
+/* Verteilt die offenen Minuten eines Bereichs auf die Woche.
+   Gleichmäßig über die erlaubten Tage, gewichtet nach Tagesform. */
+function placeArea(area, open) {
+  const p = area.plan;
+  const cand = weekDays()
+    .filter(day => p.days.includes(day.i))
+    .map(day => ({ day, gaps: freeGaps(day, p), w: dayWeight(day) }))
+    .filter(c => c.gaps.length);
+  if (!cand.length) return 0;
+
+  const sumW = cand.reduce((s, c) => s + c.w, 0);
+  cand.forEach(c => { c.share = Math.round(open * c.w / sumW / 15) * 15; });
+
+  // Kürzeste sinnvolle Blocklänge. Ist das ganze Ziel kleiner als die
+  // Mindestlänge, darf der Block entsprechend kleiner sein.
+  const minLen = Math.min(p.min, Math.max(15, Math.floor(open / 15) * 15));
+  let placed = 0;
+
+  const fill = (c, wanted) => {
+    let need = wanted;
+    for (const g of c.gaps) {
+      while (need >= minLen) {
+        const room = g.end - g.start;
+        if (room < minLen) break;
+        const len = Math.floor(Math.min(p.max, need, room) / 15) * 15;
+        if (len < minLen) break;
+        state.blocks.push({
+          id: uid(), title: area.name, areaId: area.id,
+          day: c.day.i, date: c.day.key, repeat: "none",
+          start: g.start, end: g.start + len, frog: false, sug: true
+        });
+        g.start += len;
+        need -= len;
+        placed += len;
+      }
+      if (need < minLen) break;
+    }
+    return wanted - need;
+  };
+
+  let rest = open;
+  cand.forEach(c => { rest -= fill(c, Math.min(c.share, rest)); });
+  // Was nirgends passte, noch einmal über alle Tage schieben
+  if (rest >= minLen) cand.forEach(c => { if (rest >= minLen) rest -= fill(c, rest); });
+  // Restminuten unter der Mindestlänge nicht als Zwergblock anlegen,
+  // sondern an vorhandene Vorschläge anhängen
+  if (rest >= 15) placed += growSuggestions(area, rest);
+
+  return placed;
+}
+
+/* Hängt übrig gebliebene Minuten an bestehende Vorschläge an,
+   statt 15-Minuten-Krümel ins Raster zu streuen. */
+function growSuggestions(area, rest) {
+  const p = area.plan;
+  const hi = Math.min(state.settings.dayEnd * 60, p.to == null ? 1440 : p.to);
+  let used = 0;
+
+  for (const day of weekDays()) {
+    if (!p.days.includes(day.i)) continue;
+    const all = state.blocks
+      .filter(b => b.repeat === "weekly" ? b.day === day.i : b.date === day.key)
+      .sort((a, b) => a.start - b.start);
+
+    for (const b of all) {
+      if (rest - used < 15) return used;
+      if (!b.sug || b.areaId !== area.id) continue;
+      const next = all.find(x => x !== b && x.start >= b.end);
+      const limit = next ? Math.min(hi, next.start) : hi;
+      const grow = Math.floor(
+        Math.min(limit - b.end, p.max - (b.end - b.start), rest - used) / 15) * 15;
+      if (grow >= 15) { b.end += grow; used += grow; }
+    }
+  }
+  return used;
+}
+
+function buildSuggestions() {
+  clearSuggestions();
+
+  const todo = state.areas
+    .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) }))
+    .filter(x => x.open >= 15)
+    .sort((x, y) => y.open - x.open);   // größter Bedarf zuerst
+
+  let placed = 0, missing = 0;
+  todo.forEach(({ a, open }) => {
+    const got = placeArea(a, open);
+    placed += got;
+    missing += open - got;
+  });
+  return { placed, missing, areas: todo.length };
+}
+
+function clearSuggestions() {
+  const keys = new Set(weekDays().map(d => d.key));
+  state.blocks = state.blocks.filter(b => !(b.sug && keys.has(b.date)));
+}
+
+function acceptSuggestions() {
+  const keys = new Set(weekDays().map(d => d.key));
+  let n = 0;
+  state.blocks.forEach(b => { if (b.sug && keys.has(b.date)) { delete b.sug; n++; } });
+  return n;
+}
+
+/* ============================================================ Ziele-Anzeige */
+function renderGoals() {
+  const list = $("#goalsList");
+  const foot = $("#goalsFoot");
+  list.innerHTML = "";
+  foot.innerHTML = "";
+
+  const withGoal = state.areas.filter(a => a.plan.goal > 0);
+
+  if (!withGoal.length) {
+    list.innerHTML =
+      "<div class='empty'><b>Noch keine Wochenziele</b>Für alles ohne feste Uhrzeit: sag, wie viele Stunden " +
+      "pro Woche du willst — z.B. 10 h Lernen. Wann genau, entscheidest du später.</div>";
+    const b = document.createElement("button");
+    b.className = "btn btn--primary btn--sm";
+    b.textContent = "Wochenziel festlegen";
+    b.onclick = goalsSheet;
+    foot.appendChild(b);
+    return;
+  }
+
+  let anyOpen = false;
+
+  withGoal.forEach(a => {
+    const goal = a.plan.goal * 60;
+    const done = areaMinutes(a.id, false);
+    const sug  = areaMinutes(a.id, true);
+    const open = Math.max(0, goal - done - sug);
+    if (goal - done >= 15) anyOpen = true;
+
+    const row = document.createElement("div");
+    row.className = "goal";
+    row.style.setProperty("--h", a.hue);
+
+    const pDone = clamp(done / goal * 100, 0, 100);
+    const pSug  = clamp(sug / goal * 100, 0, 100 - pDone);
+
+    row.innerHTML =
+      "<div class='goal__top'>" +
+        "<span class='goal__name'><span class='goal__dot'></span>" + escapeHtml(a.name) + "</span>" +
+        "<span class='goal__num'>" + fmtDur(done) + " / " + fmtDur(goal) + "</span>" +
+      "</div>" +
+      "<div class='goal__track'>" +
+        "<div class='goal__fill' style='width:" + pDone + "%'></div>" +
+        "<div class='goal__fill goal__fill--sug' style='width:" + pSug + "%'></div>" +
+      "</div>" +
+      "<div class='goal__rest'>" + goalHint(done, sug, open, goal) + "</div>";
+
+    list.appendChild(row);
+  });
+
+  if (hasSuggestions()) {
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary btn--sm";
+    ok.textContent = "Alle übernehmen";
+    ok.onclick = () => {
+      const n = acceptSuggestions();
+      save(); renderAll();
+      toast(n + (n === 1 ? " Vorschlag übernommen" : " Vorschläge übernommen"));
+    };
+    const no = document.createElement("button");
+    no.className = "btn btn--sm";
+    no.textContent = "Verwerfen";
+    no.onclick = () => { clearSuggestions(); save(); renderAll(); toast("Vorschläge verworfen"); };
+    foot.append(ok, no);
+  } else if (anyOpen) {
+    const b = document.createElement("button");
+    b.className = "btn btn--primary btn--sm";
+    b.textContent = "Vorschlagen";
+    b.onclick = () => {
+      const r = buildSuggestions();
+      save(); renderAll();
+      if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+      else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
+      else toast("Vorschlag steht — schau, ob's dir passt");
+    };
+    foot.appendChild(b);
+  } else {
+    const b = document.createElement("button");
+    b.className = "btn btn--sm";
+    b.textContent = "Ziele anpassen";
+    b.onclick = goalsSheet;
+    foot.appendChild(b);
+  }
+}
+
+function goalHint(done, sug, open, goal) {
+  if (sug > 0) return "<b>" + fmtDur(sug) + "</b> vorgeschlagen" + (open >= 15 ? " · " + fmtDur(open) + " bleiben offen" : "");
+  if (done >= goal) return "Geschafft.";
+  return "<b>" + fmtDur(goal - done) + "</b> noch offen";
+}
+
+/* ============================================================ Ziele bearbeiten */
+function goalsSheet() {
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Wochenziele</h2>" +
+      "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+      "Für alles, was keine feste Uhrzeit hat. Trag Stunden pro Woche ein — der Planer " +
+      "rechnet mit, was noch fehlt, und kann den Rest auf die Woche verteilen. " +
+      "0 lassen heißt: kein Ziel.</p>" +
+      "<div class='goallist' id='gList'></div>";
+
+    const wrap = s.querySelector("#gList");
+
+    state.areas.forEach(a => {
+      const p = a.plan;
+      const row = document.createElement("div");
+      row.className = "goalrow";
+      row.style.setProperty("--h", a.hue);
+
+      row.innerHTML =
+        "<div class='goalrow__head'>" +
+          "<span class='goalrow__name'><span class='goal__dot'></span>" + escapeHtml(a.name) + "</span>" +
+          "<input class='field goalrow__h' type='number' min='0' max='80' step='0.5' " +
+                 "aria-label='Stunden pro Woche für " + escapeHtml(a.name) + "'>" +
+          "<span class='goalrow__unit'>h / Woche</span>" +
+          "<button class='goalrow__more' type='button' aria-expanded='false' " +
+                  "aria-label='Zeiten für " + escapeHtml(a.name) + "'>⌄</button>" +
+        "</div>" +
+        "<div class='goalrow__body' hidden>" +
+          "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
+          "<div class='chipset gDays' style='margin-bottom:14px'></div>" +
+          "<div class='sheet__cols' style='margin-bottom:12px'>" +
+            "<div><label class='label'>Frühestens</label><input class='field gFrom' type='time' step='900'></div>" +
+            "<div><label class='label'>Spätestens</label><input class='field gTo' type='time' step='900'></div>" +
+          "</div>" +
+          "<div class='sheet__cols'>" +
+            "<div><label class='label'>Kürzester Block (min)</label><input class='field gMin' type='number' min='15' max='240' step='15'></div>" +
+            "<div><label class='label'>Längster Block (min)</label><input class='field gMax' type='number' min='15' max='480' step='15'></div>" +
+          "</div>" +
+        "</div>";
+
+      const hIn   = row.querySelector(".goalrow__h");
+      const more  = row.querySelector(".goalrow__more");
+      const body  = row.querySelector(".goalrow__body");
+      const dayW  = row.querySelector(".gDays");
+      const from  = row.querySelector(".gFrom");
+      const to    = row.querySelector(".gTo");
+      const minIn = row.querySelector(".gMin");
+      const maxIn = row.querySelector(".gMax");
+
+      hIn.value = p.goal || 0;
+      from.value = fmtTime(p.from == null ? state.settings.dayStart * 60 : p.from);
+      to.value   = fmtTime(p.to   == null ? state.settings.dayEnd * 60   : p.to);
+      minIn.value = p.min;
+      maxIn.value = p.max;
+
+      const days = new Set(p.days);
+      const paintDays = () => {
+        dayW.innerHTML = "";
+        for (let i = 0; i < 7; i++) {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.setAttribute("aria-pressed", String(days.has(i)));
+          c.textContent = DAY_SHORT[i];
+          c.onclick = () => {
+            if (days.has(i)) { if (days.size > 1) days.delete(i); }
+            else days.add(i);
+            paintDays();
+          };
+          dayW.appendChild(c);
+        }
+      };
+      paintDays();
+
+      more.onclick = () => {
+        const open = body.hidden;
+        body.hidden = !open;
+        more.setAttribute("aria-expanded", String(open));
+        more.textContent = open ? "⌃" : "⌄";
+      };
+
+      row._commit = () => {
+        p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
+        p.days = [...days].sort((x, y) => x - y);
+        const f = parseTime(from.value), t = parseTime(to.value);
+        p.from = f > 0 ? f : null;
+        p.to   = t < 1440 && t > f ? t : null;
+        p.min  = clamp(parseInt(minIn.value, 10) || 45, 15, 240);
+        p.max  = clamp(parseInt(maxIn.value, 10) || 120, 15, 480);
+        if (p.max < p.min) p.max = p.min;
+      };
+
+      wrap.appendChild(row);
+    });
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const cancel = document.createElement("button");
+    cancel.className = "btn"; cancel.type = "button"; cancel.textContent = "Abbrechen";
+    cancel.onclick = close;
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Speichern";
+    ok.onclick = () => {
+      wrap.querySelectorAll(".goalrow").forEach(r => r._commit());
+      save(); close(); renderAll();
+    };
+    foot.append(cancel, ok);
+    s.appendChild(foot);
+  }, { wide: true });
+}
+
+/* ============================================================ Raster */
+function renderGrid() {
+  const grid = $("#grid");
+  const wrap = $("#gridWrap");
+  const keepScroll = wrap.scrollTop;
+  grid.innerHTML = "";
+
+  const { dayStart, dayEnd } = state.settings;
+  const hours = dayEnd - dayStart;
+  const hourH = parseFloat(getComputedStyle(grid).getPropertyValue("--hourh")) || 52;
+  const bodyH = hours * hourH;
+  const mon = mondayOf(anchor);
+  const todayIso = iso(new Date());
+  const dayIdxs = isMobile ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
+  grid.style.setProperty("--cols", dayIdxs.length);
+
+  // Kopfzeile — am Handy übernimmt das der Tag-Umschalter oben
+  if (!isMobile) {
+  const gh = document.createElement("div");
+  gh.className = "dayhead dayhead--gutter";
+  grid.appendChild(gh);
+
+  dayIdxs.forEach(i => {
+    const d = addDays(mon, i);
+    const h = document.createElement("div");
+    h.className = "dayhead" + (iso(d) === todayIso ? " is-today" : "");
+    const en = state.days[iso(d)] && state.days[iso(d)].energy;
+    if (en) h.dataset.energy = en;
+    h.innerHTML =
+      "<div class='dayhead__name'>" + DAY_SHORT[i] + "</div>" +
+      "<div class='dayhead__num'>" + d.getDate() + "</div>" +
+      "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
+    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); if (isMobile) renderGrid(); };
+    grid.appendChild(h);
+  });
+  }
+
+  // Zeitspalte
+  const tc = document.createElement("div");
+  tc.className = "timecol";
+  tc.style.height = bodyH + "px";
+  for (let h = dayStart; h <= dayEnd; h++) {
+    const m = document.createElement("div");
+    m.className = "timecol__mark num";
+    m.style.top = ((h - dayStart) * hourH) + "px";
+    m.textContent = pad2(h) + ":00";
+    tc.appendChild(m);
+  }
+  grid.appendChild(tc);
+
+  // Tagesspalten
+  dayIdxs.forEach(i => {
+    const d = addDays(mon, i);
+    const col = document.createElement("div");
+    col.className = "daycol" + (i >= 5 ? " is-weekend" : "");
+    col.style.height = bodyH + "px";
+    col.dataset.day = i;
+    col.dataset.date = iso(d);
+
+    // Nachtruhe hinterlegen — liegt unter den Linien und Blöcken
+    restSpans().forEach(sp => {
+      const a = Math.max(sp.start, dayStart * 60);
+      const b = Math.min(sp.end, dayEnd * 60);
+      if (b <= a) return;
+      const r = document.createElement("div");
+      r.className = "rest";
+      r.style.top = ((a - dayStart * 60) / 60 * hourH) + "px";
+      r.style.height = ((b - a) / 60 * hourH) + "px";
+      r.title = "Nachtruhe — hier wird nichts vorgeschlagen";
+      col.appendChild(r);
+    });
+
+    for (let h = 0; h <= hours; h++) {
+      const l = document.createElement("div");
+      l.className = "daycol__line";
+      l.style.top = (h * hourH) + "px";
+      col.appendChild(l);
+      if (h < hours) {
+        const hl = document.createElement("div");
+        hl.className = "daycol__line daycol__line--half";
+        hl.style.top = (h * hourH + hourH / 2) + "px";
+        col.appendChild(hl);
+      }
+    }
+
+    if (iso(d) === todayIso) {
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes();
+      if (mins >= dayStart * 60 && mins <= dayEnd * 60) {
+        const n = document.createElement("div");
+        n.className = "now";
+        n.style.top = ((mins - dayStart * 60) / 60 * hourH) + "px";
+        col.appendChild(n);
+      }
+    }
+
+    layout(blocksFor(d, i)).forEach(p => col.appendChild(blockEl(p, hourH)));
+
+    attachColumnHandlers(col, hourH);
+    grid.appendChild(col);
+  });
+
+  wrap.scrollTop = keepScroll || Math.max(0, ((new Date().getHours() - 1 - dayStart) * hourH));
+}
+
+function blockEl({ b, col, of }, hourH) {
+  const { dayStart } = state.settings;
+  const el = document.createElement("div");
+  const area = areaById(b.areaId);
+  const h = (b.end - b.start) / 60 * hourH;
+  el.className = "block" + (h < 34 ? " is-short" : "") + (b.frog ? " is-frog" : "") + (b.sug ? " is-sug" : "");
+  el.style.setProperty("--h", area.hue);
+  el.style.top = ((b.start - dayStart * 60) / 60 * hourH) + "px";
+  el.style.height = Math.max(18, h - 2) + "px";
+  if (of > 1) {
+    const w = 100 / of;
+    el.style.left = "calc(" + (col * w) + "% + 3px)";
+    el.style.right = "calc(" + ((of - col - 1) * w) + "% + 3px)";
+  }
+  el.tabIndex = 0;
+  el.dataset.id = b.id;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label",
+    (b.sug ? "Vorschlag: " : "") + b.title + ", " + fmtTime(b.start) + " bis " + fmtTime(b.end) + ", " + area.name);
+  const t = document.createElement("div");
+  t.className = "block__title"; t.textContent = b.title || "Ohne Titel";
+  const tm = document.createElement("div");
+  tm.className = "block__time num"; tm.textContent = fmtTime(b.start) + "–" + fmtTime(b.end);
+  el.append(t, tm);
+  const rz = document.createElement("div");
+  rz.className = "block__resize";
+  el.appendChild(rz);
+
+  if (b.sug) {
+    const bar = document.createElement("div");
+    bar.className = "block__sug";
+    const yes = document.createElement("button");
+    yes.type = "button"; yes.textContent = "✓";
+    yes.title = "Übernehmen"; yes.setAttribute("aria-label", "Vorschlag übernehmen");
+    yes.onclick = e => { e.stopPropagation(); acceptOne(b.id); };
+    const no = document.createElement("button");
+    no.type = "button"; no.textContent = "×";
+    no.title = "Verwerfen"; no.setAttribute("aria-label", "Vorschlag verwerfen");
+    no.onclick = e => { e.stopPropagation(); dropOne(b.id); };
+    bar.append(yes, no);
+    // Pointer-Events der Knöpfe nicht vom Spalten-Handler abfangen lassen
+    bar.addEventListener("pointerdown", e => e.stopPropagation());
+    el.appendChild(bar);
+  }
+
+  el.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (b.sug) acceptOne(b.id); else editBlock(b.id);
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      state.blocks = state.blocks.filter(x => x.id !== b.id);
+      save(); renderAll();
+      if (b.sug) toast("Vorschlag verworfen"); else toastUndo("Eintrag gelöscht");
+    }
+  });
+  return el;
+}
+
+function acceptOne(id) {
+  const b = state.blocks.find(x => x.id === id);
+  if (!b) return;
+  delete b.sug;
+  save(); renderAll(); toast("Übernommen");
+}
+function dropOne(id) {
+  state.blocks = state.blocks.filter(x => x.id !== id);
+  save(); renderAll(); toast("Vorschlag verworfen");
+}
+
+/* ============================================================ Maus/Touch im Raster */
+const SNAP = 15;
+function snap(min) { return Math.round(min / SNAP) * SNAP; }
+
+function attachColumnHandlers(col, hourH) {
+  const { dayStart, dayEnd } = state.settings;
+  const minAt = clientY => {
+    const r = col.getBoundingClientRect();
+    return clamp(snap(dayStart * 60 + (clientY - r.top) / hourH * 60), dayStart * 60, dayEnd * 60);
+  };
+
+  col.addEventListener("pointerdown", e => {
+    const blockNode = e.target.closest(".block");
+    const handle = e.target.closest(".block__resize");
+    const fine = e.pointerType === "mouse";
+
+    /* --- Größe ändern --- */
+    if (handle && blockNode && fine) {
+      e.preventDefault();
+      const b = state.blocks.find(x => x.id === blockNode.dataset.id);
+      const move = ev => {
+        const end = Math.max(b.start + SNAP, minAt(ev.clientY));
+        blockNode.style.height = Math.max(18, (end - b.start) / 60 * hourH - 2) + "px";
+        blockNode.dataset.pendEnd = end;
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        b.end = +blockNode.dataset.pendEnd || b.end;
+        save(); renderAll();
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      return;
+    }
+
+    /* --- Block verschieben (nur Maus) --- */
+    if (blockNode && fine) {
+      const b = state.blocks.find(x => x.id === blockNode.dataset.id);
+      const startY = e.clientY, origStart = b.start, len = b.end - b.start;
+      let moved = false;
+      const move = ev => {
+        if (!moved && Math.abs(ev.clientY - startY) < 4) return;
+        moved = true;
+        blockNode.classList.add("is-dragging");
+        const delta = snap((ev.clientY - startY) / hourH * 60);
+        const ns = clamp(origStart + delta, dayStart * 60, dayEnd * 60 - len);
+        blockNode.style.top = ((ns - dayStart * 60) / 60 * hourH) + "px";
+        blockNode.dataset.pendStart = ns;
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        if (moved) {
+          const ns = +blockNode.dataset.pendStart;
+          b.start = ns; b.end = ns + len;
+          save(); renderAll();
+        } else {
+          editBlock(b.id);
+        }
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      return;
+    }
+
+    /* --- Touch auf Block: direkt bearbeiten --- */
+    if (blockNode) { editBlock(blockNode.dataset.id); return; }
+
+    /* --- Ziehen zum Anlegen (nur Maus) --- */
+    if (fine) {
+      e.preventDefault();
+      const a = minAt(e.clientY);
+      const ghost = document.createElement("div");
+      ghost.className = "block__ghost";
+      ghost.style.setProperty("--h", state.areas[0].hue);
+      col.appendChild(ghost);
+      let from = a, to = a + 60;
+      const paint = () => {
+        const s = Math.min(from, to), en = Math.max(from, to);
+        ghost.style.top = ((s - dayStart * 60) / 60 * hourH) + "px";
+        ghost.style.height = Math.max(16, (en - s) / 60 * hourH - 2) + "px";
+        ghost.textContent = fmtTime(s) + "–" + fmtTime(en);
+      };
+      paint();
+      let dragged = false;
+      const move = ev => { dragged = true; to = minAt(ev.clientY); paint(); };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        ghost.remove();
+        let s = Math.min(from, to), en = Math.max(from, to);
+        if (!dragged || en - s < SNAP) { s = a; en = a + 60; }
+        newBlock(+col.dataset.day, col.dataset.date, s, Math.min(en, dayEnd * 60));
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      return;
+    }
+
+    /* --- Touch auf leere Fläche: Editor mit Vorbelegung --- */
+    const s = minAt(e.clientY);
+    newBlock(+col.dataset.day, col.dataset.date, s, Math.min(s + 60, dayEnd * 60));
+  });
+
+  /* Aufgabe per Drag&Drop einplanen */
+  col.addEventListener("dragover", e => {
+    if (!dragTaskId) return;
+    e.preventDefault();
+    col.classList.add("is-droptarget");
+  });
+  col.addEventListener("dragleave", () => col.classList.remove("is-droptarget"));
+  col.addEventListener("drop", e => {
+    col.classList.remove("is-droptarget");
+    if (!dragTaskId) return;
+    e.preventDefault();
+    const t = state.tasks.find(x => x.id === dragTaskId);
+    if (!t) return;
+    const s = minAt(e.clientY);
+    state.blocks.push({
+      id: uid(), title: t.title, areaId: t.areaId || state.areas[0].id,
+      day: +col.dataset.day, date: col.dataset.date, repeat: "none",
+      start: s, end: Math.min(s + 60, state.settings.dayEnd * 60), frog: !!t.frog
+    });
+    save(); renderAll();
+    toast("Eingeplant: " + t.title);
+  });
+}
+
+/* ============================================================ Block-Editor */
+function newBlock(dayIdx, dateIso, start, end) {
+  blockSheet({
+    id: null, title: "", areaId: state.areas[0].id,
+    day: dayIdx, date: dateIso, repeat: "none",
+    start, end, frog: false
+  });
+}
+function editBlock(id) {
+  const b = state.blocks.find(x => x.id === id);
+  if (!b) return;
+  if (b.sug) { sugSheet(b); return; }
+  blockSheet({ ...b });
+}
+
+/* Antippen eines Vorschlags — am Handy der Hauptweg, am PC die Alternative
+   zu den kleinen Knöpfen im Block. */
+function sugSheet(b) {
+  const area = areaById(b.areaId);
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Vorschlag</h2>" +
+      "<p style='margin:0 0 6px;font-size:15px'><b>" + escapeHtml(b.title) + "</b></p>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
+      DAY_LONG[b.day] + ", " + fmtTime(b.start) + "–" + fmtTime(b.end) +
+      " · " + escapeHtml(area.name) + "</p>" +
+      "<p style='margin:0;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+      "Nur ein Vorschlag — er zählt erst mit, wenn du ihn übernimmst. " +
+      "Verschieben kannst du ihn auch einfach im Raster.</p>";
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const del = document.createElement("button");
+    del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Verwerfen";
+    del.onclick = () => { close(); dropOne(b.id); };
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const edit = document.createElement("button");
+    edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
+    edit.onclick = () => { close(); blockSheet({ ...b }); };
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Übernehmen";
+    ok.onclick = () => { close(); acceptOne(b.id); };
+    foot.append(del, sp, edit, ok);
+    s.appendChild(foot);
+  });
+}
+
+function blockSheet(draft) {
+  const isNew = !draft.id;
+  const mon = mondayOf(anchor);
+  let days = new Set([draft.day]);
+
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>" + (isNew ? "Neuer Eintrag" : "Eintrag bearbeiten") + "</h2>" +
+      "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
+      "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
+      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
+      "<div class='sheet__row sheet__cols'>" +
+        "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
+        "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
+      "</div>" +
+      "<div class='sheet__row'><span class='label'>Wann?</span>" +
+        "<label class='switch'><input type='checkbox' id='bRepeat'> Jede Woche wiederholen</label>" +
+        "<div class='chipset' id='bDays' style='margin-top:12px'></div>" +
+        "<div id='bDaysHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div>" +
+      "</div>";
+
+    const title = s.querySelector("#bTitle");
+    title.value = draft.title;
+    const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
+    const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end);
+    const rep = s.querySelector("#bRepeat"); rep.checked = draft.repeat === "weekly";
+
+    // Bereiche
+    const areaWrap = s.querySelector("#bAreas");
+    const paintAreas = () => {
+      areaWrap.innerHTML = "";
+      state.areas.forEach(a => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.style.setProperty("--h", a.hue);
+        c.setAttribute("aria-pressed", String(a.id === draft.areaId));
+        c.innerHTML = "<span class='chip__dot'></span>";
+        c.append(a.name);
+        c.onclick = () => { draft.areaId = a.id; paintAreas(); };
+        areaWrap.appendChild(c);
+      });
+    };
+    paintAreas();
+
+    // Tage
+    const dayWrap = s.querySelector("#bDays");
+    const hint = s.querySelector("#bDaysHint");
+    const paintDays = () => {
+      dayWrap.innerHTML = "";
+      for (let i = 0; i < 7; i++) {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(days.has(i)));
+        c.textContent = DAY_SHORT[i];
+        c.onclick = () => {
+          if (days.has(i)) { if (days.size > 1) days.delete(i); }
+          else { if (isNew) days.add(i); else { days.clear(); days.add(i); } }
+          paintDays();
+        };
+        dayWrap.appendChild(c);
+      }
+      hint.textContent = rep.checked
+        ? (isNew && days.size > 1 ? days.size + " Einträge, jede Woche — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht in jeder Woche auf.")
+        : "Nur in dieser Woche (" + [...days].map(i => DAY_SHORT[i]).join(", ") + ", " + addDays(mon, [...days][0]).getDate() + "." + (addDays(mon, [...days][0]).getMonth() + 1) + ".).";
+    };
+    rep.onchange = paintDays;
+    paintDays();
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    if (!isNew) {
+      const del = document.createElement("button");
+      del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
+      del.onclick = () => {
+        state.blocks = state.blocks.filter(x => x.id !== draft.id);
+        save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
+      };
+      foot.appendChild(del);
+    }
+    const sp = document.createElement("span"); sp.className = "spacer"; foot.appendChild(sp);
+    const cancel = document.createElement("button");
+    cancel.className = "btn"; cancel.type = "button"; cancel.textContent = "Abbrechen";
+    cancel.onclick = close;
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = isNew ? "Eintragen" : "Speichern";
+
+    const commit = () => {
+      let st = parseTime(from.value), en = parseTime(to.value);
+      if (en <= st) en = st + 30;
+      const weekly = rep.checked;
+      const list = [...days];
+      if (isNew) {
+        list.forEach(d => state.blocks.push({
+          id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
+          day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
+          start: st, end: en, frog: false
+        }));
+      } else {
+        const b = state.blocks.find(x => x.id === draft.id);
+        b.title = title.value.trim() || "Ohne Titel";
+        b.areaId = draft.areaId;
+        b.day = list[0];
+        b.date = iso(addDays(mon, list[0]));
+        b.repeat = weekly ? "weekly" : "none";
+        b.start = st; b.end = en;
+      }
+      save(); close(); renderAll();
+    };
+    ok.onclick = commit;
+    title.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
+    foot.append(cancel, ok);
+    s.appendChild(foot);
+  });
+}
+
+/* ============================================================ Aufgaben */
+let dragTaskId = null;
+
+function renderTasks() {
+  const list = $("#taskList");
+  list.innerHTML = "";
+  const open = state.tasks.filter(t => !t.done);
+  const done = state.tasks.filter(t => t.done);
+
+  if (!state.tasks.length) {
+    list.innerHTML = "<div class='empty'><b>Noch nichts notiert</b>Schreib oben rein, was ansteht. Aufgaben kannst du später einfach in den Wochenplan ziehen.</div>";
+    return;
+  }
+  [...open, ...done].forEach(t => list.appendChild(taskEl(t)));
+}
+
+function taskEl(t) {
+  const row = document.createElement("div");
+  row.className = "task" + (t.done ? " is-done" : "");
+  row.draggable = !t.done;
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.className = "task__check"; cb.checked = t.done;
+  cb.setAttribute("aria-label", "Erledigt: " + t.title);
+  cb.onchange = () => { t.done = cb.checked; save(); renderTasks(); };
+
+  const body = document.createElement("div");
+  body.className = "task__body";
+  const ti = document.createElement("div");
+  ti.className = "task__title"; ti.textContent = t.title;
+  const tags = document.createElement("div");
+  tags.className = "task__tags";
+
+  const areaBtn = document.createElement("button");
+  areaBtn.className = "task__area";
+  const a = areaById(t.areaId);
+  areaBtn.style.setProperty("--h", a.hue);
+  areaBtn.style.border = "0"; areaBtn.style.background = "transparent"; areaBtn.style.padding = "0";
+  areaBtn.innerHTML = "<span class='chip__dot'></span>";
+  areaBtn.append(a.name);
+  areaBtn.title = "Bereich wechseln";
+  areaBtn.onclick = () => {
+    const i = state.areas.findIndex(x => x.id === t.areaId);
+    t.areaId = state.areas[(i + 1) % state.areas.length].id;
+    save(); renderTasks();
+  };
+
+  const frog = document.createElement("button");
+  frog.className = "task__frog"; frog.textContent = "🐸";
+  frog.title = "Frosch des Tages — die Aufgabe mit der größten Überwindung";
+  frog.setAttribute("aria-pressed", String(!!t.frog));
+  frog.setAttribute("aria-label", "Als Frosch des Tages markieren");
+  frog.onclick = () => {
+    const on = !t.frog;
+    if (on) state.tasks.forEach(x => x.frog = false);
+    t.frog = on; save(); renderTasks(); renderEnergy();
+  };
+
+  const plan = document.createElement("button");
+  plan.className = "task__frog"; plan.textContent = "📅";
+  plan.style.filter = "none"; plan.style.opacity = ".55";
+  plan.title = "In den Wochenplan legen";
+  plan.setAttribute("aria-label", "In den Wochenplan legen");
+  plan.onclick = () => {
+    const d = addDays(mondayOf(anchor), selectedDayIdx);
+    const start = clamp(snap(new Date().getHours() * 60 + 60), state.settings.dayStart * 60, state.settings.dayEnd * 60 - 60);
+    blockSheet({
+      id: null, title: t.title, areaId: t.areaId || state.areas[0].id,
+      day: selectedDayIdx, date: iso(d), repeat: "none",
+      start, end: start + 60, frog: !!t.frog
+    });
+  };
+
+  tags.append(areaBtn, frog, plan);
+  body.append(ti, tags);
+
+  const del = document.createElement("button");
+  del.className = "task__del"; del.innerHTML = "×";
+  del.setAttribute("aria-label", "Aufgabe löschen");
+  del.onclick = () => {
+    state.tasks = state.tasks.filter(x => x.id !== t.id);
+    save(); renderTasks(); toastUndo("Aufgabe gelöscht");
+  };
+
+  row.append(cb, body, del);
+  row.addEventListener("dragstart", e => {
+    dragTaskId = t.id; row.classList.add("is-dragging");
+    e.dataTransfer.effectAllowed = "copy";
+    try { e.dataTransfer.setData("text/plain", t.title); } catch (err) {}
+  });
+  row.addEventListener("dragend", () => { dragTaskId = null; row.classList.remove("is-dragging"); });
+  return row;
+}
+
+$("#taskForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const inp = $("#taskInput");
+  const v = inp.value.trim();
+  if (!v) return;
+  state.tasks.unshift({ id: uid(), title: v, areaId: state.areas[0].id, done: false, frog: false });
+  inp.value = "";
+  save(); renderTasks();
+});
+$("#goalsEdit").onclick = goalsSheet;
+
+$("#clearDone").onclick = () => {
+  const n = state.tasks.filter(t => t.done).length;
+  if (!n) { toast("Nichts zu räumen"); return; }
+  state.tasks = state.tasks.filter(t => !t.done);
+  save(); renderTasks(); toastUndo(n + " erledigt & weggeräumt");
+};
+
+/* ============================================================ Tagesform */
+const ENERGY = {
+  low:  { pomo: [15, 5],  text: "<b>Wenig Energie.</b> Frosch nicht streichen, nur schrumpfen: 15 Minuten anfangen reicht. Sonst Alltagskram und Pausen — das zählt auch." },
+  mid:  { pomo: [25, 5],  text: "<b>Normal.</b> Kurz warmlaufen, dann der Frosch. 25 Minuten Fokus, 5 Minuten Pause." },
+  high: { pomo: [50, 10], text: "<b>Viel Energie.</b> Frosch zuerst, bevor der Tag ihn frisst. Langer Block: 50 Minuten Fokus, 10 Minuten Pause." },
+  none: { pomo: [25, 5],  text: "Wie fühlst du dich heute? Der Plan passt sich an — bei wenig Energie wird der Frosch kleiner statt verschoben." }
+};
+
+function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
+
+function renderEnergy() {
+  const key = currentDayIso();
+  const meta = state.days[key] || {};
+  const lvl = meta.energy;
+  document.querySelectorAll(".energy__opt").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.lvl === lvl));
+  });
+  const d = addDays(mondayOf(anchor), selectedDayIdx);
+  $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
+  const frog = state.tasks.find(t => t.frog && !t.done);
+  let html = ENERGY[lvl || "none"].text;
+  if (frog) html += "<br><br>🐸 <b>Frosch heute:</b> " + escapeHtml(frog.title);
+  $("#energyHint").innerHTML = html;
+  if (!pomo.running) setPomoFromEnergy();
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+document.querySelectorAll(".energy__opt").forEach(btn => {
+  btn.onclick = () => {
+    const key = currentDayIso();
+    const meta = dayMeta(key);
+    meta.energy = meta.energy === btn.dataset.lvl ? null : btn.dataset.lvl;
+    save(); renderEnergy(); renderGrid(); renderDaySwitch();
+  };
+});
+
+/* ============================================================ Pomodoro */
+const pomo = { running: false, phase: "work", left: 25 * 60, total: 25 * 60, rounds: 0, timer: null };
+
+function setPomoFromEnergy() {
+  const meta = state.days[currentDayIso()] || {};
+  const [w] = ENERGY[meta.energy || "none"].pomo;
+  pomo.phase = "work"; pomo.total = w * 60; pomo.left = w * 60;
+  paintPomo();
+}
+function paintPomo() {
+  $("#pomoTime").textContent = pad2(Math.floor(pomo.left / 60)) + ":" + pad2(pomo.left % 60);
+  $("#pomoPhase").textContent = pomo.running ? (pomo.phase === "work" ? "Fokus" : "Pause") : (pomo.phase === "work" ? "Bereit" : "Pause");
+  const pct = pomo.total ? (1 - pomo.left / pomo.total) * 100 : 0;
+  const bar = $("#pomoBar");
+  bar.style.width = pct + "%";
+  bar.classList.toggle("is-break", pomo.phase === "break");
+  $("#pomoStart").textContent = pomo.running ? "Pause" : "Start";
+  const meta = state.days[currentDayIso()] || {};
+  const [w, b] = ENERGY[meta.energy || "none"].pomo;
+  $("#pomoMeta").textContent = w + " min Fokus · " + b + " min Pause" + (pomo.rounds ? " · " + pomo.rounds + " Runden heute" : "");
+}
+function tick() {
+  pomo.left--;
+  if (pomo.left <= 0) {
+    const meta = state.days[currentDayIso()] || {};
+    const [w, b] = ENERGY[meta.energy || "none"].pomo;
+    if (pomo.phase === "work") {
+      pomo.rounds++; pomo.phase = "break"; pomo.total = b * 60; pomo.left = b * 60;
+      toast("Runde geschafft — " + b + " Minuten Pause");
+    } else {
+      pomo.phase = "work"; pomo.total = w * 60; pomo.left = w * 60;
+      toast("Pause vorbei — weiter geht's");
+    }
+  }
+  paintPomo();
+}
+$("#pomoStart").onclick = () => {
+  pomo.running = !pomo.running;
+  clearInterval(pomo.timer);
+  if (pomo.running) pomo.timer = setInterval(tick, 1000);
+  paintPomo();
+};
+$("#pomoReset").onclick = () => {
+  pomo.running = false; clearInterval(pomo.timer);
+  setPomoFromEnergy();
+};
+
+/* ============================================================ Einstellungen */
+$("#settingsBtn").onclick = () => {
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Einstellungen</h2>" +
+      "<div class='sheet__row'><label class='label' for='sName'>Wer plant hier?</label>" +
+      "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
+      "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
+      "<div class='sheet__row sheet__cols'>" +
+        "<div><label class='label' for='sFrom'>Tag beginnt</label><input class='field' id='sFrom' type='number' min='0' max='12' step='1'></div>" +
+        "<div><label class='label' for='sTo'>Tag endet</label><input class='field' id='sTo' type='number' min='13' max='24' step='1'></div>" +
+      "</div>" +
+      "<div class='sheet__row'><span class='label'>Schlaf & Ruhe</span>" +
+        "<label class='switch'><input type='checkbox' id='sSleepOn'> Feste Schlafenszeit</label>" +
+        "<div id='sSleepBody' style='margin-top:12px'>" +
+          "<div class='sheet__cols' style='margin-bottom:12px'>" +
+            "<div><label class='label' for='sSleepFrom'>Ins Bett</label><input class='field' id='sSleepFrom' type='time' step='900'></div>" +
+            "<div><label class='label' for='sSleepTo'>Aufstehen</label><input class='field' id='sSleepTo' type='time' step='900'></div>" +
+          "</div>" +
+          "<label class='label' for='sSleepWind'>Ruhezeit davor und danach (Minuten)</label>" +
+          "<input class='field' id='sSleepWind' type='number' min='0' max='180' step='15' style='max-width:140px'>" +
+          "<div id='sSleepHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "</div>" +
+      "</div>" +
+      "<div class='sheet__row' id='sAcctRow'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
+      "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
+      "<div class='sheet__row'><span class='label'>Daten</span>" +
+      "<div style='display:flex;gap:8px;flex-wrap:wrap'>" +
+      "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
+      "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
+      "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
+      "</div><div id='sStore' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>";
+
+    const name = s.querySelector("#sName"); name.value = state.profile.name;
+    const f = s.querySelector("#sFrom"); f.value = state.settings.dayStart;
+    const t = s.querySelector("#sTo"); t.value = state.settings.dayEnd;
+    s.querySelector("#sStore").textContent = Store.available
+      ? "Wird automatisch in diesem Browser gespeichert."
+      : "Achtung: In dieser Ansicht kann nichts dauerhaft gespeichert werden. Lade die Datei herunter und öffne sie direkt — dann bleibt alles erhalten.";
+
+    // Schlaf & Ruhe
+    const sl = state.settings.sleep;
+    const slOn = s.querySelector("#sSleepOn");
+    const slFrom = s.querySelector("#sSleepFrom");
+    const slTo = s.querySelector("#sSleepTo");
+    const slWind = s.querySelector("#sSleepWind");
+    const slBody = s.querySelector("#sSleepBody");
+    const slHint = s.querySelector("#sSleepHint");
+
+    slOn.checked = sl.on;
+    slFrom.value = fmtTime(sl.from);
+    slTo.value = fmtTime(sl.to);
+    slWind.value = sl.wind;
+
+    const paintSleep = () => {
+      slBody.style.opacity = slOn.checked ? "1" : ".45";
+      [slFrom, slTo, slWind].forEach(f => f.disabled = !slOn.checked);
+      const f = parseTime(slFrom.value), t = parseTime(slTo.value);
+      const w = clamp(parseInt(slWind.value, 10) || 0, 0, 180);
+      slHint.textContent = slOn.checked
+        ? "Ab " + fmtTime((f - w + 1440) % 1440) + " wird nichts mehr eingeplant, wieder ab " +
+          fmtTime((t + w) % 1440) + ". Von Hand eintragen kannst du dort trotzdem."
+        : "Ohne Schlafenszeit darf der Vorschlag über den ganzen sichtbaren Tag planen — auch früh um sechs.";
+    };
+    slOn.onchange = paintSleep;
+    [slFrom, slTo, slWind].forEach(f => f.oninput = paintSleep);
+    paintSleep();
+
+    paintAccount(s.querySelector("#sAcctRow"), s.querySelector("#sAcct"), close);
+
+    const areasWrap = s.querySelector("#sAreas");
+    const paint = () => {
+      areasWrap.innerHTML = "";
+      state.areas.forEach((a, i) => {
+        const row = document.createElement("div");
+        row.className = "arearow";
+        row.style.setProperty("--h", a.hue);
+        const sw = document.createElement("button");
+        sw.type = "button"; sw.className = "arearow__swatch";
+        sw.title = "Farbe wechseln"; sw.setAttribute("aria-label", "Farbe von " + a.name + " wechseln");
+        sw.onclick = () => { a.hue = (a.hue + 40) % 360; save(); paint(); renderAll(); };
+        const inp = document.createElement("input");
+        inp.className = "field"; inp.value = a.name;
+        inp.setAttribute("aria-label", "Name des Bereichs");
+        inp.oninput = () => { a.name = inp.value; save(); renderAll(); };
+        const del = document.createElement("button");
+        del.type = "button"; del.className = "btn btn--sm btn--danger"; del.textContent = "×";
+        del.setAttribute("aria-label", "Bereich " + a.name + " löschen");
+        del.disabled = state.areas.length <= 1;
+        del.onclick = () => {
+          const fallback = state.areas.find(x => x.id !== a.id).id;
+          state.blocks.forEach(b => { if (b.areaId === a.id) b.areaId = fallback; });
+          state.tasks.forEach(x => { if (x.areaId === a.id) x.areaId = fallback; });
+          const gone = a.name;
+          state.areas.splice(i, 1);
+          save(); paint(); renderAll();
+          toastUndo("Bereich „" + gone + "“ gelöscht");
+        };
+        row.append(sw, inp, del);
+        areasWrap.appendChild(row);
+      });
+    };
+    paint();
+
+    s.querySelector("#sAddArea").onclick = () => {
+      state.areas.push({ id: uid(), name: "Neuer Bereich", hue: (state.areas.length * 47 + 20) % 360, plan: defaultPlan() });
+      save(); paint(); renderAll();
+    };
+    s.querySelector("#sExport").onclick = exportData;
+    s.querySelector("#sImport").onclick = importData;
+    s.querySelector("#sReset").onclick = () => {
+      close();
+      confirmSheet("Wirklich alles löschen?",
+        "Alle Einträge, Aufgaben und Bereiche werden entfernt. Das lässt sich nicht rückgängig machen — mach vorher eine Sicherung, wenn du unsicher bist.",
+        "Alles löschen",
+        () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurückgesetzt"); });
+    };
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Fertig";
+    ok.onclick = () => {
+      state.profile.name = name.value.trim();
+      const a = clamp(parseInt(f.value, 10) || 0, 0, 12);
+      const b = clamp(parseInt(t.value, 10) || 24, 13, 24);
+      state.settings.dayStart = a; state.settings.dayEnd = b;
+      state.settings.sleep = {
+        on: slOn.checked,
+        from: parseTime(slFrom.value),
+        to: parseTime(slTo.value),
+        wind: clamp(parseInt(slWind.value, 10) || 0, 0, 180)
+      };
+      save(); close(); renderAll();
+    };
+    foot.appendChild(ok);
+    s.appendChild(foot);
+  }, { wide: true });
+};
+
+/* ============================================================ Konto */
+function paintAccount(row, box, closeSheet) {
+  if (!Sync.configured()) {
+    // Noch nicht eingerichtet — dann auch nicht davon reden.
+    row.hidden = true;
+    return;
+  }
+  row.hidden = false;
+  box.innerHTML = "";
+
+  const wrap = document.createElement("div");
+  wrap.className = "acct__row";
+  const txt = document.createElement("div");
+  txt.className = "acct__txt";
+
+  if (Sync.active()) {
+    txt.innerHTML =
+      "<div class='acct__what'>Auf allen Geräten</div>" +
+      "<div class='acct__sub'>Angemeldet als " + escapeHtml(Sync.email || "…") + "</div>";
+    const out = document.createElement("button");
+    out.className = "btn btn--sm"; out.type = "button"; out.textContent = "Abmelden";
+    out.onclick = () => {
+      closeSheet();
+      confirmSheet("Abmelden?",
+        "Dein Plan bleibt auf dem Server und auf den anderen Geräten. Auf diesem Gerät siehst du danach wieder den Plan, der hier vor der Anmeldung lag.",
+        "Abmelden",
+        () => { Sync.signOut(); toast("Abgemeldet"); });
+    };
+    wrap.append(txt, out);
+  } else {
+    txt.innerHTML =
+      "<div class='acct__what'>Nur dieses Gerät</div>" +
+      "<div class='acct__sub'>Der Plan liegt im Speicher dieses Browsers.</div>";
+    const go = document.createElement("button");
+    go.className = "btn btn--primary btn--sm"; go.type = "button";
+    go.textContent = "Überall nutzen";
+    go.onclick = () => { closeSheet(); signInSheet(); };
+    wrap.append(txt, go);
+  }
+  box.appendChild(wrap);
+}
+
+function signInSheet(mode) {
+  let neu = mode === "new";
+  modal((s, close) => {
+    const paint = () => {
+      s.innerHTML =
+        "<h2 class='sheet__title'>" + (neu ? "Konto anlegen" : "Auf allen Geräten") + "</h2>" +
+        "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+        (neu
+          ? "Damit steht dein Plan auf Handy, Tablet und Rechner gleich — und er ist gesichert, falls diesem Gerät etwas passiert. Was du bisher hier eingetragen hast, wird übernommen."
+          : "Melde dich an, dann siehst du auf jedem Gerät denselben Plan.") +
+        "</p>" +
+        "<div class='sheet__row'><label class='label' for='inEmail'>E-Mail</label>" +
+        "<input class='field' id='inEmail' type='email' inputmode='email' autocomplete='email' placeholder='du@beispiel.de'></div>" +
+        "<div class='sheet__row'><label class='label' for='inPass'>Passwort</label>" +
+        "<input class='field' id='inPass' type='password' autocomplete='" +
+          (neu ? "new-password" : "current-password") + "' placeholder='" +
+          (neu ? "mindestens sechs Zeichen" : "") + "'></div>" +
+        "<div id='inMsg' style='font-size:13px;color:var(--text-muted);min-height:18px;line-height:1.5'></div>" +
+        "<button type='button' id='inSwap' style='background:none;border:none;padding:6px 0;margin-top:4px;" +
+        "font-size:13px;color:var(--text-muted);text-decoration:underline;text-underline-offset:3px'>" +
+        (neu ? "Ich habe schon ein Konto" : "Neu hier? Konto anlegen") + "</button>";
+
+      const mail = s.querySelector("#inEmail");
+      const pass = s.querySelector("#inPass");
+      const msg = s.querySelector("#inMsg");
+
+      s.querySelector("#inSwap").onclick = () => {
+        const keepMail = mail.value;
+        neu = !neu;
+        paint();
+        s.querySelector("#inEmail").value = keepMail;
+        s.querySelector("#inEmail").focus();
+      };
+
+      const foot = document.createElement("div");
+      foot.className = "sheet__foot";
+      foot.innerHTML = "<span class='spacer'></span>";
+      const cancel = document.createElement("button");
+      cancel.className = "btn"; cancel.type = "button"; cancel.textContent = "Abbrechen";
+      cancel.onclick = close;
+      const ok = document.createElement("button");
+      ok.className = "btn btn--primary"; ok.type = "button";
+      ok.textContent = neu ? "Konto anlegen" : "Anmelden";
+
+      const go = async () => {
+        const e = mail.value.trim(), p = pass.value;
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { msg.textContent = "Bitte eine gültige E-Mail-Adresse."; mail.focus(); return; }
+        if (p.length < 6) { msg.textContent = "Das Passwort braucht mindestens sechs Zeichen."; pass.focus(); return; }
+        ok.disabled = true;
+        msg.textContent = neu ? "Konto wird angelegt …" : "Wird angemeldet …";
+        try {
+          if (neu) {
+            const r = await Sync.signUp(e, p);
+            if (r === "confirm") {
+              msg.innerHTML = "<b>Fast fertig.</b> Bestätige zuerst den Link in deinem Postfach, dann melde dich hier an.";
+              ok.textContent = "Alles klar"; ok.disabled = false; ok.onclick = close;
+              return;
+            }
+          } else {
+            await Sync.signInPassword(e, p);
+          }
+          close();
+          await Sync.afterSignIn();
+          toast("Angemeldet — dein Plan ist jetzt überall");
+        } catch (err) {
+          msg.textContent = err.message || "Hat nicht geklappt.";
+          ok.disabled = false;
+        }
+      };
+      ok.onclick = go;
+      [mail, pass].forEach(f => f.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") { ev.preventDefault(); go(); }
+      }));
+      foot.append(cancel, ok);
+      s.appendChild(foot);
+      mail.focus();
+    };
+    paint();
+  });
+}
+
+/* ============================================================ Sichern / Laden */
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "wochenplaner-" + iso(new Date()) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  state.backupAt = Date.now();
+  save();
+  toast("Sicherung gespeichert");
+}
+
+/* ============================================================
+   Sicherungs-Erinnerung
+
+   Solange der Plan nur im Browser liegt, ist er genau eine gelöschte
+   Browser-Historie vom Totalverlust entfernt. Deshalb ein Hinweis —
+   aber ein einziger, höchstens alle zwei Wochen, und nur wenn wirklich
+   Arbeit drinsteckt. Wer ein Konto hat, sieht ihn nie.
+   ============================================================ */
+const BACKUP_NAG_DAYS = 14;
+
+function maybeBackupNag() {
+  if (!Store.available) return;
+  if (Sync.active()) return;
+  const stuff = state.blocks.length + state.tasks.length;
+  if (stuff < 8) return;                       // zu wenig, um daran zu hängen
+  const now = Date.now();
+  const span = BACKUP_NAG_DAYS * 86400000;
+  if (state.backupAt && now - state.backupAt < span) return;
+  if (state.nagAt && now - state.nagAt < span) return;
+
+  state.nagAt = now;
+  save();
+  setTimeout(() => {
+    toast(state.backupAt ? "Letzte Sicherung ist eine Weile her" : "Dein Plan liegt nur in diesem Browser",
+      { label: "Sichern", run: exportData });
+  }, 2500);
+}
+function importData() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json,.json";
+  inp.onchange = () => {
+    const file = inp.files && inp.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || typeof data !== "object") throw new Error("bad");
+        migrate(data);
+        state = data;
+        save(); closeModal(); renderAll();
+        toast("Sicherung geladen");
+      } catch (e) {
+        toast("Datei konnte nicht gelesen werden");
+      }
+    };
+    r.readAsText(file);
+  };
+  inp.click();
+}
+
+/* ============================================================
+   Zusammenführen zweier Stände
+
+   Regel: pro Eintrag gewinnt die neuere Änderung. Ein Grabstein zählt
+   wie eine Änderung — ist er neuer als der Eintrag, bleibt gelöscht.
+   Das ist bewusst simpel: bei einem Wochenplaner arbeitet praktisch nie
+   jemand gleichzeitig auf zwei Geräten am selben Eintrag.
+   ============================================================ */
+function mergeStates(mine, theirs) {
+  const out = JSON.parse(JSON.stringify(mine));
+  if (!theirs || typeof theirs !== "object") return out;
+
+  out.tombs = Object.assign({}, out.tombs);
+  Object.keys(theirs.tombs || {}).forEach(id => {
+    out.tombs[id] = Math.max(out.tombs[id] || 0, theirs.tombs[id] || 0);
+  });
+
+  ["blocks", "tasks", "areas"].forEach(c => {
+    const byId = new Map();
+    (out[c] || []).forEach(r => byId.set(r.id, r));
+    (theirs[c] || []).forEach(r => {
+      const m = byId.get(r.id);
+      if (!m || (r.at || 0) > (m.at || 0)) byId.set(r.id, r);
+    });
+    out[c] = [...byId.values()].filter(r => (out.tombs[r.id] || 0) <= (r.at || 0));
+  });
+
+  out.days = out.days || {};
+  Object.keys(theirs.days || {}).forEach(k => {
+    const m = out.days[k], t = theirs.days[k];
+    if (!m || (t.at || 0) > (m.at || 0)) out.days[k] = t;
+  });
+  Object.keys(out.days).forEach(k => {
+    if ((out.tombs["day:" + k] || 0) > (out.days[k].at || 0)) delete out.days[k];
+  });
+
+  if ((theirs.settingsAt || 0) > (out.settingsAt || 0)) {
+    out.settings = theirs.settings;
+    out.settingsAt = theirs.settingsAt;
+  }
+  if (!out.profile.name && theirs.profile && theirs.profile.name) out.profile.name = theirs.profile.name;
+  out.backupAt = Math.max(out.backupAt || 0, theirs.backupAt || 0);
+
+  // Grabsteine älter als ein halbes Jahr wegräumen
+  const cutoff = Date.now() - 180 * 86400000;
+  Object.keys(out.tombs).forEach(id => { if (out.tombs[id] < cutoff) delete out.tombs[id]; });
+
+  return out;
+}
+
+/* ============================================================
+   Abgleich zwischen Geräten (Supabase)
+
+   Ohne eingetragene Zugangsdaten passiert hier nichts — der Planer
+   läuft dann genau wie vorher rein lokal. Sobald URL und Schlüssel
+   oben in SUPABASE stehen, erscheint in den Einstellungen der
+   Konto-Bereich und alles Weitere läuft von selbst.
+
+   Der öffentliche Schlüssel (anon key) darf in dieser Datei stehen —
+   er ist dafür gemacht. Geschützt werden die Daten auf dem Server
+   durch Row Level Security: jeder sieht nur seine eigene Zeile.
+   ============================================================ */
+
+const SESSION_KEY = "wochenplaner.session";
+
+const Sync = (() => {
+  let session = null;        // { access_token, refresh_token, expires_at, user_id, email }
+  let status = "off";        // off | signedout | syncing | ok | offline | error
+  let pending = false;
+  let timer = null;
+
+  const configured = () => !!(SUPABASE.url && SUPABASE.key);
+
+  function loadSession() {
+    try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
+    catch (e) { session = null; }
+  }
+  function storeSession(s) {
+    session = s;
+    try {
+      if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch (e) {}
+  }
+
+  function setStatus(s) { status = s; paintSyncBadge(); }
+
+  async function api(path, opts = {}) {
+    const headers = Object.assign({
+      "apikey": SUPABASE.key,
+      "Content-Type": "application/json"
+    }, opts.headers || {});
+    if (session && session.access_token) headers["Authorization"] = "Bearer " + session.access_token;
+    const res = await fetch(SUPABASE.url.replace(/\/$/, "") + path, Object.assign({}, opts, { headers }));
+    if (res.status === 401 && session && session.refresh_token && !opts._retried) {
+      const ok = await refresh();
+      if (ok) return api(path, Object.assign({}, opts, { _retried: true }));
+    }
+    return res;
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch(SUPABASE.url.replace(/\/$/, "") + "/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        headers: { "apikey": SUPABASE.key, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (!res.ok) { storeSession(null); setStatus("signedout"); return false; }
+      const d = await res.json();
+      storeSession({
+        access_token: d.access_token, refresh_token: d.refresh_token,
+        expires_at: Date.now() + (d.expires_in || 3600) * 1000,
+        user_id: (d.user && d.user.id) || (session && session.user_id),
+        email: (d.user && d.user.email) || (session && session.email)
+      });
+      return true;
+    } catch (e) { setStatus("offline"); return false; }
+  }
+
+  const base = () => SUPABASE.url.replace(/\/$/, "");
+  const anonHead = { "apikey": SUPABASE.key, "Content-Type": "application/json" };
+
+  function takeSession(d) {
+    storeSession({
+      access_token: d.access_token,
+      refresh_token: d.refresh_token,
+      expires_at: Date.now() + (d.expires_in || 3600) * 1000,
+      user_id: d.user && d.user.id,
+      email: d.user && d.user.email
+    });
+  }
+
+  /* Anmelden mit E-Mail und Passwort. Funktioniert ohne jede weitere
+     Einrichtung — im Gegensatz zum E-Mail-Link, der einen Mailversand
+     braucht (siehe unten). */
+  async function signInPassword(email, password) {
+    const res = await fetch(base() + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: anonHead,
+      body: JSON.stringify({ email, password })
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const m = (d.error_description || d.msg || d.message || "").toLowerCase();
+      if (m.includes("invalid login") || m.includes("credentials"))
+        throw new Error("E-Mail oder Passwort stimmt nicht.");
+      throw new Error("Anmeldung hat nicht geklappt.");
+    }
+    takeSession(d);
+    return true;
+  }
+
+  async function signUp(email, password) {
+    const res = await fetch(base() + "/auth/v1/signup", {
+      method: "POST", headers: anonHead,
+      body: JSON.stringify({ email, password })
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const m = (d.msg || d.message || d.error_description || "").toLowerCase();
+      if (m.includes("already registered") || m.includes("already been registered"))
+        throw new Error("Diese Adresse hat schon ein Konto — melde dich einfach an.");
+      if (m.includes("password"))
+        throw new Error("Das Passwort ist zu kurz — mindestens sechs Zeichen.");
+      throw new Error("Konto anlegen hat nicht geklappt.");
+    }
+    if (d.access_token) { takeSession(d); return "ready"; }
+    return "confirm";     // Bestätigungsmail ist eingeschaltet
+  }
+
+  /* Anmeldung per Link in der E-Mail — braucht einen eingerichteten
+     Mailversand im Supabase-Projekt, sonst kommt die Mail nicht an. */
+  async function signInLink(email) {
+    const res = await fetch(base() + "/auth/v1/otp", {
+      method: "POST", headers: anonHead,
+      body: JSON.stringify({
+        email, create_user: true,
+        options: { email_redirect_to: location.origin + location.pathname }
+      })
+    });
+    if (!res.ok) throw new Error("Der Link konnte nicht verschickt werden.");
+    return true;
+  }
+
+  /* Nach dem Klick auf den Link kommt das Token im Adress-Anhang zurück. */
+  function catchRedirect() {
+    if (!location.hash || location.hash.indexOf("access_token") < 0) return false;
+    const p = new URLSearchParams(location.hash.slice(1));
+    const at = p.get("access_token");
+    if (!at) return false;
+    storeSession({
+      access_token: at,
+      refresh_token: p.get("refresh_token"),
+      expires_at: Date.now() + (+p.get("expires_in") || 3600) * 1000,
+      user_id: null, email: null
+    });
+    history.replaceState(null, "", location.pathname + location.search);
+    return true;
+  }
+
+  async function whoAmI() {
+    const res = await api("/auth/v1/user");
+    if (!res.ok) return null;
+    const u = await res.json();
+    storeSession(Object.assign({}, session, { user_id: u.id, email: u.email }));
+    return u;
+  }
+
+  /* Server-Stand holen, mit dem lokalen zusammenführen, Ergebnis anzeigen. */
+  async function pull() {
+    if (!active()) return;
+    setStatus("syncing");
+    try {
+      const res = await api("/rest/v1/plans?select=data");
+      if (!res.ok) { setStatus("error"); return; }
+      const rows = await res.json();
+      if (rows.length && rows[0].data) {
+        const merged = mergeStates(state, rows[0].data);
+        migrate(merged);
+        state = merged;
+        lastSnap = snapshot(state);      // nicht alles als „gerade geändert" stempeln
+        lastSavedJson = JSON.stringify(state);
+        Store.save(state);
+        renderAll();
+      }
+      setStatus("ok");
+      await pushNow();
+    } catch (e) { setStatus("offline"); pending = true; }
+  }
+
+  async function pushNow() {
+    if (!active()) return;
+    try {
+      const res = await api("/rest/v1/plans", {
+        method: "POST",
+        headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ user_id: session.user_id, data: state, updated_at: new Date().toISOString() })
+      });
+      if (!res.ok) { pending = true; setStatus("error"); return; }
+      pending = false;
+      setStatus("ok");
+    } catch (e) { pending = true; setStatus("offline"); }
+  }
+
+  function push() {
+    if (!active()) return;
+    clearTimeout(timer);
+    timer = setTimeout(pushNow, 1500);
+  }
+
+  function active() { return configured() && !!(session && session.access_token && session.user_id); }
+
+  async function signOut() {
+    try { await api("/auth/v1/logout", { method: "POST" }); } catch (e) {}
+    storeSession(null);
+    Store.setScope("local");
+    state = Store.load() || freshState();
+    migrate(state);
+    lastSnap = snapshot(state);
+    lastSavedJson = JSON.stringify(state);
+    setStatus("signedout");
+    renderAll();
+  }
+
+  /* Beim Start: Rücksprung vom E-Mail-Link einsammeln, Konto ermitteln,
+     auf den Speicherplatz dieses Kontos umschalten, dann abgleichen. */
+  async function boot(opts) {
+    if (!configured()) { setStatus("off"); return; }
+    const viaLink = catchRedirect();
+    // Nur direkt nach einer Anmeldung wird der bisherige lokale Plan
+    // übernommen — sonst würde beim Anmelden auf einem fremden Gerät
+    // dessen Plan in den eigenen wandern.
+    const adopt = viaLink || (opts && opts.adopt);
+
+    if (!session) loadSession();
+    if (!session) { setStatus("signedout"); return; }
+
+    if (!session.user_id) {
+      const u = await whoAmI();
+      if (!u) { setStatus("signedout"); return; }
+    }
+
+    Store.setScope(session.user_id);
+    const own = Store.load();
+    if (own) {
+      state = own;
+    } else if (adopt) {
+      const local = Store.loadScope("local");
+      if (local) state = mergeStates(state, local);
+    }
+    migrate(state);
+    lastSnap = snapshot(state);
+    lastSavedJson = JSON.stringify(state);
+    Store.save(state);
+    renderAll();
+    await pull();
+  }
+
+  return {
+    configured, active, signInPassword, signUp, signInLink, signOut, pull, push, boot,
+    afterSignIn: () => boot({ adopt: true }),
+    get status() { return status; },
+    get email() { return session && session.email; },
+    retryPending() { if (pending) pushNow(); }
+  };
+})();
+
+/* Wird bei jedem Speichern aufgerufen — vor der Definition von Sync
+   sicher, weil Funktionsdeklarationen vorgezogen werden. */
+function syncPush() {
+  try { Sync.push(); } catch (e) {}
+}
+
+window.addEventListener("online", () => Sync.retryPending());
+setInterval(() => Sync.retryPending(), 60000);
+
+/* ============================================================ Konto-Anzeige */
+function paintSyncBadge() {
+  const el = $("#syncBadge");
+  if (!el) return;
+  if (!Sync.configured()) { el.hidden = true; return; }
+  el.hidden = false;
+  const s = Sync.status === "off" ? "signedout" : Sync.status;
+  const map = {
+    signedout: { t: "Nur hier", cls: "is-off",  title: "Plan liegt nur auf diesem Gerät — zum Anmelden hier klicken" },
+    syncing:   { t: "…",        cls: "is-work", title: "Wird abgeglichen" },
+    ok:        { t: "Synchron", cls: "is-ok",   title: "Auf allen Geräten aktuell" },
+    offline:   { t: "Offline",  cls: "is-warn", title: "Keine Verbindung — wird nachgeholt" },
+    error:     { t: "Problem",  cls: "is-warn", title: "Abgleich klemmt — hier klicken" },
+    off:       { t: "", cls: "", title: "" }
+  };
+  const m = map[s] || map.signedout;
+  el.textContent = m.t;
+  el.title = m.title;
+  el.className = "syncbadge " + m.cls;
+}
+
+/* ============================================================ Navigation */
+$("#prevWeek").onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
+$("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
+$("#todayBtn").onclick = () => {
+  anchor = new Date();
+  selectedDayIdx = (new Date().getDay() + 6) % 7;
+  renderAll();
+};
+$("#themeBtn").onclick = () => {
+  const order = ["auto", "light", "dark"];
+  const i = order.indexOf(state.settings.theme);
+  state.settings.theme = order[(i + 1) % 3];
+  save(); applyTheme();
+  toast({ auto: "Folgt dem Gerät", light: "Hell", dark: "Dunkel" }[state.settings.theme]);
+};
+
+document.addEventListener("keydown", e => {
+  if (openModal) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
+  if (e.key === "ArrowLeft") { $("#prevWeek").click(); }
+  if (e.key === "ArrowRight") { $("#nextWeek").click(); }
+  if (e.key.toLowerCase() === "t") { $("#todayBtn").click(); }
+  if (e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    const d = addDays(mondayOf(anchor), selectedDayIdx);
+    const s = clamp(snap(new Date().getHours() * 60), state.settings.dayStart * 60, state.settings.dayEnd * 60 - 60);
+    newBlock(selectedDayIdx, iso(d), s, s + 60);
+  }
+});
+
+window.matchMedia("(max-width: 780px)").addEventListener("change", e => {
+  isMobile = e.matches;
+  renderGrid();
+});
+
+/* ============================================================ Erststart */
+function maybeWelcome() {
+  if (state.blocks.length || state.tasks.length || state.profile.name) return;
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Deine Woche, dein Rhythmus</h2>" +
+      "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14.5px;line-height:1.6'>" +
+      "Nichts ist vorgegeben — du trägst ein, was zu dir passt.</p>" +
+      "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
+      "<li><b style='color:var(--text)'>Eintragen:</b> ins Raster klicken und ziehen. Am Handy einmal tippen.</li>" +
+      "<li><b style='color:var(--text)'>Wiederholen:</b> mehrere Tage anklicken und „jede Woche" + "“" + " — feste Sachen sind in einem Rutsch drin.</li>" +
+      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel eintragen — z.B. 10 h Lernen. " +
+      "Der Planer schlägt dir vor, wie sich das über die Woche verteilen lässt.</li>" +
+      "<li><b style='color:var(--text)'>Nachtruhe:</b> in den Einstellungen deine Schlafenszeit eintragen — dann wird dort nichts mehr eingeplant.</li>" +
+      "<li><b style='color:var(--text)'>Tagesform:</b> links wählen, wie viel Energie du hast. Der Fokus-Timer stellt sich danach.</li>" +
+      "<li><b style='color:var(--text)'>Pausen zählen:</b> Serienabend und Nichtstun dürfen genauso im Plan stehen wie Arbeit.</li>" +
+      "</ul>" +
+      "<div class='sheet__row'><label class='label' for='wName'>Wie heißt du?</label>" +
+      "<input class='field' id='wName' placeholder='Optional' autocomplete='off'></div>";
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Los geht's";
+    const go = () => {
+      state.profile.name = s.querySelector("#wName").value.trim();
+      save(); close(); renderHeader();
+    };
+    ok.onclick = go;
+    s.querySelector("#wName").addEventListener("keydown", ev => { if (ev.key === "Enter") go(); });
+    foot.appendChild(ok);
+    s.appendChild(foot);
+  });
+}
+
+/* ============================================================ Start */
+function renderAll() {
+  renderHeader();
+  renderDaySwitch();
+  renderGrid();
+  renderTasks();
+  renderGoals();
+  renderEnergy();
+  paintPomo();
+}
+
+if (!Store.available) {
+  $("#banner").innerHTML =
+    "<div class='banner'><b>Vorschau-Modus:</b> Hier werden Änderungen nicht gespeichert. " +
+    "Lade die Datei herunter und öffne sie direkt im Browser — dann bleibt alles erhalten.</div>";
+}
+
+$("#syncBadge").onclick = () => {
+  if (!Sync.configured()) return;
+  if (!Sync.active()) signInSheet();
+  else { Sync.pull(); toast("Wird abgeglichen …"); }
+};
+
+applyTheme();
+renderAll();
+paintSyncBadge();
+
+Sync.boot()
+  .catch(() => {})
+  .then(() => {
+    maybeWelcome();
+    maybeBackupNag();
+  });
+
+setInterval(() => { if (!openModal) renderGrid(); }, 60000);
+// Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Sync.active()) Sync.pull();
+});
+</script>
+</body>
+</html>
