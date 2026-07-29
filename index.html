@@ -3,7 +3,7 @@
 {
   "name": "Wochenplaner",
   "schemaVersion": 1,
-  "description": "Wochenplaner v1.4 — Wochenraster mit Bereichen, Wochenzielen in Stunden samt Verteil-Vorschlag, Schlafenszeit mit Ruhezeit, Aufgabenliste, Tagesform-Schalter und Pomodoro-Timer. Rückgängig für Löschungen. Vorbereitet für Konto und Abgleich zwischen Handy, Tablet und PC.",
+  "description": "Wochenplaner v1.4 â€” Wochenraster mit Bereichen, Wochenzielen in Stunden samt Verteil-Vorschlag, Schlafenszeit mit Ruhezeit, Aufgabenliste, Tagesform-Schalter und Pomodoro-Timer. RÃ¼ckgÃ¤ngig fÃ¼r LÃ¶schungen. Vorbereitet fÃ¼r Konto und Abgleich zwischen Handy, Tablet und PC.",
   "mcpTools": [],
   "mcpServerNames": []
 }
@@ -16,7 +16,7 @@
 <style>
 /* ============================================================
    Design Tokens
-   Chrome bleibt achromatisch — die Farbe gehört den Bereichen.
+   Chrome bleibt achromatisch â€” die Farbe gehÃ¶rt den Bereichen.
    In einem Planer IST die Farbe die Information.
    ============================================================ */
 :root {
@@ -83,7 +83,7 @@ html[data-theme="dark"] {
 }
 
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
-   Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
+   Muss auf dem Element selbst deklariert werden â€” auf :root wÃ¤re --h leer. */
 .block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
@@ -338,7 +338,7 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .goalrow__body[hidden] { display: none; }
 .goalrow__sub { font-size: 12px; color: var(--text-faint); margin: 0 0 var(--s-2); }
 
-/* Vorschlagsblöcke im Raster */
+/* VorschlagsblÃ¶cke im Raster */
 .block.is-sug {
   border-style: dashed;
   border-left-style: dashed;
@@ -497,7 +497,7 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
 .block.is-short .block__time { display: none; }
 .block.is-frog::after {
-  content: "🐸"; position: absolute; right: 4px; top: 3px; font-size: 11px;
+  content: "ðŸ¸"; position: absolute; right: 4px; top: 3px; font-size: 11px;
 }
 .block__resize {
   position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
@@ -515,7 +515,7 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 }
 .daycol.is-droptarget { background: var(--surface-3); }
 
-/* Nachtruhe — dezent hinterlegt, blockiert aber nichts */
+/* Nachtruhe â€” dezent hinterlegt, blockiert aber nichts */
 .rest {
   position: absolute; left: 0; right: 0; z-index: 1; pointer-events: none;
   background: var(--surface-3);
@@ -649,18 +649,18 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     </div>
 
     <div class="weeknav">
-      <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück">‹</button>
+      <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurÃ¼ck">â€¹</button>
       <div class="weeknav__label" id="weekLabel"></div>
-      <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
+      <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">â€º</button>
     </div>
 
     <button class="syncbadge" id="syncBadge" hidden></button>
     <button class="btn btn--sm" id="todayBtn">Heute</button>
-    <button class="btn btn--icon btn--ghost" id="themeBtn" aria-label="Hell/Dunkel wechseln" title="Hell/Dunkel">◐</button>
-    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙</button>
+    <button class="btn btn--icon btn--ghost" id="themeBtn" aria-label="Hell/Dunkel wechseln" title="Hell/Dunkel">â—</button>
+    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">âš™</button>
   </header>
 
-  <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
+  <nav class="dayswitch" id="daySwitch" aria-label="Tag wÃ¤hlen"></nav>
 
   <div class="main">
 
@@ -709,7 +709,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
         <div class="pomo__track"><div class="pomo__bar" id="pomoBar"></div></div>
         <div class="pomo__actions">
           <button class="btn btn--primary btn--sm" id="pomoStart">Start</button>
-          <button class="btn btn--sm" id="pomoReset">Zurücksetzen</button>
+          <button class="btn btn--sm" id="pomoReset">ZurÃ¼cksetzen</button>
         </div>
         <div class="pomo__meta" id="pomoMeta"></div>
       </section>
@@ -722,7 +722,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
         </div>
         <form class="taskadd" id="taskForm">
           <input class="field" id="taskInput" placeholder="Was steht an?" aria-label="Neue Aufgabe" autocomplete="off">
-          <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen">+</button>
+          <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufÃ¼gen">+</button>
         </form>
         <div class="tasks" id="taskList"></div>
       </section>
@@ -742,33 +742,33 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 "use strict";
 
 /* ============================================================
-   ┌──────────────────────────────────────────────────────────┐
-   │  HIER die beiden Werte aus Supabase eintragen,           │
-   │  dann funktioniert der Plan auf Handy, iPad und PC       │
-   │  mit demselben Konto. Solange sie leer sind, läuft       │
-   │  alles rein lokal — genau wie bisher.                    │
-   │                                                          │
-   │  Supabase → Projekt → Settings → API                     │
-   │    url : Project URL                                     │
-   │    key : anon public key                                 │
-   │                                                          │
-   │  Der anon key darf öffentlich sein, das ist so gedacht.  │
-   │  Die Daten schützt Row Level Security auf dem Server.    │
-   └──────────────────────────────────────────────────────────┘
+   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+   â”‚  HIER die beiden Werte aus Supabase eintragen,           â”‚
+   â”‚  dann funktioniert der Plan auf Handy, iPad und PC       â”‚
+   â”‚  mit demselben Konto. Solange sie leer sind, lÃ¤uft       â”‚
+   â”‚  alles rein lokal â€” genau wie bisher.                    â”‚
+   â”‚                                                          â”‚
+   â”‚  Supabase â†’ Projekt â†’ Settings â†’ API                     â”‚
+   â”‚    url : Project URL                                     â”‚
+   â”‚    key : anon public key                                 â”‚
+   â”‚                                                          â”‚
+   â”‚  Der anon key darf Ã¶ffentlich sein, das ist so gedacht.  â”‚
+   â”‚  Die Daten schÃ¼tzt Row Level Security auf dem Server.    â”‚
+   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
    ============================================================ */
 const SUPABASE = {
-  url: "",
-  key: ""
+  url: "https://cejwdsxwipzluyexzasw.supabase.co",
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlandkc3h3aXB6bHV5ZXh6YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMDgzNTYsImV4cCI6MjEwMDg4NDM1Nn0.YSRXrKJam83F4ovTId_NyhGxIH6M5dbEReD1mF5lhzc"
 };
 
 /* ============================================================
-   Speicher — versucht den Browser-Speicher, fällt sonst
-   auf reinen Arbeitsspeicher zurück (z.B. in Vorschau-Frames).
+   Speicher â€” versucht den Browser-Speicher, fÃ¤llt sonst
+   auf reinen Arbeitsspeicher zurÃ¼ck (z.B. in Vorschau-Frames).
    ============================================================ */
 const Store = (() => {
   const BASE = "wochenplaner";
   const LEGACY = "wochenplaner.v1";
-  // Pro Konto ein eigener Speicherplatz — sonst überschreiben sich zwei
+  // Pro Konto ein eigener Speicherplatz â€” sonst Ã¼berschreiben sich zwei
   // Leute, die denselben Rechner benutzen, gegenseitig den Plan.
   let scope = "local";
   let available = false;
@@ -788,7 +788,7 @@ const Store = (() => {
       if (!available) return null;
       try {
         let raw = localStorage.getItem(key());
-        // Alte Fassung übernehmen (v1.0–v1.2 lag unter einem festen Schlüssel)
+        // Alte Fassung Ã¼bernehmen (v1.0â€“v1.2 lag unter einem festen SchlÃ¼ssel)
         if (!raw && scope === "local") {
           raw = localStorage.getItem(LEGACY);
           if (raw) localStorage.setItem(key(), raw);
@@ -819,7 +819,7 @@ const parseTime = s => { const p = String(s).split(":"); return (+p[0] || 0) * 6
 const iso = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
 const DAY_LONG = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 const DAY_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
-const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const MONTHS = ["Januar","Februar","MÃ¤rz","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 
 function mondayOf(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -853,16 +853,16 @@ const DEFAULT_AREAS = [
   { id: "a7", name: "Alltag",           hue: 330 }
 ];
 
-/* Plan-Einstellungen eines Bereichs — steuern Wochenziel und Vorschlag.
+/* Plan-Einstellungen eines Bereichs â€” steuern Wochenziel und Vorschlag.
    goal 0 = kein Wochenziel. from/to null = ganzer sichtbarer Tag. */
 function defaultPlan() {
   return { goal: 0, days: [0, 1, 2, 3, 4, 5, 6], from: null, to: null, min: 45, max: 120 };
 }
 
 /* Schlafenszeit samt Ruhezeit davor und danach.
-   „wind" ist die Zeit zum Runterkommen und Fertigmachen — sie gehört
+   â€žwind" ist die Zeit zum Runterkommen und Fertigmachen â€” sie gehÃ¶rt
    genauso zur Nacht wie der Schlaf selbst und wird nicht verplant.
-   Standardmäßig aus: der Planer setzt niemandem einen Rhythmus vor. */
+   StandardmÃ¤ÃŸig aus: der Planer setzt niemandem einen Rhythmus vor. */
 function defaultSleep() {
   return { on: false, from: 22 * 60 + 30, to: 6 * 60 + 30, wind: 30 };
 }
@@ -877,7 +877,7 @@ function freshState() {
     blocks: [],
     tasks: [],
     days: {},
-    tombs: {},        // gelöschte IDs mit Zeitpunkt — sonst kommen sie beim Sync zurück
+    tombs: {},        // gelÃ¶schte IDs mit Zeitpunkt â€” sonst kommen sie beim Sync zurÃ¼ck
     backupAt: 0       // wann zuletzt eine Sicherung gespeichert wurde
   };
 }
@@ -917,7 +917,7 @@ function migrate(s) {
       wind: clamp(typeof sl.wind === "number" ? sl.wind : d.wind, 0, 180)
     };
   }
-  // v3: Vorbereitung für den Abgleich zwischen Geräten
+  // v3: Vorbereitung fÃ¼r den Abgleich zwischen GerÃ¤ten
   if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
   if (typeof s.settingsAt !== "number") s.settingsAt = 0;
   if (typeof s.backupAt !== "number") s.backupAt = 0;
@@ -925,20 +925,20 @@ function migrate(s) {
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
-let selectedDayIdx = (new Date().getDay() + 6) % 7;   // für Mobile
+let selectedDayIdx = (new Date().getDay() + 6) % 7;   // fÃ¼r Mobile
 let isMobile = window.matchMedia("(max-width: 780px)").matches;
 
 /* ============================================================
-   Änderungen erkennen — Grundlage für den Abgleich zwischen Geräten.
+   Ã„nderungen erkennen â€” Grundlage fÃ¼r den Abgleich zwischen GerÃ¤ten.
 
    Statt an jeder einzelnen Stelle im Code einen Zeitstempel zu setzen
    (und garantiert eine zu vergessen), vergleicht der Planer beim
-   Speichern den neuen Stand mit dem letzten. Was sich geändert hat,
+   Speichern den neuen Stand mit dem letzten. Was sich geÃ¤ndert hat,
    bekommt den aktuellen Zeitpunkt; was verschwunden ist, landet als
    Grabstein in state.tombs.
 
    Die Grabsteine sind der unscheinbare, aber entscheidende Teil: ohne
-   sie taucht ein auf dem Handy gelöschter Eintrag beim nächsten
+   sie taucht ein auf dem Handy gelÃ¶schter Eintrag beim nÃ¤chsten
    Abgleich vom PC wieder auf.
    ============================================================ */
 
@@ -959,7 +959,7 @@ function snapshot(s) {
 
 let lastSnap = snapshot(state);
 let lastSavedJson = JSON.stringify(state);
-let prevSavedJson = null;     // Stand vor der letzten Änderung — für „Rückgängig"
+let prevSavedJson = null;     // Stand vor der letzten Ã„nderung â€” fÃ¼r â€žRÃ¼ckgÃ¤ngig"
 
 function stampChanges() {
   const now = Date.now();
@@ -996,11 +996,11 @@ function save() {
   syncPush();
 }
 
-/* Stellt den Stand vor der letzten Änderung wieder her. Die zurückgeholten
-   Einträge bekommen dabei neue Zeitstempel, damit sie beim nächsten
-   Abgleich nicht erneut von der Löschung überholt werden. */
+/* Stellt den Stand vor der letzten Ã„nderung wieder her. Die zurÃ¼ckgeholten
+   EintrÃ¤ge bekommen dabei neue Zeitstempel, damit sie beim nÃ¤chsten
+   Abgleich nicht erneut von der LÃ¶schung Ã¼berholt werden. */
 function undoLast() {
-  if (!prevSavedJson) { toast("Nichts zum Rückgängigmachen"); return; }
+  if (!prevSavedJson) { toast("Nichts zum RÃ¼ckgÃ¤ngigmachen"); return; }
   try {
     const s = JSON.parse(prevSavedJson);
     migrate(s);
@@ -1046,10 +1046,10 @@ function toast(msg, action) {
   setTimeout(() => el.remove(), life + 400);
 }
 
-/* Toast mit Rückgängig — für alles, was etwas wegnimmt. */
+/* Toast mit RÃ¼ckgÃ¤ngig â€” fÃ¼r alles, was etwas wegnimmt. */
 function toastUndo(msg) {
   const snap = prevSavedJson;
-  toast(msg, { label: "Rückgängig", run: () => {
+  toast(msg, { label: "RÃ¼ckgÃ¤ngig", run: () => {
     prevSavedJson = snap;
     undoLast();
   }});
@@ -1104,10 +1104,10 @@ function renderHeader() {
   const sun = addDays(mon, 6);
   const sameMonth = mon.getMonth() === sun.getMonth();
   const range = sameMonth
-    ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
-    : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
+    ? mon.getDate() + ".â€“" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
+    : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " â€“ " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
   $("#weekLabel").innerHTML = "KW " + isoWeek(mon) + "<small>" + range + "</small>";
-  $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
+  $("#whoLabel").textContent = state.profile.name ? "Â· " + state.profile.name : "";
 }
 
 /* ============================================================ Tag-Umschalter (Mobile) */
@@ -1129,7 +1129,7 @@ function renderDaySwitch() {
   }
 }
 
-/* ============================================================ Blöcke einer Spalte */
+/* ============================================================ BlÃ¶cke einer Spalte */
 function blocksFor(date, dayIdx) {
   const key = iso(date);
   return state.blocks.filter(b =>
@@ -1137,7 +1137,7 @@ function blocksFor(date, dayIdx) {
   ).sort((a, b) => a.start - b.start);
 }
 
-/* Überlappungen nebeneinander legen */
+/* Ãœberlappungen nebeneinander legen */
 function layout(items) {
   const cols = [];
   const placed = items.map(b => ({ b, col: 0, of: 1 }));
@@ -1159,16 +1159,16 @@ function layout(items) {
 }
 
 /* ============================================================
-   Wochenziele — Stunden pro Woche statt fester Uhrzeit.
+   Wochenziele â€” Stunden pro Woche statt fester Uhrzeit.
 
    Ein Bereich kann ein Wochenziel haben ("10 h Lernen"). Der Planer
-   zählt, wie viel davon schon im Raster steht, und kann den Rest auf
-   Vorschlag verteilen. Vorschläge sind normale Blöcke mit sug:true —
-   dadurch lassen sie sich ziehen und ziehen wie alles andere, zählen
+   zÃ¤hlt, wie viel davon schon im Raster steht, und kann den Rest auf
+   Vorschlag verteilen. VorschlÃ¤ge sind normale BlÃ¶cke mit sug:true â€”
+   dadurch lassen sie sich ziehen und ziehen wie alles andere, zÃ¤hlen
    aber erst als erledigt geplant, wenn sie angenommen wurden.
 
-   Bewusst kein Übertrag in die nächste Woche: eine nicht volle Woche
-   ist kein Fehler, und ein wachsender Schuldenberg wäre das Gegenteil
+   Bewusst kein Ãœbertrag in die nÃ¤chste Woche: eine nicht volle Woche
+   ist kein Fehler, und ein wachsender Schuldenberg wÃ¤re das Gegenteil
    von dem, was dieser Planer sein soll.
    ============================================================ */
 
@@ -1183,7 +1183,7 @@ function weekDays() {
 }
 
 /* Minuten eines Bereichs in der angezeigten Woche.
-   sug=false: echte Einträge · sug=true: offene Vorschläge */
+   sug=false: echte EintrÃ¤ge Â· sug=true: offene VorschlÃ¤ge */
 function areaMinutes(areaId, sug) {
   let sum = 0;
   weekDays().forEach(day => {
@@ -1202,7 +1202,7 @@ function hasSuggestions() {
   return state.blocks.some(b => b.sug && keys.has(b.date));
 }
 
-/* Stunden lesbar: 90 → „1,5 h", 45 → „45 min" */
+/* Stunden lesbar: 90 â†’ â€ž1,5 h", 45 â†’ â€ž45 min" */
 function fmtDur(min) {
   if (min <= 0) return "0 h";
   if (min < 60) return min + " min";
@@ -1213,10 +1213,10 @@ function fmtDur(min) {
 /* ============================================================
    Nachtruhe
 
-   Die Zeitspannen eines Tages, die zur Nacht gehören — Schlaf plus die
-   Ruhezeit davor und danach. Zurückgegeben als Minuten seit Mitternacht
-   des jeweiligen Tages, denn der Schlaf läuft über den Tageswechsel:
-   22:00 abends und 6:30 früh sind zwei Abschnitte desselben Kalendertags.
+   Die Zeitspannen eines Tages, die zur Nacht gehÃ¶ren â€” Schlaf plus die
+   Ruhezeit davor und danach. ZurÃ¼ckgegeben als Minuten seit Mitternacht
+   des jeweiligen Tages, denn der Schlaf lÃ¤uft Ã¼ber den Tageswechsel:
+   22:00 abends und 6:30 frÃ¼h sind zwei Abschnitte desselben Kalendertags.
    ============================================================ */
 function restSpans() {
   const sl = state.settings.sleep;
@@ -1225,21 +1225,21 @@ function restSpans() {
   const from = sl.from, to = sl.to;
 
   if (from > to) {
-    // Normalfall: über Mitternacht. Abends ab „from - Ruhezeit",
-    // morgens bis „to + Ruhezeit".
+    // Normalfall: Ã¼ber Mitternacht. Abends ab â€žfrom - Ruhezeit",
+    // morgens bis â€žto + Ruhezeit".
     return [
       { start: 0, end: Math.min(1440, to + w), kind: "morgen" },
       { start: Math.max(0, from - w), end: 1440, kind: "abend" }
     ].filter(s => s.end > s.start);
   }
-  // Wer tagsüber schläft: ein zusammenhängender Abschnitt.
+  // Wer tagsÃ¼ber schlÃ¤ft: ein zusammenhÃ¤ngender Abschnitt.
   return [{ start: Math.max(0, from - w), end: Math.min(1440, to + w), kind: "tag" }]
     .filter(s => s.end > s.start);
 }
 
-/* Freie Lücken eines Tages innerhalb des erlaubten Fensters.
-   Vergangenes wird ausgelassen — ein Vorschlag für gestern hilft niemandem.
-   Schlaf- und Ruhezeit zählen wie ein belegter Block: der Vorschlag geht
+/* Freie LÃ¼cken eines Tages innerhalb des erlaubten Fensters.
+   Vergangenes wird ausgelassen â€” ein Vorschlag fÃ¼r gestern hilft niemandem.
+   Schlaf- und Ruhezeit zÃ¤hlen wie ein belegter Block: der Vorschlag geht
    darum herum, von Hand eintragen darf man dort trotzdem. */
 function freeGaps(day, plan) {
   const todayKey = iso(new Date());
@@ -1279,7 +1279,7 @@ function dayWeight(day) {
 }
 
 /* Verteilt die offenen Minuten eines Bereichs auf die Woche.
-   Gleichmäßig über die erlaubten Tage, gewichtet nach Tagesform. */
+   GleichmÃ¤ÃŸig Ã¼ber die erlaubten Tage, gewichtet nach Tagesform. */
 function placeArea(area, open) {
   const p = area.plan;
   const cand = weekDays()
@@ -1291,8 +1291,8 @@ function placeArea(area, open) {
   const sumW = cand.reduce((s, c) => s + c.w, 0);
   cand.forEach(c => { c.share = Math.round(open * c.w / sumW / 15) * 15; });
 
-  // Kürzeste sinnvolle Blocklänge. Ist das ganze Ziel kleiner als die
-  // Mindestlänge, darf der Block entsprechend kleiner sein.
+  // KÃ¼rzeste sinnvolle BlocklÃ¤nge. Ist das ganze Ziel kleiner als die
+  // MindestlÃ¤nge, darf der Block entsprechend kleiner sein.
   const minLen = Math.min(p.min, Math.max(15, Math.floor(open / 15) * 15));
   let placed = 0;
 
@@ -1320,17 +1320,17 @@ function placeArea(area, open) {
 
   let rest = open;
   cand.forEach(c => { rest -= fill(c, Math.min(c.share, rest)); });
-  // Was nirgends passte, noch einmal über alle Tage schieben
+  // Was nirgends passte, noch einmal Ã¼ber alle Tage schieben
   if (rest >= minLen) cand.forEach(c => { if (rest >= minLen) rest -= fill(c, rest); });
-  // Restminuten unter der Mindestlänge nicht als Zwergblock anlegen,
-  // sondern an vorhandene Vorschläge anhängen
+  // Restminuten unter der MindestlÃ¤nge nicht als Zwergblock anlegen,
+  // sondern an vorhandene VorschlÃ¤ge anhÃ¤ngen
   if (rest >= 15) placed += growSuggestions(area, rest);
 
   return placed;
 }
 
-/* Hängt übrig gebliebene Minuten an bestehende Vorschläge an,
-   statt 15-Minuten-Krümel ins Raster zu streuen. */
+/* HÃ¤ngt Ã¼brig gebliebene Minuten an bestehende VorschlÃ¤ge an,
+   statt 15-Minuten-KrÃ¼mel ins Raster zu streuen. */
 function growSuggestions(area, rest) {
   const p = area.plan;
   const hi = Math.min(state.settings.dayEnd * 60, p.to == null ? 1440 : p.to);
@@ -1361,7 +1361,7 @@ function buildSuggestions() {
   const todo = state.areas
     .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) }))
     .filter(x => x.open >= 15)
-    .sort((x, y) => y.open - x.open);   // größter Bedarf zuerst
+    .sort((x, y) => y.open - x.open);   // grÃ¶ÃŸter Bedarf zuerst
 
   let placed = 0, missing = 0;
   todo.forEach(({ a, open }) => {
@@ -1395,8 +1395,8 @@ function renderGoals() {
 
   if (!withGoal.length) {
     list.innerHTML =
-      "<div class='empty'><b>Noch keine Wochenziele</b>Für alles ohne feste Uhrzeit: sag, wie viele Stunden " +
-      "pro Woche du willst — z.B. 10 h Lernen. Wann genau, entscheidest du später.</div>";
+      "<div class='empty'><b>Noch keine Wochenziele</b>FÃ¼r alles ohne feste Uhrzeit: sag, wie viele Stunden " +
+      "pro Woche du willst â€” z.B. 10 h Lernen. Wann genau, entscheidest du spÃ¤ter.</div>";
     const b = document.createElement("button");
     b.className = "btn btn--primary btn--sm";
     b.textContent = "Wochenziel festlegen";
@@ -1438,16 +1438,16 @@ function renderGoals() {
   if (hasSuggestions()) {
     const ok = document.createElement("button");
     ok.className = "btn btn--primary btn--sm";
-    ok.textContent = "Alle übernehmen";
+    ok.textContent = "Alle Ã¼bernehmen";
     ok.onclick = () => {
       const n = acceptSuggestions();
       save(); renderAll();
-      toast(n + (n === 1 ? " Vorschlag übernommen" : " Vorschläge übernommen"));
+      toast(n + (n === 1 ? " Vorschlag Ã¼bernommen" : " VorschlÃ¤ge Ã¼bernommen"));
     };
     const no = document.createElement("button");
     no.className = "btn btn--sm";
     no.textContent = "Verwerfen";
-    no.onclick = () => { clearSuggestions(); save(); renderAll(); toast("Vorschläge verworfen"); };
+    no.onclick = () => { clearSuggestions(); save(); renderAll(); toast("VorschlÃ¤ge verworfen"); };
     foot.append(ok, no);
   } else if (anyOpen) {
     const b = document.createElement("button");
@@ -1456,9 +1456,9 @@ function renderGoals() {
     b.onclick = () => {
       const r = buildSuggestions();
       save(); renderAll();
-      if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
-      else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
-      else toast("Vorschlag steht — schau, ob's dir passt");
+      if (!r.placed) toast("Kein Platz gefunden â€” Zeitfenster erweitern?");
+      else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " â€” da war kein Platz mehr");
+      else toast("Vorschlag steht â€” schau, ob's dir passt");
     };
     foot.appendChild(b);
   } else {
@@ -1471,7 +1471,7 @@ function renderGoals() {
 }
 
 function goalHint(done, sug, open, goal) {
-  if (sug > 0) return "<b>" + fmtDur(sug) + "</b> vorgeschlagen" + (open >= 15 ? " · " + fmtDur(open) + " bleiben offen" : "");
+  if (sug > 0) return "<b>" + fmtDur(sug) + "</b> vorgeschlagen" + (open >= 15 ? " Â· " + fmtDur(open) + " bleiben offen" : "");
   if (done >= goal) return "Geschafft.";
   return "<b>" + fmtDur(goal - done) + "</b> noch offen";
 }
@@ -1482,9 +1482,9 @@ function goalsSheet() {
     s.innerHTML =
       "<h2 class='sheet__title'>Wochenziele</h2>" +
       "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
-      "Für alles, was keine feste Uhrzeit hat. Trag Stunden pro Woche ein — der Planer " +
+      "FÃ¼r alles, was keine feste Uhrzeit hat. Trag Stunden pro Woche ein â€” der Planer " +
       "rechnet mit, was noch fehlt, und kann den Rest auf die Woche verteilen. " +
-      "0 lassen heißt: kein Ziel.</p>" +
+      "0 lassen heiÃŸt: kein Ziel.</p>" +
       "<div class='goallist' id='gList'></div>";
 
     const wrap = s.querySelector("#gList");
@@ -1499,21 +1499,21 @@ function goalsSheet() {
         "<div class='goalrow__head'>" +
           "<span class='goalrow__name'><span class='goal__dot'></span>" + escapeHtml(a.name) + "</span>" +
           "<input class='field goalrow__h' type='number' min='0' max='80' step='0.5' " +
-                 "aria-label='Stunden pro Woche für " + escapeHtml(a.name) + "'>" +
+                 "aria-label='Stunden pro Woche fÃ¼r " + escapeHtml(a.name) + "'>" +
           "<span class='goalrow__unit'>h / Woche</span>" +
           "<button class='goalrow__more' type='button' aria-expanded='false' " +
-                  "aria-label='Zeiten für " + escapeHtml(a.name) + "'>⌄</button>" +
+                  "aria-label='Zeiten fÃ¼r " + escapeHtml(a.name) + "'>âŒ„</button>" +
         "</div>" +
         "<div class='goalrow__body' hidden>" +
           "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
           "<div class='chipset gDays' style='margin-bottom:14px'></div>" +
           "<div class='sheet__cols' style='margin-bottom:12px'>" +
-            "<div><label class='label'>Frühestens</label><input class='field gFrom' type='time' step='900'></div>" +
-            "<div><label class='label'>Spätestens</label><input class='field gTo' type='time' step='900'></div>" +
+            "<div><label class='label'>FrÃ¼hestens</label><input class='field gFrom' type='time' step='900'></div>" +
+            "<div><label class='label'>SpÃ¤testens</label><input class='field gTo' type='time' step='900'></div>" +
           "</div>" +
           "<div class='sheet__cols'>" +
-            "<div><label class='label'>Kürzester Block (min)</label><input class='field gMin' type='number' min='15' max='240' step='15'></div>" +
-            "<div><label class='label'>Längster Block (min)</label><input class='field gMax' type='number' min='15' max='480' step='15'></div>" +
+            "<div><label class='label'>KÃ¼rzester Block (min)</label><input class='field gMin' type='number' min='15' max='240' step='15'></div>" +
+            "<div><label class='label'>LÃ¤ngster Block (min)</label><input class='field gMax' type='number' min='15' max='480' step='15'></div>" +
           "</div>" +
         "</div>";
 
@@ -1554,7 +1554,7 @@ function goalsSheet() {
         const open = body.hidden;
         body.hidden = !open;
         more.setAttribute("aria-expanded", String(open));
-        more.textContent = open ? "⌃" : "⌄";
+        more.textContent = open ? "âŒƒ" : "âŒ„";
       };
 
       row._commit = () => {
@@ -1604,7 +1604,7 @@ function renderGrid() {
   const dayIdxs = isMobile ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
 
-  // Kopfzeile — am Handy übernimmt das der Tag-Umschalter oben
+  // Kopfzeile â€” am Handy Ã¼bernimmt das der Tag-Umschalter oben
   if (!isMobile) {
   const gh = document.createElement("div");
   gh.className = "dayhead dayhead--gutter";
@@ -1647,7 +1647,7 @@ function renderGrid() {
     col.dataset.day = i;
     col.dataset.date = iso(d);
 
-    // Nachtruhe hinterlegen — liegt unter den Linien und Blöcken
+    // Nachtruhe hinterlegen â€” liegt unter den Linien und BlÃ¶cken
     restSpans().forEach(sp => {
       const a = Math.max(sp.start, dayStart * 60);
       const b = Math.min(sp.end, dayEnd * 60);
@@ -1656,7 +1656,7 @@ function renderGrid() {
       r.className = "rest";
       r.style.top = ((a - dayStart * 60) / 60 * hourH) + "px";
       r.style.height = ((b - a) / 60 * hourH) + "px";
-      r.title = "Nachtruhe — hier wird nichts vorgeschlagen";
+      r.title = "Nachtruhe â€” hier wird nichts vorgeschlagen";
       col.appendChild(r);
     });
 
@@ -1715,7 +1715,7 @@ function blockEl({ b, col, of }, hourH) {
   const t = document.createElement("div");
   t.className = "block__title"; t.textContent = b.title || "Ohne Titel";
   const tm = document.createElement("div");
-  tm.className = "block__time num"; tm.textContent = fmtTime(b.start) + "–" + fmtTime(b.end);
+  tm.className = "block__time num"; tm.textContent = fmtTime(b.start) + "â€“" + fmtTime(b.end);
   el.append(t, tm);
   const rz = document.createElement("div");
   rz.className = "block__resize";
@@ -1725,15 +1725,15 @@ function blockEl({ b, col, of }, hourH) {
     const bar = document.createElement("div");
     bar.className = "block__sug";
     const yes = document.createElement("button");
-    yes.type = "button"; yes.textContent = "✓";
-    yes.title = "Übernehmen"; yes.setAttribute("aria-label", "Vorschlag übernehmen");
+    yes.type = "button"; yes.textContent = "âœ“";
+    yes.title = "Ãœbernehmen"; yes.setAttribute("aria-label", "Vorschlag Ã¼bernehmen");
     yes.onclick = e => { e.stopPropagation(); acceptOne(b.id); };
     const no = document.createElement("button");
-    no.type = "button"; no.textContent = "×";
+    no.type = "button"; no.textContent = "Ã—";
     no.title = "Verwerfen"; no.setAttribute("aria-label", "Vorschlag verwerfen");
     no.onclick = e => { e.stopPropagation(); dropOne(b.id); };
     bar.append(yes, no);
-    // Pointer-Events der Knöpfe nicht vom Spalten-Handler abfangen lassen
+    // Pointer-Events der KnÃ¶pfe nicht vom Spalten-Handler abfangen lassen
     bar.addEventListener("pointerdown", e => e.stopPropagation());
     el.appendChild(bar);
   }
@@ -1747,7 +1747,7 @@ function blockEl({ b, col, of }, hourH) {
       e.preventDefault();
       state.blocks = state.blocks.filter(x => x.id !== b.id);
       save(); renderAll();
-      if (b.sug) toast("Vorschlag verworfen"); else toastUndo("Eintrag gelöscht");
+      if (b.sug) toast("Vorschlag verworfen"); else toastUndo("Eintrag gelÃ¶scht");
     }
   });
   return el;
@@ -1757,7 +1757,7 @@ function acceptOne(id) {
   const b = state.blocks.find(x => x.id === id);
   if (!b) return;
   delete b.sug;
-  save(); renderAll(); toast("Übernommen");
+  save(); renderAll(); toast("Ãœbernommen");
 }
 function dropOne(id) {
   state.blocks = state.blocks.filter(x => x.id !== id);
@@ -1780,7 +1780,7 @@ function attachColumnHandlers(col, hourH) {
     const handle = e.target.closest(".block__resize");
     const fine = e.pointerType === "mouse";
 
-    /* --- Größe ändern --- */
+    /* --- GrÃ¶ÃŸe Ã¤ndern --- */
     if (handle && blockNode && fine) {
       e.preventDefault();
       const b = state.blocks.find(x => x.id === blockNode.dataset.id);
@@ -1846,7 +1846,7 @@ function attachColumnHandlers(col, hourH) {
         const s = Math.min(from, to), en = Math.max(from, to);
         ghost.style.top = ((s - dayStart * 60) / 60 * hourH) + "px";
         ghost.style.height = Math.max(16, (en - s) / 60 * hourH - 2) + "px";
-        ghost.textContent = fmtTime(s) + "–" + fmtTime(en);
+        ghost.textContent = fmtTime(s) + "â€“" + fmtTime(en);
       };
       paint();
       let dragged = false;
@@ -1864,7 +1864,7 @@ function attachColumnHandlers(col, hourH) {
       return;
     }
 
-    /* --- Touch auf leere Fläche: Editor mit Vorbelegung --- */
+    /* --- Touch auf leere FlÃ¤che: Editor mit Vorbelegung --- */
     const s = minAt(e.clientY);
     newBlock(+col.dataset.day, col.dataset.date, s, Math.min(s + 60, dayEnd * 60));
   });
@@ -1908,8 +1908,8 @@ function editBlock(id) {
   blockSheet({ ...b });
 }
 
-/* Antippen eines Vorschlags — am Handy der Hauptweg, am PC die Alternative
-   zu den kleinen Knöpfen im Block. */
+/* Antippen eines Vorschlags â€” am Handy der Hauptweg, am PC die Alternative
+   zu den kleinen KnÃ¶pfen im Block. */
 function sugSheet(b) {
   const area = areaById(b.areaId);
   modal((s, close) => {
@@ -1917,10 +1917,10 @@ function sugSheet(b) {
       "<h2 class='sheet__title'>Vorschlag</h2>" +
       "<p style='margin:0 0 6px;font-size:15px'><b>" + escapeHtml(b.title) + "</b></p>" +
       "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
-      DAY_LONG[b.day] + ", " + fmtTime(b.start) + "–" + fmtTime(b.end) +
-      " · " + escapeHtml(area.name) + "</p>" +
+      DAY_LONG[b.day] + ", " + fmtTime(b.start) + "â€“" + fmtTime(b.end) +
+      " Â· " + escapeHtml(area.name) + "</p>" +
       "<p style='margin:0;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
-      "Nur ein Vorschlag — er zählt erst mit, wenn du ihn übernimmst. " +
+      "Nur ein Vorschlag â€” er zÃ¤hlt erst mit, wenn du ihn Ã¼bernimmst. " +
       "Verschieben kannst du ihn auch einfach im Raster.</p>";
 
     const foot = document.createElement("div");
@@ -1930,10 +1930,10 @@ function sugSheet(b) {
     del.onclick = () => { close(); dropOne(b.id); };
     const sp = document.createElement("span"); sp.className = "spacer";
     const edit = document.createElement("button");
-    edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
+    edit.className = "btn"; edit.type = "button"; edit.textContent = "Ã„ndern";
     edit.onclick = () => { close(); blockSheet({ ...b }); };
     const ok = document.createElement("button");
-    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Übernehmen";
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Ãœbernehmen";
     ok.onclick = () => { close(); acceptOne(b.id); };
     foot.append(del, sp, edit, ok);
     s.appendChild(foot);
@@ -2002,7 +2002,7 @@ function blockSheet(draft) {
         dayWrap.appendChild(c);
       }
       hint.textContent = rep.checked
-        ? (isNew && days.size > 1 ? days.size + " Einträge, jede Woche — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht in jeder Woche auf.")
+        ? (isNew && days.size > 1 ? days.size + " EintrÃ¤ge, jede Woche â€” z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht in jeder Woche auf.")
         : "Nur in dieser Woche (" + [...days].map(i => DAY_SHORT[i]).join(", ") + ", " + addDays(mon, [...days][0]).getDate() + "." + (addDays(mon, [...days][0]).getMonth() + 1) + ".).";
     };
     rep.onchange = paintDays;
@@ -2012,10 +2012,10 @@ function blockSheet(draft) {
     foot.className = "sheet__foot";
     if (!isNew) {
       const del = document.createElement("button");
-      del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
+      del.className = "btn btn--danger"; del.type = "button"; del.textContent = "LÃ¶schen";
       del.onclick = () => {
         state.blocks = state.blocks.filter(x => x.id !== draft.id);
-        save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
+        save(); close(); renderAll(); toastUndo("Eintrag gelÃ¶scht");
       };
       foot.appendChild(del);
     }
@@ -2065,7 +2065,7 @@ function renderTasks() {
   const done = state.tasks.filter(t => t.done);
 
   if (!state.tasks.length) {
-    list.innerHTML = "<div class='empty'><b>Noch nichts notiert</b>Schreib oben rein, was ansteht. Aufgaben kannst du später einfach in den Wochenplan ziehen.</div>";
+    list.innerHTML = "<div class='empty'><b>Noch nichts notiert</b>Schreib oben rein, was ansteht. Aufgaben kannst du spÃ¤ter einfach in den Wochenplan ziehen.</div>";
     return;
   }
   [...open, ...done].forEach(t => list.appendChild(taskEl(t)));
@@ -2103,8 +2103,8 @@ function taskEl(t) {
   };
 
   const frog = document.createElement("button");
-  frog.className = "task__frog"; frog.textContent = "🐸";
-  frog.title = "Frosch des Tages — die Aufgabe mit der größten Überwindung";
+  frog.className = "task__frog"; frog.textContent = "ðŸ¸";
+  frog.title = "Frosch des Tages â€” die Aufgabe mit der grÃ¶ÃŸten Ãœberwindung";
   frog.setAttribute("aria-pressed", String(!!t.frog));
   frog.setAttribute("aria-label", "Als Frosch des Tages markieren");
   frog.onclick = () => {
@@ -2114,7 +2114,7 @@ function taskEl(t) {
   };
 
   const plan = document.createElement("button");
-  plan.className = "task__frog"; plan.textContent = "📅";
+  plan.className = "task__frog"; plan.textContent = "ðŸ“…";
   plan.style.filter = "none"; plan.style.opacity = ".55";
   plan.title = "In den Wochenplan legen";
   plan.setAttribute("aria-label", "In den Wochenplan legen");
@@ -2132,11 +2132,11 @@ function taskEl(t) {
   body.append(ti, tags);
 
   const del = document.createElement("button");
-  del.className = "task__del"; del.innerHTML = "×";
-  del.setAttribute("aria-label", "Aufgabe löschen");
+  del.className = "task__del"; del.innerHTML = "Ã—";
+  del.setAttribute("aria-label", "Aufgabe lÃ¶schen");
   del.onclick = () => {
     state.tasks = state.tasks.filter(x => x.id !== t.id);
-    save(); renderTasks(); toastUndo("Aufgabe gelöscht");
+    save(); renderTasks(); toastUndo("Aufgabe gelÃ¶scht");
   };
 
   row.append(cb, body, del);
@@ -2162,17 +2162,17 @@ $("#goalsEdit").onclick = goalsSheet;
 
 $("#clearDone").onclick = () => {
   const n = state.tasks.filter(t => t.done).length;
-  if (!n) { toast("Nichts zu räumen"); return; }
+  if (!n) { toast("Nichts zu rÃ¤umen"); return; }
   state.tasks = state.tasks.filter(t => !t.done);
-  save(); renderTasks(); toastUndo(n + " erledigt & weggeräumt");
+  save(); renderTasks(); toastUndo(n + " erledigt & weggerÃ¤umt");
 };
 
 /* ============================================================ Tagesform */
 const ENERGY = {
-  low:  { pomo: [15, 5],  text: "<b>Wenig Energie.</b> Frosch nicht streichen, nur schrumpfen: 15 Minuten anfangen reicht. Sonst Alltagskram und Pausen — das zählt auch." },
+  low:  { pomo: [15, 5],  text: "<b>Wenig Energie.</b> Frosch nicht streichen, nur schrumpfen: 15 Minuten anfangen reicht. Sonst Alltagskram und Pausen â€” das zÃ¤hlt auch." },
   mid:  { pomo: [25, 5],  text: "<b>Normal.</b> Kurz warmlaufen, dann der Frosch. 25 Minuten Fokus, 5 Minuten Pause." },
   high: { pomo: [50, 10], text: "<b>Viel Energie.</b> Frosch zuerst, bevor der Tag ihn frisst. Langer Block: 50 Minuten Fokus, 10 Minuten Pause." },
-  none: { pomo: [25, 5],  text: "Wie fühlst du dich heute? Der Plan passt sich an — bei wenig Energie wird der Frosch kleiner statt verschoben." }
+  none: { pomo: [25, 5],  text: "Wie fÃ¼hlst du dich heute? Der Plan passt sich an â€” bei wenig Energie wird der Frosch kleiner statt verschoben." }
 };
 
 function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
@@ -2188,7 +2188,7 @@ function renderEnergy() {
   $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
   const frog = state.tasks.find(t => t.frog && !t.done);
   let html = ENERGY[lvl || "none"].text;
-  if (frog) html += "<br><br>🐸 <b>Frosch heute:</b> " + escapeHtml(frog.title);
+  if (frog) html += "<br><br>ðŸ¸ <b>Frosch heute:</b> " + escapeHtml(frog.title);
   $("#energyHint").innerHTML = html;
   if (!pomo.running) setPomoFromEnergy();
 }
@@ -2224,7 +2224,7 @@ function paintPomo() {
   $("#pomoStart").textContent = pomo.running ? "Pause" : "Start";
   const meta = state.days[currentDayIso()] || {};
   const [w, b] = ENERGY[meta.energy || "none"].pomo;
-  $("#pomoMeta").textContent = w + " min Fokus · " + b + " min Pause" + (pomo.rounds ? " · " + pomo.rounds + " Runden heute" : "");
+  $("#pomoMeta").textContent = w + " min Fokus Â· " + b + " min Pause" + (pomo.rounds ? " Â· " + pomo.rounds + " Runden heute" : "");
 }
 function tick() {
   pomo.left--;
@@ -2233,10 +2233,10 @@ function tick() {
     const [w, b] = ENERGY[meta.energy || "none"].pomo;
     if (pomo.phase === "work") {
       pomo.rounds++; pomo.phase = "break"; pomo.total = b * 60; pomo.left = b * 60;
-      toast("Runde geschafft — " + b + " Minuten Pause");
+      toast("Runde geschafft â€” " + b + " Minuten Pause");
     } else {
       pomo.phase = "work"; pomo.total = w * 60; pomo.left = w * 60;
-      toast("Pause vorbei — weiter geht's");
+      toast("Pause vorbei â€” weiter geht's");
     }
   }
   paintPomo();
@@ -2259,7 +2259,7 @@ $("#settingsBtn").onclick = () => {
       "<h2 class='sheet__title'>Einstellungen</h2>" +
       "<div class='sheet__row'><label class='label' for='sName'>Wer plant hier?</label>" +
       "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
-      "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
+      "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. SpÃ¤ter kann jeder seinen eigenen Plan haben.</div></div>" +
       "<div class='sheet__row sheet__cols'>" +
         "<div><label class='label' for='sFrom'>Tag beginnt</label><input class='field' id='sFrom' type='number' min='0' max='12' step='1'></div>" +
         "<div><label class='label' for='sTo'>Tag endet</label><input class='field' id='sTo' type='number' min='13' max='24' step='1'></div>" +
@@ -2283,7 +2283,7 @@ $("#settingsBtn").onclick = () => {
       "<div style='display:flex;gap:8px;flex-wrap:wrap'>" +
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
       "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
-      "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
+      "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles lÃ¶schen</button>" +
       "</div><div id='sStore' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>";
 
     const name = s.querySelector("#sName"); name.value = state.profile.name;
@@ -2291,7 +2291,7 @@ $("#settingsBtn").onclick = () => {
     const t = s.querySelector("#sTo"); t.value = state.settings.dayEnd;
     s.querySelector("#sStore").textContent = Store.available
       ? "Wird automatisch in diesem Browser gespeichert."
-      : "Achtung: In dieser Ansicht kann nichts dauerhaft gespeichert werden. Lade die Datei herunter und öffne sie direkt — dann bleibt alles erhalten.";
+      : "Achtung: In dieser Ansicht kann nichts dauerhaft gespeichert werden. Lade die Datei herunter und Ã¶ffne sie direkt â€” dann bleibt alles erhalten.";
 
     // Schlaf & Ruhe
     const sl = state.settings.sleep;
@@ -2315,7 +2315,7 @@ $("#settingsBtn").onclick = () => {
       slHint.textContent = slOn.checked
         ? "Ab " + fmtTime((f - w + 1440) % 1440) + " wird nichts mehr eingeplant, wieder ab " +
           fmtTime((t + w) % 1440) + ". Von Hand eintragen kannst du dort trotzdem."
-        : "Ohne Schlafenszeit darf der Vorschlag über den ganzen sichtbaren Tag planen — auch früh um sechs.";
+        : "Ohne Schlafenszeit darf der Vorschlag Ã¼ber den ganzen sichtbaren Tag planen â€” auch frÃ¼h um sechs.";
     };
     slOn.onchange = paintSleep;
     [slFrom, slTo, slWind].forEach(f => f.oninput = paintSleep);
@@ -2339,8 +2339,8 @@ $("#settingsBtn").onclick = () => {
         inp.setAttribute("aria-label", "Name des Bereichs");
         inp.oninput = () => { a.name = inp.value; save(); renderAll(); };
         const del = document.createElement("button");
-        del.type = "button"; del.className = "btn btn--sm btn--danger"; del.textContent = "×";
-        del.setAttribute("aria-label", "Bereich " + a.name + " löschen");
+        del.type = "button"; del.className = "btn btn--sm btn--danger"; del.textContent = "Ã—";
+        del.setAttribute("aria-label", "Bereich " + a.name + " lÃ¶schen");
         del.disabled = state.areas.length <= 1;
         del.onclick = () => {
           const fallback = state.areas.find(x => x.id !== a.id).id;
@@ -2349,7 +2349,7 @@ $("#settingsBtn").onclick = () => {
           const gone = a.name;
           state.areas.splice(i, 1);
           save(); paint(); renderAll();
-          toastUndo("Bereich „" + gone + "“ gelöscht");
+          toastUndo("Bereich â€ž" + gone + "â€œ gelÃ¶scht");
         };
         row.append(sw, inp, del);
         areasWrap.appendChild(row);
@@ -2365,10 +2365,10 @@ $("#settingsBtn").onclick = () => {
     s.querySelector("#sImport").onclick = importData;
     s.querySelector("#sReset").onclick = () => {
       close();
-      confirmSheet("Wirklich alles löschen?",
-        "Alle Einträge, Aufgaben und Bereiche werden entfernt. Das lässt sich nicht rückgängig machen — mach vorher eine Sicherung, wenn du unsicher bist.",
-        "Alles löschen",
-        () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurückgesetzt"); });
+      confirmSheet("Wirklich alles lÃ¶schen?",
+        "Alle EintrÃ¤ge, Aufgaben und Bereiche werden entfernt. Das lÃ¤sst sich nicht rÃ¼ckgÃ¤ngig machen â€” mach vorher eine Sicherung, wenn du unsicher bist.",
+        "Alles lÃ¶schen",
+        () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurÃ¼ckgesetzt"); });
     };
 
     const foot = document.createElement("div");
@@ -2397,7 +2397,7 @@ $("#settingsBtn").onclick = () => {
 /* ============================================================ Konto */
 function paintAccount(row, box, closeSheet) {
   if (!Sync.configured()) {
-    // Noch nicht eingerichtet — dann auch nicht davon reden.
+    // Noch nicht eingerichtet â€” dann auch nicht davon reden.
     row.hidden = true;
     return;
   }
@@ -2411,25 +2411,25 @@ function paintAccount(row, box, closeSheet) {
 
   if (Sync.active()) {
     txt.innerHTML =
-      "<div class='acct__what'>Auf allen Geräten</div>" +
-      "<div class='acct__sub'>Angemeldet als " + escapeHtml(Sync.email || "…") + "</div>";
+      "<div class='acct__what'>Auf allen GerÃ¤ten</div>" +
+      "<div class='acct__sub'>Angemeldet als " + escapeHtml(Sync.email || "â€¦") + "</div>";
     const out = document.createElement("button");
     out.className = "btn btn--sm"; out.type = "button"; out.textContent = "Abmelden";
     out.onclick = () => {
       closeSheet();
       confirmSheet("Abmelden?",
-        "Dein Plan bleibt auf dem Server und auf den anderen Geräten. Auf diesem Gerät siehst du danach wieder den Plan, der hier vor der Anmeldung lag.",
+        "Dein Plan bleibt auf dem Server und auf den anderen GerÃ¤ten. Auf diesem GerÃ¤t siehst du danach wieder den Plan, der hier vor der Anmeldung lag.",
         "Abmelden",
         () => { Sync.signOut(); toast("Abgemeldet"); });
     };
     wrap.append(txt, out);
   } else {
     txt.innerHTML =
-      "<div class='acct__what'>Nur dieses Gerät</div>" +
+      "<div class='acct__what'>Nur dieses GerÃ¤t</div>" +
       "<div class='acct__sub'>Der Plan liegt im Speicher dieses Browsers.</div>";
     const go = document.createElement("button");
     go.className = "btn btn--primary btn--sm"; go.type = "button";
-    go.textContent = "Überall nutzen";
+    go.textContent = "Ãœberall nutzen";
     go.onclick = () => { closeSheet(); signInSheet(); };
     wrap.append(txt, go);
   }
@@ -2441,11 +2441,11 @@ function signInSheet(mode) {
   modal((s, close) => {
     const paint = () => {
       s.innerHTML =
-        "<h2 class='sheet__title'>" + (neu ? "Konto anlegen" : "Auf allen Geräten") + "</h2>" +
+        "<h2 class='sheet__title'>" + (neu ? "Konto anlegen" : "Auf allen GerÃ¤ten") + "</h2>" +
         "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
         (neu
-          ? "Damit steht dein Plan auf Handy, Tablet und Rechner gleich — und er ist gesichert, falls diesem Gerät etwas passiert. Was du bisher hier eingetragen hast, wird übernommen."
-          : "Melde dich an, dann siehst du auf jedem Gerät denselben Plan.") +
+          ? "Damit steht dein Plan auf Handy, Tablet und Rechner gleich â€” und er ist gesichert, falls diesem GerÃ¤t etwas passiert. Was du bisher hier eingetragen hast, wird Ã¼bernommen."
+          : "Melde dich an, dann siehst du auf jedem GerÃ¤t denselben Plan.") +
         "</p>" +
         "<div class='sheet__row'><label class='label' for='inEmail'>E-Mail</label>" +
         "<input class='field' id='inEmail' type='email' inputmode='email' autocomplete='email' placeholder='du@beispiel.de'></div>" +
@@ -2482,15 +2482,15 @@ function signInSheet(mode) {
 
       const go = async () => {
         const e = mail.value.trim(), p = pass.value;
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { msg.textContent = "Bitte eine gültige E-Mail-Adresse."; mail.focus(); return; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { msg.textContent = "Bitte eine gÃ¼ltige E-Mail-Adresse."; mail.focus(); return; }
         if (p.length < 6) { msg.textContent = "Das Passwort braucht mindestens sechs Zeichen."; pass.focus(); return; }
         ok.disabled = true;
-        msg.textContent = neu ? "Konto wird angelegt …" : "Wird angemeldet …";
+        msg.textContent = neu ? "Konto wird angelegt â€¦" : "Wird angemeldet â€¦";
         try {
           if (neu) {
             const r = await Sync.signUp(e, p);
             if (r === "confirm") {
-              msg.innerHTML = "<b>Fast fertig.</b> Bestätige zuerst den Link in deinem Postfach, dann melde dich hier an.";
+              msg.innerHTML = "<b>Fast fertig.</b> BestÃ¤tige zuerst den Link in deinem Postfach, dann melde dich hier an.";
               ok.textContent = "Alles klar"; ok.disabled = false; ok.onclick = close;
               return;
             }
@@ -2499,7 +2499,7 @@ function signInSheet(mode) {
           }
           close();
           await Sync.afterSignIn();
-          toast("Angemeldet — dein Plan ist jetzt überall");
+          toast("Angemeldet â€” dein Plan ist jetzt Ã¼berall");
         } catch (err) {
           msg.textContent = err.message || "Hat nicht geklappt.";
           ok.disabled = false;
@@ -2534,9 +2534,9 @@ function exportData() {
 /* ============================================================
    Sicherungs-Erinnerung
 
-   Solange der Plan nur im Browser liegt, ist er genau eine gelöschte
-   Browser-Historie vom Totalverlust entfernt. Deshalb ein Hinweis —
-   aber ein einziger, höchstens alle zwei Wochen, und nur wenn wirklich
+   Solange der Plan nur im Browser liegt, ist er genau eine gelÃ¶schte
+   Browser-Historie vom Totalverlust entfernt. Deshalb ein Hinweis â€”
+   aber ein einziger, hÃ¶chstens alle zwei Wochen, und nur wenn wirklich
    Arbeit drinsteckt. Wer ein Konto hat, sieht ihn nie.
    ============================================================ */
 const BACKUP_NAG_DAYS = 14;
@@ -2545,7 +2545,7 @@ function maybeBackupNag() {
   if (!Store.available) return;
   if (Sync.active()) return;
   const stuff = state.blocks.length + state.tasks.length;
-  if (stuff < 8) return;                       // zu wenig, um daran zu hängen
+  if (stuff < 8) return;                       // zu wenig, um daran zu hÃ¤ngen
   const now = Date.now();
   const span = BACKUP_NAG_DAYS * 86400000;
   if (state.backupAt && now - state.backupAt < span) return;
@@ -2583,12 +2583,12 @@ function importData() {
 }
 
 /* ============================================================
-   Zusammenführen zweier Stände
+   ZusammenfÃ¼hren zweier StÃ¤nde
 
-   Regel: pro Eintrag gewinnt die neuere Änderung. Ein Grabstein zählt
-   wie eine Änderung — ist er neuer als der Eintrag, bleibt gelöscht.
+   Regel: pro Eintrag gewinnt die neuere Ã„nderung. Ein Grabstein zÃ¤hlt
+   wie eine Ã„nderung â€” ist er neuer als der Eintrag, bleibt gelÃ¶scht.
    Das ist bewusst simpel: bei einem Wochenplaner arbeitet praktisch nie
-   jemand gleichzeitig auf zwei Geräten am selben Eintrag.
+   jemand gleichzeitig auf zwei GerÃ¤ten am selben Eintrag.
    ============================================================ */
 function mergeStates(mine, theirs) {
   const out = JSON.parse(JSON.stringify(mine));
@@ -2625,7 +2625,7 @@ function mergeStates(mine, theirs) {
   if (!out.profile.name && theirs.profile && theirs.profile.name) out.profile.name = theirs.profile.name;
   out.backupAt = Math.max(out.backupAt || 0, theirs.backupAt || 0);
 
-  // Grabsteine älter als ein halbes Jahr wegräumen
+  // Grabsteine Ã¤lter als ein halbes Jahr wegrÃ¤umen
   const cutoff = Date.now() - 180 * 86400000;
   Object.keys(out.tombs).forEach(id => { if (out.tombs[id] < cutoff) delete out.tombs[id]; });
 
@@ -2633,15 +2633,15 @@ function mergeStates(mine, theirs) {
 }
 
 /* ============================================================
-   Abgleich zwischen Geräten (Supabase)
+   Abgleich zwischen GerÃ¤ten (Supabase)
 
-   Ohne eingetragene Zugangsdaten passiert hier nichts — der Planer
-   läuft dann genau wie vorher rein lokal. Sobald URL und Schlüssel
+   Ohne eingetragene Zugangsdaten passiert hier nichts â€” der Planer
+   lÃ¤uft dann genau wie vorher rein lokal. Sobald URL und SchlÃ¼ssel
    oben in SUPABASE stehen, erscheint in den Einstellungen der
-   Konto-Bereich und alles Weitere läuft von selbst.
+   Konto-Bereich und alles Weitere lÃ¤uft von selbst.
 
-   Der öffentliche Schlüssel (anon key) darf in dieser Datei stehen —
-   er ist dafür gemacht. Geschützt werden die Daten auf dem Server
+   Der Ã¶ffentliche SchlÃ¼ssel (anon key) darf in dieser Datei stehen â€”
+   er ist dafÃ¼r gemacht. GeschÃ¼tzt werden die Daten auf dem Server
    durch Row Level Security: jeder sieht nur seine eigene Zeile.
    ============================================================ */
 
@@ -2716,7 +2716,7 @@ const Sync = (() => {
   }
 
   /* Anmelden mit E-Mail und Passwort. Funktioniert ohne jede weitere
-     Einrichtung — im Gegensatz zum E-Mail-Link, der einen Mailversand
+     Einrichtung â€” im Gegensatz zum E-Mail-Link, der einen Mailversand
      braucht (siehe unten). */
   async function signInPassword(email, password) {
     const res = await fetch(base() + "/auth/v1/token?grant_type=password", {
@@ -2743,16 +2743,16 @@ const Sync = (() => {
     if (!res.ok) {
       const m = (d.msg || d.message || d.error_description || "").toLowerCase();
       if (m.includes("already registered") || m.includes("already been registered"))
-        throw new Error("Diese Adresse hat schon ein Konto — melde dich einfach an.");
+        throw new Error("Diese Adresse hat schon ein Konto â€” melde dich einfach an.");
       if (m.includes("password"))
-        throw new Error("Das Passwort ist zu kurz — mindestens sechs Zeichen.");
+        throw new Error("Das Passwort ist zu kurz â€” mindestens sechs Zeichen.");
       throw new Error("Konto anlegen hat nicht geklappt.");
     }
     if (d.access_token) { takeSession(d); return "ready"; }
-    return "confirm";     // Bestätigungsmail ist eingeschaltet
+    return "confirm";     // BestÃ¤tigungsmail ist eingeschaltet
   }
 
-  /* Anmeldung per Link in der E-Mail — braucht einen eingerichteten
+  /* Anmeldung per Link in der E-Mail â€” braucht einen eingerichteten
      Mailversand im Supabase-Projekt, sonst kommt die Mail nicht an. */
   async function signInLink(email) {
     const res = await fetch(base() + "/auth/v1/otp", {
@@ -2766,7 +2766,7 @@ const Sync = (() => {
     return true;
   }
 
-  /* Nach dem Klick auf den Link kommt das Token im Adress-Anhang zurück. */
+  /* Nach dem Klick auf den Link kommt das Token im Adress-Anhang zurÃ¼ck. */
   function catchRedirect() {
     if (!location.hash || location.hash.indexOf("access_token") < 0) return false;
     const p = new URLSearchParams(location.hash.slice(1));
@@ -2790,7 +2790,7 @@ const Sync = (() => {
     return u;
   }
 
-  /* Server-Stand holen, mit dem lokalen zusammenführen, Ergebnis anzeigen. */
+  /* Server-Stand holen, mit dem lokalen zusammenfÃ¼hren, Ergebnis anzeigen. */
   async function pull() {
     if (!active()) return;
     setStatus("syncing");
@@ -2802,7 +2802,7 @@ const Sync = (() => {
         const merged = mergeStates(state, rows[0].data);
         migrate(merged);
         state = merged;
-        lastSnap = snapshot(state);      // nicht alles als „gerade geändert" stempeln
+        lastSnap = snapshot(state);      // nicht alles als â€žgerade geÃ¤ndert" stempeln
         lastSavedJson = JSON.stringify(state);
         Store.save(state);
         renderAll();
@@ -2846,13 +2846,13 @@ const Sync = (() => {
     renderAll();
   }
 
-  /* Beim Start: Rücksprung vom E-Mail-Link einsammeln, Konto ermitteln,
+  /* Beim Start: RÃ¼cksprung vom E-Mail-Link einsammeln, Konto ermitteln,
      auf den Speicherplatz dieses Kontos umschalten, dann abgleichen. */
   async function boot(opts) {
     if (!configured()) { setStatus("off"); return; }
     const viaLink = catchRedirect();
     // Nur direkt nach einer Anmeldung wird der bisherige lokale Plan
-    // übernommen — sonst würde beim Anmelden auf einem fremden Gerät
+    // Ã¼bernommen â€” sonst wÃ¼rde beim Anmelden auf einem fremden GerÃ¤t
     // dessen Plan in den eigenen wandern.
     const adopt = viaLink || (opts && opts.adopt);
 
@@ -2889,7 +2889,7 @@ const Sync = (() => {
   };
 })();
 
-/* Wird bei jedem Speichern aufgerufen — vor der Definition von Sync
+/* Wird bei jedem Speichern aufgerufen â€” vor der Definition von Sync
    sicher, weil Funktionsdeklarationen vorgezogen werden. */
 function syncPush() {
   try { Sync.push(); } catch (e) {}
@@ -2906,11 +2906,11 @@ function paintSyncBadge() {
   el.hidden = false;
   const s = Sync.status === "off" ? "signedout" : Sync.status;
   const map = {
-    signedout: { t: "Nur hier", cls: "is-off",  title: "Plan liegt nur auf diesem Gerät — zum Anmelden hier klicken" },
-    syncing:   { t: "…",        cls: "is-work", title: "Wird abgeglichen" },
-    ok:        { t: "Synchron", cls: "is-ok",   title: "Auf allen Geräten aktuell" },
-    offline:   { t: "Offline",  cls: "is-warn", title: "Keine Verbindung — wird nachgeholt" },
-    error:     { t: "Problem",  cls: "is-warn", title: "Abgleich klemmt — hier klicken" },
+    signedout: { t: "Nur hier", cls: "is-off",  title: "Plan liegt nur auf diesem GerÃ¤t â€” zum Anmelden hier klicken" },
+    syncing:   { t: "â€¦",        cls: "is-work", title: "Wird abgeglichen" },
+    ok:        { t: "Synchron", cls: "is-ok",   title: "Auf allen GerÃ¤ten aktuell" },
+    offline:   { t: "Offline",  cls: "is-warn", title: "Keine Verbindung â€” wird nachgeholt" },
+    error:     { t: "Problem",  cls: "is-warn", title: "Abgleich klemmt â€” hier klicken" },
     off:       { t: "", cls: "", title: "" }
   };
   const m = map[s] || map.signedout;
@@ -2932,7 +2932,7 @@ $("#themeBtn").onclick = () => {
   const i = order.indexOf(state.settings.theme);
   state.settings.theme = order[(i + 1) % 3];
   save(); applyTheme();
-  toast({ auto: "Folgt dem Gerät", light: "Hell", dark: "Dunkel" }[state.settings.theme]);
+  toast({ auto: "Folgt dem GerÃ¤t", light: "Hell", dark: "Dunkel" }[state.settings.theme]);
 };
 
 document.addEventListener("keydown", e => {
@@ -2962,17 +2962,17 @@ function maybeWelcome() {
     s.innerHTML =
       "<h2 class='sheet__title'>Deine Woche, dein Rhythmus</h2>" +
       "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14.5px;line-height:1.6'>" +
-      "Nichts ist vorgegeben — du trägst ein, was zu dir passt.</p>" +
+      "Nichts ist vorgegeben â€” du trÃ¤gst ein, was zu dir passt.</p>" +
       "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
       "<li><b style='color:var(--text)'>Eintragen:</b> ins Raster klicken und ziehen. Am Handy einmal tippen.</li>" +
-      "<li><b style='color:var(--text)'>Wiederholen:</b> mehrere Tage anklicken und „jede Woche" + "“" + " — feste Sachen sind in einem Rutsch drin.</li>" +
-      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel eintragen — z.B. 10 h Lernen. " +
-      "Der Planer schlägt dir vor, wie sich das über die Woche verteilen lässt.</li>" +
-      "<li><b style='color:var(--text)'>Nachtruhe:</b> in den Einstellungen deine Schlafenszeit eintragen — dann wird dort nichts mehr eingeplant.</li>" +
-      "<li><b style='color:var(--text)'>Tagesform:</b> links wählen, wie viel Energie du hast. Der Fokus-Timer stellt sich danach.</li>" +
-      "<li><b style='color:var(--text)'>Pausen zählen:</b> Serienabend und Nichtstun dürfen genauso im Plan stehen wie Arbeit.</li>" +
+      "<li><b style='color:var(--text)'>Wiederholen:</b> mehrere Tage anklicken und â€žjede Woche" + "â€œ" + " â€” feste Sachen sind in einem Rutsch drin.</li>" +
+      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel eintragen â€” z.B. 10 h Lernen. " +
+      "Der Planer schlÃ¤gt dir vor, wie sich das Ã¼ber die Woche verteilen lÃ¤sst.</li>" +
+      "<li><b style='color:var(--text)'>Nachtruhe:</b> in den Einstellungen deine Schlafenszeit eintragen â€” dann wird dort nichts mehr eingeplant.</li>" +
+      "<li><b style='color:var(--text)'>Tagesform:</b> links wÃ¤hlen, wie viel Energie du hast. Der Fokus-Timer stellt sich danach.</li>" +
+      "<li><b style='color:var(--text)'>Pausen zÃ¤hlen:</b> Serienabend und Nichtstun dÃ¼rfen genauso im Plan stehen wie Arbeit.</li>" +
       "</ul>" +
-      "<div class='sheet__row'><label class='label' for='wName'>Wie heißt du?</label>" +
+      "<div class='sheet__row'><label class='label' for='wName'>Wie heiÃŸt du?</label>" +
       "<input class='field' id='wName' placeholder='Optional' autocomplete='off'></div>";
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
@@ -3003,14 +3003,14 @@ function renderAll() {
 
 if (!Store.available) {
   $("#banner").innerHTML =
-    "<div class='banner'><b>Vorschau-Modus:</b> Hier werden Änderungen nicht gespeichert. " +
-    "Lade die Datei herunter und öffne sie direkt im Browser — dann bleibt alles erhalten.</div>";
+    "<div class='banner'><b>Vorschau-Modus:</b> Hier werden Ã„nderungen nicht gespeichert. " +
+    "Lade die Datei herunter und Ã¶ffne sie direkt im Browser â€” dann bleibt alles erhalten.</div>";
 }
 
 $("#syncBadge").onclick = () => {
   if (!Sync.configured()) return;
   if (!Sync.active()) signInSheet();
-  else { Sync.pull(); toast("Wird abgeglichen …"); }
+  else { Sync.pull(); toast("Wird abgeglichen â€¦"); }
 };
 
 applyTheme();
@@ -3025,7 +3025,7 @@ Sync.boot()
   });
 
 setInterval(() => { if (!openModal) renderGrid(); }, 60000);
-// Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
+// Beim ZurÃ¼ckkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Sync.active()) Sync.pull();
 });
