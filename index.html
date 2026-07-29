@@ -271,7 +271,7 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .syncbadge.is-warn::before { background: var(--warn); }
 .syncbadge.is-work::before { background: var(--focus); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
-@media (max-width: 560px) { .syncbadge { font-size: 0; padding: 0 8px; min-width: 28px; } }
+@media (max-width: 560px) { .syncbadge { font-size: 0; padding: 0; min-width: 40px; justify-content: center; } }
 
 /* Konto in den Einstellungen */
 .acct { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s-3); }
@@ -474,7 +474,9 @@ html[data-theme="dark"] .dayhead.is-today .dayhead__num { color: oklch(0.18 0.01
   background: var(--area-bg);
   color: var(--area-text);
   padding: 4px 6px;
-  overflow: hidden;
+  /* clip statt hidden: schneidet ab, erzeugt aber keinen eigenen
+     Scroll-Bereich - erst dadurch kann der Titel unten sticky bleiben */
+  overflow: clip;
   text-align: left;
   font: inherit;
   cursor: grab;
@@ -483,7 +485,17 @@ html[data-theme="dark"] .dayhead.is-today .dayhead__num { color: oklch(0.18 0.01
 .block:hover { box-shadow: var(--shadow-1); filter: brightness(0.985); z-index: 9; }
 html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-dragging { opacity: .75; box-shadow: var(--shadow-2); z-index: 30; cursor: grabbing; }
-.block__title { font-size: 12.5px; font-weight: 600; line-height: 1.25; word-break: break-word; }
+.block__title {
+  font-size: 12.5px; font-weight: 600; line-height: 1.25;
+  /* Nur an Wortgrenzen umbrechen. „Vorlesu ng Statisti k" war unlesbar -
+     lieber ein zu langes Wort abschneiden als es mittendrin zerhacken.
+     Auf iOS und Safari trennt hyphens zusaetzlich sauber nach Silben. */
+  overflow-wrap: normal; word-break: normal; hyphens: auto;
+  /* Laeuft ein langer Block oben aus dem Bild, bleibt die Beschriftung
+     stehen statt unsichtbar zu werden - unterhalb der Tagesleiste,
+     sonst verschwindet sie dahinter */
+  position: sticky; top: 58px;
+}
 .block__time { font-size: 11px; opacity: .78; font-variant-numeric: tabular-nums; }
 .block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
 .block.is-short .block__time { display: none; }
@@ -553,7 +565,19 @@ html[data-theme="dark"] .rest {
 .sheet__title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
 .sheet__row { margin-bottom: var(--s-4); }
 .sheet__cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
-.sheet__foot { display: flex; gap: var(--s-2); align-items: center; margin-top: var(--s-5); }
+/* Der Fussbereich klebt am unteren Rand des Dialogs. Ohne das rutscht der
+   Bestaetigen-Knopf bei langen Inhalten aus dem Bild - auf einem kleinen
+   iPhone war der Willkommens-Dialog dadurch schlicht nicht bedienbar. */
+.sheet__foot {
+  display: flex; gap: var(--s-2); align-items: center;
+  margin-top: var(--s-5);
+  position: sticky; bottom: calc(var(--s-5) * -1);
+  margin-bottom: calc(var(--s-5) * -1);
+  padding: var(--s-3) 0 var(--s-5);
+  background: var(--surface);
+  box-shadow: 0 -10px 14px -10px oklch(0.2 0.02 var(--h-ink) / 0.18);
+}
+html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 0 / 0.55); }
 .sheet__foot .spacer { flex: 1; }
 .chipset { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .switch { display: flex; align-items: center; gap: var(--s-2); font-size: 14px; cursor: pointer; }
@@ -602,25 +626,144 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 .banner b { font-weight: 700; }
 
 /* ============================================================ Responsive */
-@media (max-width: 1000px) {
-  .panel { width: 288px; padding: var(--s-3); }
-  .grid { --colmin: 96px; }
-}
-@media (max-width: 780px) {
-  .main { flex-direction: column-reverse; }
-  .panel {
-    width: 100%; border-right: 0; border-top: 1px solid var(--border);
-    max-height: 46dvh; padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+/* ============================================================
+   Umschalter am Handy
+
+   Ein Telefon ist kein schmaler Schreibtisch. Statt Raster und Karten
+   übereinander zu stapeln — wobei der Kalender, die Hauptsache, auf ein
+   knappes Drittel schrumpft — bekommt hier jede Ansicht den ganzen
+   Bildschirm, umschaltbar unten in Daumenreichweite.
+   ============================================================ */
+.tabbar { display: none; }
+.fab { display: none; }
+
+@media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    flex: none; gap: 2px; padding: 6px 6px 0;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border); background: var(--surface);
   }
+  .tabbar button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; min-height: 52px; padding: 6px 2px 8px;
+    border: none; background: transparent; border-radius: var(--radius-sm);
+    font-size: 11px; font-weight: 600; color: var(--text-faint);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tabbar svg {
+    width: 22px; height: 22px; fill: none; stroke: currentColor;
+    stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .tabbar button[aria-current="true"] { color: var(--text); }
+  .tabbar button:active { background: var(--surface-2); }
+
+  /* Schwebender Knopf — „ins Raster tippen" ist am Handy nicht selbsterklärend */
+  body[data-mview="plan"] .fab {
+    display: grid; place-items: center; position: fixed;
+    right: 16px; z-index: 40;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--ink); border: none; box-shadow: var(--shadow-2);
+  }
+  .fab svg {
+    width: 26px; height: 26px; fill: none; stroke: var(--surface);
+    stroke-width: 2.2; stroke-linecap: round;
+  }
+  html[data-theme="dark"] .fab svg { stroke: oklch(0.18 0.014 var(--h-ink)); }
+  .fab:active { transform: scale(0.94); }
+
+  /* Eine Ansicht zur Zeit */
+  .main { flex-direction: column; }
+  .panel {
+    width: 100%; flex: 1; min-height: 0;
+    border-right: 0; max-height: none;
+    padding: var(--s-3);
+    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+  }
+  body[data-mview="plan"] .panel { display: none; }
+  body:not([data-mview="plan"]) .gridwrap,
+  body:not([data-mview="plan"]) .dayswitch { display: none; }
+  body[data-mview="ziele"]    .card:not([data-card="ziele"]),
+  body[data-mview="aufgaben"] .card:not([data-card="aufgaben"]),
+  body[data-mview="fokus"]    .card:not([data-card="fokus"]) { display: none; }
+
+  /* In der Aufgaben-Ansicht darf die Liste den Platz auch nutzen */
+  body[data-mview="aufgaben"] .card[data-card="aufgaben"] {
+    flex: 1; display: flex; flex-direction: column; min-height: 0;
+  }
+  body[data-mview="aufgaben"] .tasks { flex: 1; min-height: 0; overflow-y: auto; }
+
   .dayswitch { display: flex; }
-  .grid { --gutter: 48px; --colmin: 0; --hourh: 48px; }
+  .grid { --gutter: 46px; --colmin: 0; --hourh: 56px; }
+  .block__title { top: 0; }
   .brand { display: none; }
   .weeknav { margin-right: auto; }
   .weeknav__label { min-width: 92px; font-size: 13px; }
   .topbar { padding: var(--s-2) var(--s-3); gap: var(--s-1); }
-  .btn--icon { min-width: 34px; }
   .sheet { max-width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
   .scrim { padding: 0; align-items: flex-end; }
+  .card { padding: var(--s-3); }
+
+  /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter */
+  .toasts { bottom: calc(74px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
+}
+
+/* Querformat am Handy: kaum Höhe, also flacher bauen */
+@media (max-height: 500px) and (max-width: 1000px) {
+  .tabbar button { min-height: 44px; font-size: 0; gap: 0; padding: 4px; }
+  .tabbar svg { width: 20px; height: 20px; }
+  .grid { --hourh: 46px; }
+  .dayswitch { padding: 4px var(--s-2); }
+  .dayswitch__btn { padding: 4px 8px; }
+}
+
+/* ============================================================
+   Tablet — alle sieben Tage müssen sichtbar sein.
+   Eine Wochenansicht, die das Wochenende hinter horizontalem
+   Scrollen versteckt, ist keine Wochenansicht.
+   ============================================================ */
+@media (min-width: 781px) and (max-width: 1100px) and (min-height: 501px) {
+  .panel { width: 250px; padding: var(--s-3); gap: var(--s-4); }
+  .grid { --colmin: 0; --gutter: 44px; }
+  .dayhead { padding: 6px 2px 8px; }
+  .dayhead__num { font-size: 17px; width: 28px; height: 28px; line-height: 28px; }
+  .dayhead__name { font-size: 10.5px; }
+  .block { left: 2px; right: 2px; }
+  .block__title { font-size: 11.5px; }
+  .block__time { font-size: 10px; }
+  .card { padding: var(--s-3); }
+}
+
+/* ============================================================
+   Finger statt Maus — überall dort, wo mit dem Finger bedient wird,
+   müssen die Ziele mindestens 44 px hoch sein.
+   ============================================================ */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .syncbadge { min-width: 40px; }
+  .btn--sm { min-height: 40px; padding: 0 var(--s-3); }
+  .btn--icon { min-width: 44px; min-height: 44px; }
+  .chip { min-height: 40px; padding: 0 var(--s-3); }
+  .field { min-height: 46px; }
+  .arearow .field { min-height: 42px; }
+  .syncbadge { min-height: 36px; padding: 0 12px; }
+  .task { padding: var(--s-3) var(--s-2); }
+  /* Die Checkbox bleibt optisch klein, bekommt aber eine fingergerechte
+     Trefferflaeche - sonst tippt man staendig daneben */
+  .task__check { width: 24px; height: 24px; position: relative; }
+  .task__check::before {
+    content: ""; position: absolute; inset: -11px; border-radius: 8px;
+  }
+  .syncbadge { min-height: 40px; }
+  .task__del { min-width: 40px; min-height: 40px; }
+  .task__area, .task__frog, .task__plan { min-height: 32px; padding: 4px 8px; }
+  .energy__opt { min-height: 68px; }
+  .dayswitch__btn { min-height: 52px; min-width: 46px; }
+  .block__sug button { width: 30px; height: 30px; }
+  .block__resize { height: 14px; }
+  .goalrow__more { min-width: 40px; min-height: 40px; }
+  .toast__act { padding: 8px 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -658,7 +801,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     <aside class="panel">
 
       <!-- Tagesform -->
-      <section class="card">
+      <section class="card" data-card="fokus">
         <div class="card__head">
           <h2 class="card__title">Tagesform</h2>
           <span id="energyDay" style="font-size:12px;color:var(--text-faint)"></span>
@@ -681,7 +824,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
       </section>
 
       <!-- Wochenziele -->
-      <section class="card">
+      <section class="card" data-card="ziele">
         <div class="card__head">
           <h2 class="card__title">Wochenziele</h2>
           <button class="btn btn--sm btn--ghost" id="goalsEdit">Ziele</button>
@@ -691,7 +834,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
       </section>
 
       <!-- Pomodoro -->
-      <section class="card pomo">
+      <section class="card pomo" data-card="fokus">
         <div class="card__head">
           <h2 class="card__title">Fokus-Timer</h2>
           <span class="pomo__phase" id="pomoPhase">Bereit</span>
@@ -706,7 +849,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
       </section>
 
       <!-- Aufgaben -->
-      <section class="card">
+      <section class="card" data-card="aufgaben">
         <div class="card__head">
           <h2 class="card__title">Aufgaben</h2>
           <button class="btn btn--sm btn--ghost" id="clearDone">Erledigte weg</button>
@@ -725,6 +868,33 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     </div>
 
   </div>
+
+  <!-- Nur am Handy: Umschalter unten, in der Daumenzone.
+       Jede Ansicht bekommt so den ganzen Bildschirm, statt dass sich
+       Raster und Karten 28 zu 72 teilen. -->
+  <nav class="tabbar" id="tabbar" aria-label="Ansicht wählen">
+    <button type="button" data-view="plan" aria-current="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Plan
+    </button>
+    <button type="button" data-view="ziele">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+      Ziele
+    </button>
+    <button type="button" data-view="aufgaben">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
+      Aufgaben
+    </button>
+    <button type="button" data-view="fokus">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>
+      Fokus
+    </button>
+  </nav>
+
+  <!-- Neuer Eintrag, ohne dass man wissen muss, dass man ins Raster tippt -->
+  <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
 </div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -917,7 +1087,8 @@ function migrate(s) {
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
 let selectedDayIdx = (new Date().getDay() + 6) % 7;   // für Mobile
-let isMobile = window.matchMedia("(max-width: 780px)").matches;
+const MOBILE_Q = "(max-width: 780px), (max-height: 500px) and (max-width: 1000px)";
+let isMobile = window.matchMedia(MOBILE_Q).matches;
 
 /* ============================================================
    Änderungen erkennen — Grundlage für den Abgleich zwischen Geräten.
@@ -2941,10 +3112,40 @@ document.addEventListener("keydown", e => {
   }
 });
 
-window.matchMedia("(max-width: 780px)").addEventListener("change", e => {
+window.matchMedia(MOBILE_Q).addEventListener("change", e => {
   isMobile = e.matches;
+  if (!isMobile) setView("plan");
   renderGrid();
 });
+
+/* ============================================================ Ansicht am Handy */
+let mview = "plan";
+
+function setView(v) {
+  mview = v;
+  document.body.dataset.mview = v;
+  document.querySelectorAll("#tabbar button").forEach(b => {
+    const on = b.dataset.view === v;
+    b.setAttribute("aria-current", String(on));
+  });
+  if (v === "plan") renderGrid();
+}
+
+document.querySelectorAll("#tabbar button").forEach(b => {
+  b.onclick = () => setView(b.dataset.view);
+});
+
+/* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
+   ab der nächsten vollen Stunde, aber nicht in der Vergangenheit. */
+$("#fabAdd").onclick = () => {
+  const d = addDays(mondayOf(anchor), selectedDayIdx);
+  const { dayStart, dayEnd } = state.settings;
+  const heute = iso(d) === iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+  let s = heute ? Math.ceil((jetzt + 5) / 30) * 30 : 9 * 60;
+  s = clamp(s, dayStart * 60, dayEnd * 60 - 60);
+  newBlock(selectedDayIdx, iso(d), s, s + 60);
+};
 
 /* ============================================================ Erststart */
 function maybeWelcome() {
@@ -2955,12 +3156,9 @@ function maybeWelcome() {
       "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14.5px;line-height:1.6'>" +
       "Nichts ist vorgegeben — du trägst ein, was zu dir passt.</p>" +
       "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
-      "<li><b style='color:var(--text)'>Eintragen:</b> ins Raster klicken und ziehen. Am Handy einmal tippen.</li>" +
-      "<li><b style='color:var(--text)'>Wiederholen:</b> mehrere Tage anklicken und „jede Woche" + "“" + " — feste Sachen sind in einem Rutsch drin.</li>" +
-      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel eintragen — z.B. 10 h Lernen. " +
-      "Der Planer schlägt dir vor, wie sich das über die Woche verteilen lässt.</li>" +
-      "<li><b style='color:var(--text)'>Nachtruhe:</b> in den Einstellungen deine Schlafenszeit eintragen — dann wird dort nichts mehr eingeplant.</li>" +
-      "<li><b style='color:var(--text)'>Tagesform:</b> links wählen, wie viel Energie du hast. Der Fokus-Timer stellt sich danach.</li>" +
+      "<li><b style='color:var(--text)'>Eintragen:</b> aufs Plus tippen oder ins Raster ziehen.</li>" +
+      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel in Stunden — z.B. 10 h Lernen. " +
+      "Der Planer schlägt vor, wie sich das über die Woche verteilen lässt.</li>" +
       "<li><b style='color:var(--text)'>Pausen zählen:</b> Serienabend und Nichtstun dürfen genauso im Plan stehen wie Arbeit.</li>" +
       "</ul>" +
       "<div class='sheet__row'><label class='label' for='wName'>Wie heißt du?</label>" +
@@ -3005,6 +3203,7 @@ $("#syncBadge").onclick = () => {
 };
 
 applyTheme();
+setView("plan");
 renderAll();
 paintSyncBadge();
 
