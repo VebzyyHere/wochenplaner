@@ -75,7 +75,7 @@ html[data-theme="dark"] {
 
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
-.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow {
+.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
   --area-edge:   oklch(0.870 0.070 var(--h));
@@ -83,7 +83,7 @@ html[data-theme="dark"] {
   --area-text:   oklch(0.350 0.090 var(--h));
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
-html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow) {
+html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
   --area-edge:   oklch(0.430 0.080 var(--h));
@@ -313,8 +313,30 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .goalrow__head { display: flex; align-items: center; gap: var(--s-2); }
 .goalrow__name {
   flex: 1; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px;
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; overflow: hidden; white-space: nowrap;
 }
+.goalrow__tags { display: inline-flex; gap: 5px; overflow: hidden; }
+.goals__which {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  background: var(--surface-3); border-radius: var(--radius-sm);
+  padding: 6px 10px; margin-bottom: 2px;
+}
+.relief { display: flex; flex-direction: column; gap: var(--s-2); }
+.reliefrow {
+  display: flex; align-items: center; gap: var(--s-2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--s-3); background: var(--surface);
+}
+.reliefrow__txt { flex: 1; min-width: 0; }
+.reliefrow__title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.reliefrow__time { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.reliefrow .goal__dot { background: var(--area-dot); }
+.tag {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  background: var(--surface-3); color: var(--text-muted);
+}
+.tag--soft { background: transparent; border: 1px dashed var(--border-strong); }
 .goalrow__h { width: 78px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
 .goalrow__unit { font-size: 12.5px; color: var(--text-faint); flex: none; }
 .goalrow__more {
@@ -517,6 +539,13 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   font-variant-numeric: tabular-nums;
 }
 .daycol.is-droptarget { background: var(--surface-3); }
+.block__ghost.is-holding {
+  opacity: 0; animation: hold var(--holdms, 380ms) ease-out forwards;
+}
+@keyframes hold {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: .85; transform: scale(1); }
+}
 
 /* Nachtruhe — dezent hinterlegt, blockiert aber nichts */
 .rest {
@@ -821,6 +850,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
           </button>
         </div>
         <div class="hint" id="energyHint"></div>
+        <div id="energyAct"></div>
       </section>
 
       <!-- Wochenziele -->
@@ -1017,7 +1047,15 @@ const DEFAULT_AREAS = [
 /* Plan-Einstellungen eines Bereichs — steuern Wochenziel und Vorschlag.
    goal 0 = kein Wochenziel. from/to null = ganzer sichtbarer Tag. */
 function defaultPlan() {
-  return { goal: 0, days: [0, 1, 2, 3, 4, 5, 6], from: null, to: null, min: 45, max: 120 };
+  return {
+    goal: 0, days: [0, 1, 2, 3, 4, 5, 6], from: null, to: null, min: 45, max: 120,
+    // muss: Standard ist Pflicht. Wer nichts einstellt, soll nie erleben,
+    // dass der Planer ihm etwas zum Streichen vorschlaegt, das ihm wichtig war.
+    must: true,
+    // pad: Wegzeit vor und nach einem Block dieses Bereichs, in Minuten.
+    // Eine Stunde Heimfahrt gehoert zur Arbeit, auch wenn sie nicht im Plan steht.
+    pad: 0
+  };
 }
 
 /* Schlafenszeit samt Ruhezeit davor und danach.
@@ -1030,7 +1068,7 @@ function defaultSleep() {
 
 function freshState() {
   return {
-    version: 4,
+    version: 5,
     profile: { id: uid(), name: "" },
     settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
     settingsAt: 0,
@@ -1063,7 +1101,9 @@ function migrate(s) {
       from: (p.from === null || p.from === undefined) ? null : +p.from,
       to:   (p.to   === null || p.to   === undefined) ? null : +p.to,
       min:  clamp(+p.min || d.min, 15, 240),
-      max:  clamp(+p.max || d.max, 15, 480)
+      max:  clamp(+p.max || d.max, 15, 480),
+      must: p.must === undefined ? true : !!p.must,
+      pad:  clamp(+p.pad || 0, 0, 180)
     };
     if (a.plan.max < a.plan.min) a.plan.max = a.plan.min;
   });
@@ -1082,7 +1122,7 @@ function migrate(s) {
   if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
   if (typeof s.settingsAt !== "number") s.settingsAt = 0;
   if (typeof s.backupAt !== "number") s.backupAt = 0;
-  s.version = 4;
+  s.version = 5;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -1417,9 +1457,15 @@ function freeGaps(day, plan) {
     cursor = Math.max(cursor, Math.ceil((now + 10) / 15) * 15);
   }
 
+  // Jeder Block belegt zusaetzlich seine Wegzeit. Wer um 13:30 aus der
+  // Arbeit kommt und eine Stunde nach Hause faehrt, faengt nicht um 13:30
+  // mit Lernen an — und der Planer soll das auch nicht behaupten.
   const busy = state.blocks
     .filter(b => b.repeat === "weekly" ? b.day === day.i : b.date === day.key)
-    .map(b => ({ start: b.start, end: b.end }))
+    .map(b => {
+      const pad = (areaById(b.areaId).plan || {}).pad || 0;
+      return { start: b.start - pad, end: b.end + pad };
+    })
     .concat(restSpans())
     .sort((a, b) => a.start - b.start);
 
@@ -1471,7 +1517,8 @@ function placeArea(area, open) {
           day: c.day.i, date: c.day.key, repeat: "none",
           start: g.start, end: g.start + len, frog: false, sug: true
         });
-        g.start += len;
+        // Der eigene Puffer gilt auch zum naechsten eigenen Block
+        g.start += len + p.pad;
         need -= len;
         placed += len;
       }
@@ -1508,7 +1555,8 @@ function growSuggestions(area, rest) {
       if (rest - used < 15) return used;
       if (!b.sug || b.areaId !== area.id) continue;
       const next = all.find(x => x !== b && x.start >= b.end);
-      const limit = next ? Math.min(hi, next.start) : hi;
+      const nextPad = next ? ((areaById(next.areaId).plan || {}).pad || 0) : 0;
+      const limit = next ? Math.min(hi, next.start - Math.max(p.pad, nextPad)) : hi;
       const grow = Math.floor(
         Math.min(limit - b.end, p.max - (b.end - b.start), rest - used) / 15) * 15;
       if (grow >= 15) { b.end += grow; used += grow; }
@@ -1520,10 +1568,12 @@ function growSuggestions(area, rest) {
 function buildSuggestions() {
   clearSuggestions();
 
+  // Erst das, was sein muss — dann der Rest. Bei knappem Platz soll nicht
+  // der Serienabend den Lernblock verdraengen, nur weil er groesser war.
   const todo = state.areas
     .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) }))
     .filter(x => x.open >= 15)
-    .sort((x, y) => y.open - x.open);   // größter Bedarf zuerst
+    .sort((x, y) => (y.a.plan.must - x.a.plan.must) || (y.open - x.open));
 
   let placed = 0, missing = 0;
   todo.forEach(({ a, open }) => {
@@ -1547,11 +1597,38 @@ function acceptSuggestions() {
 }
 
 /* ============================================================ Ziele-Anzeige */
+/* Ist die angezeigte Woche die laufende? */
+function istDieseWoche() {
+  return iso(mondayOf(anchor)) === iso(mondayOf(new Date()));
+}
+
+/* Blättert eine Woche vor und verteilt dort gleich.
+   Vorausplanen ging immer schon — man musste nur wissen, dass man
+   vorblättern kann. Genau das wusste niemand. */
+function planeNaechsteWoche() {
+  anchor = addDays(mondayOf(anchor), 7);
+  const r = buildSuggestions();
+  save(); renderAll();
+  if (!r.placed) toast("Nichts zu verteilen — alle Ziele sind schon gedeckt");
+  else toast("Vorschlag für die nächste Woche steht");
+}
+
 function renderGoals() {
   const list = $("#goalsList");
   const foot = $("#goalsFoot");
   list.innerHTML = "";
   foot.innerHTML = "";
+
+  // Wer in einer anderen Woche plant, soll das sehen — sonst wundert man
+  // sich, warum die Stunden nicht zum eigenen Gefühl passen.
+  if (!istDieseWoche()) {
+    const mon = mondayOf(anchor);
+    const bar = document.createElement("div");
+    bar.className = "goals__which";
+    bar.textContent = (mon > mondayOf(new Date()) ? "Du planst voraus: " : "Vergangene Woche: ")
+      + "KW " + isoWeek(mon) + ", ab " + mon.getDate() + "." + (mon.getMonth() + 1) + ".";
+    list.appendChild(bar);
+  }
 
   const withGoal = state.areas.filter(a => a.plan.goal > 0);
 
@@ -1597,6 +1674,17 @@ function renderGoals() {
     list.appendChild(row);
   });
 
+  // Immer erreichbar, solange man in der laufenden Woche steht
+  const naechste = () => {
+    if (!istDieseWoche()) return null;
+    const b = document.createElement("button");
+    b.className = "btn btn--sm";
+    b.textContent = "Nächste Woche";
+    b.title = "Eine Woche vorblättern und dort verteilen";
+    b.onclick = planeNaechsteWoche;
+    return b;
+  };
+
   if (hasSuggestions()) {
     const ok = document.createElement("button");
     ok.className = "btn btn--primary btn--sm";
@@ -1623,12 +1711,14 @@ function renderGoals() {
       else toast("Vorschlag steht — schau, ob's dir passt");
     };
     foot.appendChild(b);
+    const n = naechste(); if (n) foot.appendChild(n);
   } else {
     const b = document.createElement("button");
     b.className = "btn btn--sm";
     b.textContent = "Ziele anpassen";
     b.onclick = goalsSheet;
     foot.appendChild(b);
+    const n = naechste(); if (n) foot.appendChild(n);
   }
 }
 
@@ -1659,7 +1749,8 @@ function goalsSheet() {
 
       row.innerHTML =
         "<div class='goalrow__head'>" +
-          "<span class='goalrow__name'><span class='goal__dot'></span>" + escapeHtml(a.name) + "</span>" +
+          "<span class='goalrow__name'><span class='goal__dot'></span>" + escapeHtml(a.name) +
+            "<span class='goalrow__tags'></span></span>" +
           "<input class='field goalrow__h' type='number' min='0' max='80' step='0.5' " +
                  "aria-label='Stunden pro Woche für " + escapeHtml(a.name) + "'>" +
           "<span class='goalrow__unit'>h / Woche</span>" +
@@ -1667,16 +1758,22 @@ function goalsSheet() {
                   "aria-label='Zeiten für " + escapeHtml(a.name) + "'>⌄</button>" +
         "</div>" +
         "<div class='goalrow__body' hidden>" +
+          "<label class='switch' style='margin-bottom:14px'>" +
+            "<input type='checkbox' class='gMust'> Muss sein — nicht zum Streichen vorschlagen</label>" +
           "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
           "<div class='chipset gDays' style='margin-bottom:14px'></div>" +
           "<div class='sheet__cols' style='margin-bottom:12px'>" +
             "<div><label class='label'>Frühestens</label><input class='field gFrom' type='time' step='900'></div>" +
             "<div><label class='label'>Spätestens</label><input class='field gTo' type='time' step='900'></div>" +
           "</div>" +
-          "<div class='sheet__cols'>" +
+          "<div class='sheet__cols' style='margin-bottom:12px'>" +
             "<div><label class='label'>Kürzester Block (min)</label><input class='field gMin' type='number' min='15' max='240' step='15'></div>" +
             "<div><label class='label'>Längster Block (min)</label><input class='field gMax' type='number' min='15' max='480' step='15'></div>" +
           "</div>" +
+          "<label class='label'>Wegzeit davor und danach (min)</label>" +
+          "<input class='field gPad' type='number' min='0' max='180' step='15' style='max-width:140px'>" +
+          "<div class='goalrow__sub' style='margin:8px 0 0'>Zum Beispiel eine Stunde Heimfahrt nach der Arbeit. " +
+          "So lange wird davor und danach nichts eingeplant.</div>" +
         "</div>";
 
       const hIn   = row.querySelector(".goalrow__h");
@@ -1687,7 +1784,19 @@ function goalsSheet() {
       const to    = row.querySelector(".gTo");
       const minIn = row.querySelector(".gMin");
       const maxIn = row.querySelector(".gMax");
+      const mustIn = row.querySelector(".gMust");
+      const padIn = row.querySelector(".gPad");
 
+      const tags = row.querySelector(".goalrow__tags");
+      const paintTags = () => {
+        tags.innerHTML =
+          (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
+          (p.pad ? "<span class='tag'>+" + p.pad + " min Weg</span>" : "");
+      };
+      paintTags();
+
+      mustIn.checked = p.must;
+      padIn.value = p.pad;
       hIn.value = p.goal || 0;
       from.value = fmtTime(p.from == null ? state.settings.dayStart * 60 : p.from);
       to.value   = fmtTime(p.to   == null ? state.settings.dayEnd * 60   : p.to);
@@ -1714,12 +1823,15 @@ function goalsSheet() {
 
       more.onclick = () => {
         const open = body.hidden;
+        if (!open) { row._commit(); paintTags(); }   // Zugeklapptes zeigt den Zustand
         body.hidden = !open;
         more.setAttribute("aria-expanded", String(open));
         more.textContent = open ? "⌃" : "⌄";
       };
 
       row._commit = () => {
+        p.must = mustIn.checked;
+        p.pad = clamp(parseInt(padIn.value, 10) || 0, 0, 180);
         p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
         p.days = [...days].sort((x, y) => x - y);
         const f = parseTime(from.value), t = parseTime(to.value);
@@ -1915,11 +2027,13 @@ function blockEl({ b, col, of }, hourH) {
   return el;
 }
 
-function acceptOne(id) {
+function acceptOne(id, fest) {
   const b = state.blocks.find(x => x.id === id);
   if (!b) return;
   delete b.sug;
-  save(); renderAll(); toast("Übernommen");
+  if (fest) b.repeat = "weekly";
+  save(); renderAll();
+  toast(fest ? "Übernommen — steht ab jetzt jede Woche" : "Übernommen");
 }
 function dropOne(id) {
   state.blocks = state.blocks.filter(x => x.id !== id);
@@ -1992,8 +2106,13 @@ function attachColumnHandlers(col, hourH) {
       return;
     }
 
-    /* --- Touch auf Block: direkt bearbeiten --- */
-    if (blockNode) { editBlock(blockNode.dataset.id); return; }
+    /* --- Touch auf Block: erst beim Loslassen, und nur ohne Wischen ---
+       Vorher ging der Editor schon beim Aufsetzen des Fingers auf, sodass
+       jeder Scrollversuch einen Dialog erzeugt hat. */
+    if (blockNode) {
+      tapOrScroll(e, () => editBlock(blockNode.dataset.id));
+      return;
+    }
 
     /* --- Ziehen zum Anlegen (nur Maus) --- */
     if (fine) {
@@ -2026,9 +2145,12 @@ function attachColumnHandlers(col, hourH) {
       return;
     }
 
-    /* --- Touch auf leere Fläche: Editor mit Vorbelegung --- */
-    const s = minAt(e.clientY);
-    newBlock(+col.dataset.day, col.dataset.date, s, Math.min(s + 60, dayEnd * 60));
+    /* --- Touch auf leere Fläche: langes Drücken ---
+       Ein kurzer Tipp legt bewusst nichts an. Beim Scrollen streift man
+       ständig freie Flächen; ein Eintrag, den man nicht wollte, ist
+       ärgerlicher als ein Weg, den man einmal lernen muss. Für alles
+       andere gibt es den Plus-Knopf. */
+    holdToCreate(e, col, minAt, hourH, dayEnd);
   });
 
   /* Aufgabe per Drag&Drop einplanen */
@@ -2053,6 +2175,74 @@ function attachColumnHandlers(col, hourH) {
     save(); renderAll();
     toast("Eingeplant: " + t.title);
   });
+}
+
+/* ============================================================
+   Tippen oder Wischen auseinanderhalten
+
+   Auf einem Telefon ist jede Berührung erst einmal mehrdeutig: Anfang
+   einer Scrollbewegung oder Tipp? Das entscheidet sich erst beim
+   Loslassen — vorher zu handeln erzeugt genau die Fehlauslösungen, über
+   die man dann stolpert.
+   ============================================================ */
+const TAP_SLOP = 10;      // Pixel Wackeln, die noch als Tipp durchgehen
+const TAP_TIME = 700;     // länger gehalten ist kein Tipp mehr
+const HOLD_TIME = 380;    // so lange drücken für einen neuen Eintrag
+
+function tapOrScroll(e, run) {
+  const x0 = e.clientX, y0 = e.clientY, t0 = Date.now();
+  let moved = false;
+  const move = ev => {
+    if (Math.abs(ev.clientY - y0) > TAP_SLOP || Math.abs(ev.clientX - x0) > TAP_SLOP) moved = true;
+  };
+  const done = () => {
+    off();
+    if (!moved && Date.now() - t0 < TAP_TIME) run();
+  };
+  const off = () => {
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", done);
+    document.removeEventListener("pointercancel", off);
+  };
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", done);
+  document.addEventListener("pointercancel", off);
+}
+
+function holdToCreate(e, col, minAt, hourH, dayEnd) {
+  const x0 = e.clientX, y0 = e.clientY;
+  const start = minAt(e.clientY);
+  let abgebrochen = false;
+
+  // Sichtbare Rückmeldung, damit klar ist, dass gerade etwas entsteht
+  const ghost = document.createElement("div");
+  ghost.className = "block__ghost is-holding";
+  ghost.style.setProperty("--h", state.areas[0].hue);
+  ghost.style.top = ((start - state.settings.dayStart * 60) / 60 * hourH) + "px";
+  ghost.style.height = Math.max(16, hourH - 2) + "px";
+  ghost.textContent = fmtTime(start) + "–" + fmtTime(start + 60);
+  col.appendChild(ghost);
+
+  const timer = setTimeout(() => {
+    if (abgebrochen) return;
+    off();
+    ghost.remove();
+    if (navigator.vibrate) navigator.vibrate(12);
+    newBlock(+col.dataset.day, col.dataset.date, start, Math.min(start + 60, dayEnd * 60));
+  }, HOLD_TIME);
+
+  const move = ev => {
+    if (Math.abs(ev.clientY - y0) > TAP_SLOP || Math.abs(ev.clientX - x0) > TAP_SLOP) stop();
+  };
+  const stop = () => { abgebrochen = true; clearTimeout(timer); ghost.remove(); off(); };
+  const off = () => {
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", stop);
+    document.removeEventListener("pointercancel", stop);
+  };
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", stop);
+  document.addEventListener("pointercancel", stop);
 }
 
 /* ============================================================ Block-Editor */
@@ -2081,9 +2271,11 @@ function sugSheet(b) {
       "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
       DAY_LONG[b.day] + ", " + fmtTime(b.start) + "–" + fmtTime(b.end) +
       " · " + escapeHtml(area.name) + "</p>" +
-      "<p style='margin:0;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+      "<p style='margin:0 0 16px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
       "Nur ein Vorschlag — er zählt erst mit, wenn du ihn übernimmst. " +
-      "Verschieben kannst du ihn auch einfach im Raster.</p>";
+      "Verschieben kannst du ihn auch einfach im Raster.</p>" +
+      "<label class='switch'><input type='checkbox' id='sugWeekly'> " +
+      "Fest übernehmen — ab jetzt jede Woche zu dieser Zeit</label>";
 
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
@@ -2096,7 +2288,11 @@ function sugSheet(b) {
     edit.onclick = () => { close(); blockSheet({ ...b }); };
     const ok = document.createElement("button");
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Übernehmen";
-    ok.onclick = () => { close(); acceptOne(b.id); };
+    ok.onclick = () => {
+      const fest = s.querySelector("#sugWeekly").checked;
+      close();
+      acceptOne(b.id, fest);
+    };
     foot.append(del, sp, edit, ok);
     s.appendChild(foot);
   });
@@ -2352,8 +2548,167 @@ function renderEnergy() {
   let html = ENERGY[lvl || "none"].text;
   if (frog) html += "<br><br>🐸 <b>Frosch heute:</b> " + escapeHtml(frog.title);
   $("#energyHint").innerHTML = html;
+  renderEnergyAction();
   if (!pomo.running) setPomoFromEnergy();
 }
+/* ============================================================
+   Was kann heute weg?
+
+   Der Tagesform-Schalter hat lange nur den Timer gestellt — er sah aus
+   wie ein Regler, der den Plan anpasst, war aber keiner. Das hier ist
+   der fehlende Hebel: an einem schwachen Tag zeigt der Planer, was heute
+   nicht sein muss, und bietet an, es zu streichen oder zu verschieben.
+
+   Was „muss" ist, entscheidet der Bereich (plan.must) — im Zweifel gilt
+   Pflicht, damit nie etwas zum Streichen vorgeschlagen wird, das wichtig war.
+   ============================================================ */
+
+function optionalToday() {
+  const key = currentDayIso();
+  const idx = selectedDayIdx;
+  return state.blocks.filter(b => {
+    if (b.sug) return false;
+    const hier = b.repeat === "weekly" ? b.day === idx : b.date === key;
+    if (!hier) return false;
+    const area = areaById(b.areaId);
+    return !(area.plan && area.plan.must);
+  }).sort((a, b) => a.start - b.start);
+}
+
+function renderEnergyAction() {
+  const box = $("#energyAct");
+  if (!box) return;
+  box.innerHTML = "";
+  const lvl = (state.days[currentDayIso()] || {}).energy;
+  if (lvl !== "low") return;
+
+  const weg = optionalToday();
+  if (!weg.length) return;
+
+  const b = document.createElement("button");
+  b.className = "btn btn--sm";
+  b.style.marginTop = "12px";
+  b.style.width = "100%";
+  b.textContent = "Was kann heute weg? (" + weg.length + ")";
+  b.onclick = relieveSheet;
+  box.appendChild(b);
+}
+
+function relieveSheet() {
+  modal((s, close) => {
+    const tag = DAY_LONG[selectedDayIdx];
+    s.innerHTML =
+      "<h2 class='sheet__title'>Was kann heute weg?</h2>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+      "Wenig Energie an diesem " + tag + ". Das hier ist nicht als Pflicht markiert — " +
+      "du kannst es streichen oder auf einen anderen Tag schieben. " +
+      "Was du stehen lässt, bleibt einfach im Plan.</p>" +
+      "<div class='relief' id='reliefList'></div>";
+
+    const list = s.querySelector("#reliefList");
+
+    const paint = () => {
+      const weg = optionalToday();
+      list.innerHTML = "";
+      if (!weg.length) {
+        list.innerHTML = "<div class='empty'><b>Nichts mehr offen</b>" +
+          "Alles andere an diesem Tag ist als Pflicht markiert.</div>";
+        return;
+      }
+      weg.forEach(blk => {
+        const area = areaById(blk.areaId);
+        const row = document.createElement("div");
+        row.className = "reliefrow";
+        row.style.setProperty("--h", area.hue);
+        row.innerHTML =
+          "<div class='reliefrow__txt'>" +
+            "<div class='reliefrow__title'><span class='goal__dot'></span>" + escapeHtml(blk.title) + "</div>" +
+            "<div class='reliefrow__time num'>" + fmtTime(blk.start) + "–" + fmtTime(blk.end) +
+            (blk.title === area.name ? "" : " · " + escapeHtml(area.name)) + "</div>" +
+          "</div>";
+
+        const move = document.createElement("button");
+        move.className = "btn btn--sm"; move.type = "button"; move.textContent = "Verschieben";
+        move.onclick = () => { close(); moveSheet(blk.id); };
+
+        const del = document.createElement("button");
+        del.className = "btn btn--sm btn--danger"; del.type = "button"; del.textContent = "Streichen";
+        del.onclick = () => {
+          state.blocks = state.blocks.filter(x => x.id !== blk.id);
+          save(); renderAll(); paint();
+          toastUndo("Gestrichen");
+        };
+
+        row.append(move, del);
+        list.appendChild(row);
+      });
+    };
+    paint();
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Fertig";
+    ok.onclick = close;
+    foot.appendChild(ok);
+    s.appendChild(foot);
+  }, { wide: true });
+}
+
+/* Einen Block auf einen anderen Tag schieben — sucht dort die nächste
+   freie Stelle, statt ihn blind auf dieselbe Uhrzeit zu setzen. */
+function moveSheet(id) {
+  const blk = state.blocks.find(x => x.id === id);
+  if (!blk) return;
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Verschieben</h2>" +
+      "<p style='margin:0 0 6px;font-size:15px'><b>" + escapeHtml(blk.title) + "</b></p>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
+      "Dauer " + fmtDur(blk.end - blk.start) + " · auf welchen Tag?</p>" +
+      "<div class='chipset' id='mvDays'></div>" +
+      "<div id='mvHint' style='font-size:13px;color:var(--text-faint);margin-top:14px;min-height:18px'></div>";
+
+    const wrap = s.querySelector("#mvDays");
+    const hint = s.querySelector("#mvHint");
+    const laenge = blk.end - blk.start;
+    const heuteKey = iso(new Date());
+
+    weekDays().forEach(day => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.textContent = DAY_SHORT[day.i];
+      const vergangen = day.key < heuteKey;
+      const selbst = (blk.repeat === "weekly" ? blk.day === day.i : blk.date === day.key);
+      c.disabled = vergangen || selbst;
+      if (c.disabled) c.style.opacity = ".4";
+      c.onclick = () => {
+        const platz = freeGaps(day, { from: null, to: null, days: [day.i] })
+          .find(g => g.end - g.start >= laenge);
+        if (!platz) { hint.textContent = "Am " + DAY_LONG[day.i] + " ist kein Platz von " + fmtDur(laenge) + " frei."; return; }
+        blk.repeat = "none";
+        blk.day = day.i;
+        blk.date = day.key;
+        blk.start = platz.start;
+        blk.end = platz.start + laenge;
+        save(); close(); renderAll();
+        toast("Auf " + DAY_LONG[day.i] + ", " + fmtTime(blk.start) + " geschoben");
+      };
+      wrap.appendChild(c);
+    });
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const cancel = document.createElement("button");
+    cancel.className = "btn"; cancel.type = "button"; cancel.textContent = "Abbrechen";
+    cancel.onclick = close;
+    foot.appendChild(cancel);
+    s.appendChild(foot);
+  });
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
