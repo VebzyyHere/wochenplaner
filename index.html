@@ -472,7 +472,62 @@ html[data-theme="dark"] .task__check:checked::after { border-color: oklch(0.18 0
 .empty b { display: block; color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
 
 /* ============================================================ Wochenraster */
+/* min-height:0 ist hier nicht optional — ohne das wächst das Raster über
+   den Bildschirm hinaus und schiebt das Band unter den Rand. */
+.planwrap { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .gridwrap { flex: 1; min-width: 0; overflow: auto; position: relative; background: var(--bg); }
+
+/* ============================================================
+   Band für grob geplante Zeit
+
+   Bewusst ohne Zeitachse und ohne scharfe Kanten: was hier steht, hat
+   keine Uhrzeit und soll auch keine vortäuschen.
+   ============================================================ */
+.loose {
+  flex: none; border-top: 1px solid var(--border);
+  background: var(--surface); padding: var(--s-2) 0;
+  display: grid; grid-template-columns: var(--gutter, 56px) repeat(var(--lcols, 7), minmax(0, 1fr));
+  max-height: 34dvh; overflow-y: auto;
+}
+.loose__lab {
+  grid-column: 1; font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text-faint);
+  padding: 4px var(--s-2) 0 0; text-align: right; align-self: start;
+}
+.loose__cell { padding: 2px 3px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.loosechip {
+  --area-bg: oklch(0.950 0.048 var(--h)); --area-line: oklch(0.605 0.150 var(--h));
+  --area-text: oklch(0.350 0.090 var(--h));
+  display: flex; align-items: baseline; gap: 5px;
+  border: 1px dashed var(--area-line); border-radius: 999px;
+  background: var(--area-bg); color: var(--area-text);
+  padding: 5px 10px; min-height: 30px; text-align: left;
+  font-size: 11.5px; font-weight: 600; line-height: 1.2;
+  overflow: hidden;
+}
+html[data-theme="dark"] .loosechip {
+  --area-bg: oklch(0.320 0.060 var(--h)); --area-line: oklch(0.740 0.150 var(--h));
+  --area-text: oklch(0.945 0.035 var(--h));
+}
+.loosechip:hover { filter: brightness(0.97); }
+html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
+.loosechip.is-sug { opacity: .72; }
+.loosechip__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loosechip__d { flex: none; opacity: .75; font-variant-numeric: tabular-nums; font-weight: 500; }
+.loose__hint {
+  grid-column: 1 / -1; font-size: 11.5px; color: var(--text-faint);
+  padding: 2px var(--s-3) 4px calc(var(--gutter, 56px) + 3px);
+}
+@media (pointer: coarse) { .loosechip { min-height: 38px; } }
+
+/* Am Telefon ist links kein Platz für eine Beschriftungsspalte —
+   der Abschnitt steht als Zeile über seinen Einträgen. */
+@media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
+  .loose { grid-template-columns: 1fr; padding: var(--s-1) 0 var(--s-2); }
+  .loose__lab { text-align: left; padding: 6px var(--s-3) 2px; }
+  .loose__cell { padding: 0 var(--s-3); }
+  .loose__hint { padding: 4px 76px 0 var(--s-3); }
+}
 .grid {
   display: grid;
   grid-template-columns: var(--gutter) repeat(var(--cols), minmax(var(--colmin), 1fr));
@@ -943,8 +998,11 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 
     </aside>
 
-    <div class="gridwrap" id="gridWrap">
-      <div class="grid" id="grid"></div>
+    <div class="planwrap">
+      <div class="gridwrap" id="gridWrap">
+        <div class="grid" id="grid"></div>
+      </div>
+      <div class="loose" id="looseBand" hidden></div>
     </div>
 
   </div>
@@ -1168,6 +1226,37 @@ function artRaten(area) {
 
 /* Plan-Einstellungen eines Bereichs — steuern Wochenziel und Vorschlag.
    goal 0 = kein Wochenziel. from/to null = ganzer sichtbarer Tag. */
+/* ============================================================
+   Grob statt genau
+
+   Freizeit mit Uhrzeit ist keine Freizeit mehr. Tonietto & Malkoc haben das
+   über dreizehn Studien gezeigt: eine verabredete Tätigkeit fühlt sich
+   verpflichtender an und wird weniger genossen als dieselbe spontan — und
+   im selben Papier steht die Lösung, „roughly scheduling without prespecified
+   times" hebt den Effekt vollständig auf.
+
+   Deshalb kennt ein Block hier zwei Genauigkeiten. Ein exakter Block liegt
+   im Raster wie bisher. Ein grober hängt nur an einem Tagesabschnitt: „Samstag
+   abends, ungefähr zwei Stunden". Er kann mit nichts kollidieren, muss nie
+   umgeplant werden, und der Abend bleibt reserviert, ohne zerschnitten zu sein.
+   ============================================================ */
+const ABSCHNITTE = [
+  { id: "vm", name: "vormittags", kurz: "Vorm.",  von: 0,        bis: 12 * 60 },
+  { id: "nm", name: "nachmittags", kurz: "Nachm.", von: 12 * 60,  bis: 17 * 60 },
+  { id: "ab", name: "abends",     kurz: "Abends", von: 17 * 60,  bis: 24 * 60 }
+];
+const abschnittVon = id => ABSCHNITTE.find(a => a.id === id) || ABSCHNITTE[2];
+
+/* In welchen Abschnitt fällt eine Uhrzeit? */
+function abschnittFuer(minute) {
+  return (ABSCHNITTE.find(a => minute < a.bis) || ABSCHNITTE[2]).id;
+}
+
+/* Wie lange dauert ein Block — grobe zählen ihre Dauer, exakte ihre Spanne. */
+function dauerVon(b) {
+  return b.grob ? (b.dauer || 0) : (b.end - b.start);
+}
+
 function defaultPlan() {
   return {
     goal: 0, days: [0, 1, 2, 3, 4, 5, 6], from: null, to: null, min: 45, max: 120,
@@ -1180,7 +1269,10 @@ function defaultPlan() {
     // art: steuert Blocklänge, Pause danach und bevorzugte Tageszeit
     art: "orga",
     // ortId: Standardort für diesen Bereich, leer erlaubt
-    ortId: null
+    ortId: null,
+    // grob: plant dieser Bereich ohne feste Uhrzeit? Für Erholung ist das
+    // der bessere Standard — siehe Kommentar oben.
+    grob: false
   };
 }
 
@@ -1194,7 +1286,7 @@ function defaultSleep() {
 
 function freshState() {
   return {
-    version: 6,
+    version: 7,
     profile: { id: uid(), name: "" },
     settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
     settingsAt: 0,
@@ -1327,7 +1419,20 @@ function migrate(s) {
     });
   }
 
-  s.version = 6;
+  // v7: grobe Planung. Erholung plant ab jetzt ohne feste Uhrzeit —
+  // wer es anders will, stellt es pro Bereich um.
+  s.areas.forEach(a => {
+    if (a.plan.grob === undefined) a.plan.grob = a.plan.art === "erholung";
+  });
+  s.blocks.forEach(b => {
+    if (b.grob) {
+      b.teil = ABSCHNITTE.some(x => x.id === b.teil) ? b.teil : "ab";
+      b.dauer = clamp(+b.dauer || 60, 15, 720);
+    } else {
+      delete b.teil; delete b.dauer;
+    }
+  });
+  s.version = 7;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -1553,10 +1658,19 @@ function onDay(b, dayKey, dayIdx) {
   return b.day === dayIdx && (!b.since || dayKey >= b.since);
 }
 
+/* Fürs Raster: nur Blöcke mit fester Uhrzeit. Grobe hängen an einem
+   Tagesabschnitt und stehen im Band darunter. */
 function blocksFor(date, dayIdx) {
   const key = iso(date);
-  return state.blocks.filter(b => onDay(b, key, dayIdx))
+  return state.blocks.filter(b => !b.grob && onDay(b, key, dayIdx))
     .sort((a, b) => a.start - b.start);
+}
+
+/* Die groben eines Tages, nach Abschnitt sortiert. */
+function grobeFor(dayKey, dayIdx) {
+  const rang = { vm: 0, nm: 1, ab: 2 };
+  return state.blocks.filter(b => b.grob && onDay(b, dayKey, dayIdx))
+    .sort((a, b) => (rang[a.teil] - rang[b.teil]) || (b.dauer - a.dauer));
 }
 
 /* Überlappungen nebeneinander legen */
@@ -1612,7 +1726,7 @@ function areaMinutes(areaId, sug) {
     state.blocks.forEach(b => {
       if (b.areaId !== areaId) return;
       if (!!b.sug !== !!sug) return;
-      if (onDay(b, day.key, day.i)) sum += b.end - b.start;
+      if (onDay(b, day.key, day.i)) sum += dauerVon(b);
     });
   });
   return sum;
@@ -1860,7 +1974,7 @@ function freeGaps(day, plan, area) {
   // Fahrt — zwei Lernblöcke hintereinander sitzen am selben Schreibtisch.
   const zielOrt = area ? (area.plan.ortId || state.settings.heimOrt || null) : null;
   const busy = state.blocks
-    .filter(b => onDay(b, day.key, day.i))
+    .filter(b => !b.grob && onDay(b, day.key, day.i))
     .map(b => {
       const pause = pauseNach(b.end - b.start, areaById(b.areaId));
       const fahrt = weg(ortOf(b), zielOrt);
@@ -1967,10 +2081,89 @@ function slotScore(start, len, area, day, gap) {
 
 /* Verteilt die offenen Minuten eines Bereichs auf die Woche.
    Jeder Block sucht sich seinen Platz einzeln und nimmt den bestbewerteten. */
+/* ============================================================
+   Grobe Verteilung
+
+   Kein Suchen nach Lücken — nur die Frage, an welchem Tag und in welchem
+   Abschnitt noch Luft ist. Dabei zwei Regeln aus der Erholungsforschung:
+   lieber ein langer Block als drei kurze (fragmentierte Freizeit wird als
+   minderwertig erlebt, auch wenn die Summe stimmt), und Erholung gehört in
+   den Feierabend.
+   ============================================================ */
+function placeGrob(area, open, tage) {
+  const A = artOf(area);
+  const minLen = Math.max(60, A.min);          // Anti-Konfetti
+  const maxLen = Math.max(minLen, A.max);
+  const heuteKey = iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+
+  // Bevorzugter Abschnitt je Art — Erholung abends, Kopfarbeit vormittags
+  const reihenfolge = A === ARTEN.kopf ? ["vm", "nm", "ab"]
+                    : A === ARTEN.koerper ? ["nm", "ab", "vm"]
+                    : ["ab", "nm", "vm"];
+
+  const moeglich = [];
+  tage.forEach(day => {
+    if (day.key < heuteKey) return;
+    reihenfolge.forEach((teil, rang) => {
+      const a = abschnittVon(teil);
+      // Ein Abschnitt, der heute schon vorbei ist, hilft niemandem mehr
+      if (day.key === heuteKey && jetzt >= a.bis) return;
+      // Wie viel ist in diesem Abschnitt schon verplant — grob wie exakt?
+      const belegt = state.blocks.filter(b => onDay(b, day.key, day.i)).reduce((n, b) => {
+        if (b.grob) return n + (b.teil === teil ? b.dauer : 0);
+        const ueberlappt = Math.min(b.end, a.bis) - Math.max(b.start, a.von);
+        return n + Math.max(0, ueberlappt);
+      }, 0);
+      const laenge = Math.min(a.bis, state.settings.dayEnd * 60)
+                   - Math.max(a.von, state.settings.dayStart * 60);
+      if (laenge <= 0) return;
+      // Nie mehr als zwei Drittel eines Abschnitts grob verplanen
+      const frei = Math.floor(laenge * 0.66) - belegt;
+      if (frei < minLen) return;
+      moeglich.push({ day, teil, rang, frei, schonHier: bereichAmTag(area.id, day) });
+    });
+  });
+
+  if (!moeglich.length) return 0;
+
+  let rest = open, placed = 0, schutz = 0;
+  while (rest >= 15 && schutz++ < 40) {
+    // Bester Platz: bevorzugter Abschnitt, wenig belegt, Bereich noch nicht
+    // an diesem Tag — Streuung über die Woche statt Häufung
+    moeglich.sort((x, y) =>
+      (x.rang - y.rang) || (x.schonHier - y.schonHier) || (y.frei - x.frei));
+    const ziel = moeglich.find(m => m.frei >= Math.min(minLen, rest));
+    if (!ziel) break;
+
+    const len = Math.floor(Math.min(maxLen, rest, ziel.frei) / 15) * 15;
+    if (len < 15) break;
+    // Bliebe ein Rest unter der Mindestlänge übrig, lieber alles in einen Block
+    const nimm = (rest - len > 0 && rest - len < minLen) ? Math.min(rest, ziel.frei) : len;
+
+    state.blocks.push({
+      id: uid(), title: area.name, areaId: area.id,
+      day: ziel.day.i, date: ziel.day.key, repeat: "none",
+      grob: true, teil: ziel.teil, dauer: nimm,
+      start: abschnittVon(ziel.teil).von, end: abschnittVon(ziel.teil).von + nimm,
+      frog: false, sug: true
+    });
+    ziel.frei -= nimm;
+    ziel.schonHier += nimm;
+    moeglich.filter(m => m.day.key === ziel.day.key).forEach(m => { m.schonHier = ziel.schonHier; });
+    rest -= nimm;
+    placed += nimm;
+  }
+  return placed;
+}
+
 function placeArea(area, open) {
   const p = area.plan;
   const tage = weekDays().filter(day => p.days.includes(day.i));
   if (!tage.length) return 0;
+
+  // Grob geplante Bereiche bekommen keine Uhrzeit, sondern einen Abschnitt.
+  if (p.grob) return placeGrob(area, open, tage);
 
   // Blocklängen kommen aus der Art, nicht mehr aus zwei Zahlenfeldern,
   // die niemand sinnvoll raten konnte.
@@ -2312,6 +2505,11 @@ function goalsSheet() {
         "<div class='goalrow__art'></div>" +
         "<div class='goalrow__arthint'></div>" +
         "<div class='goalrow__body' hidden>" +
+          "<label class='switch' style='margin-bottom:6px'>" +
+            "<input type='checkbox' class='gGrob'> Ohne feste Uhrzeit planen</label>" +
+          "<p class='goalrow__sub' style='margin:0 0 14px'>Der Vorschlag legt nur einen " +
+            "Tagesabschnitt fest — „Samstagabend, etwa zwei Stunden\" statt 14:00–16:30. " +
+            "Für Freizeit und Zeit mit Menschen ist das meist die ehrlichere Planung.</p>" +
           "<label class='switch' style='margin-bottom:14px'>" +
             "<input type='checkbox' class='gMust'> Muss sein — nicht zum Streichen vorschlagen</label>" +
           "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
@@ -2331,6 +2529,8 @@ function goalsSheet() {
       const from  = row.querySelector(".gFrom");
       const to    = row.querySelector(".gTo");
       const mustIn = row.querySelector(".gMust");
+      const grobIn = row.querySelector(".gGrob");
+      grobIn.checked = !!p.grob;
       const artW  = row.querySelector(".goalrow__art");
       const artHint = row.querySelector(".goalrow__arthint");
       const orteW = row.querySelector(".gOrte");
@@ -2338,6 +2538,7 @@ function goalsSheet() {
       const tags = row.querySelector(".goalrow__tags");
       const paintTags = () => {
         tags.innerHTML =
+          (p.grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
           (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "");
       };
@@ -2396,6 +2597,7 @@ function goalsSheet() {
 
       row._commit = () => {
         p.must = mustIn.checked;
+        p.grob = grobIn.checked;
         p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
         p.days = [...days].sort((x, y) => x - y);
         const f = parseTime(from.value), t = parseTime(to.value);
@@ -2428,6 +2630,67 @@ function goalsSheet() {
     foot.append(cancel, ok);
     s.appendChild(foot);
   }, { wide: true });
+}
+
+/* ============================================================
+   Band für grob geplante Zeit
+
+   Steht unter dem Raster, in denselben Spalten, aber ohne Zeitachse.
+   Erscheint nur, wenn es in der Woche überhaupt etwas Grobes gibt.
+   ============================================================ */
+function renderLoose() {
+  const band = $("#looseBand");
+  if (!band) return;
+  const mon = mondayOf(anchor);
+  const tage = isMobile ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
+
+  const daten = tage.map(i => {
+    const d = addDays(mon, i);
+    return { i, key: iso(d), items: grobeFor(iso(d), i) };
+  });
+
+  if (!daten.some(x => x.items.length)) { band.hidden = true; return; }
+  band.hidden = false;
+  band.innerHTML = "";
+  band.style.setProperty("--lcols", tage.length);
+  band.style.setProperty("--gutter", isMobile ? "46px" : "56px");
+
+  // Eine Zeile je Abschnitt, damit man sieht, wann am Tag es ungefähr sein soll
+  ABSCHNITTE.forEach(abschnitt => {
+    const inZeile = daten.map(x => x.items.filter(b => b.teil === abschnitt.id));
+    if (!inZeile.some(l => l.length)) return;
+
+    const lab = document.createElement("div");
+    lab.className = "loose__lab";
+    lab.textContent = abschnitt.kurz;
+    band.appendChild(lab);
+
+    inZeile.forEach((liste, n) => {
+      const cell = document.createElement("div");
+      cell.className = "loose__cell";
+      liste.forEach(b => {
+        const area = areaById(b.areaId);
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "loosechip" + (b.sug ? " is-sug" : "");
+        chip.style.setProperty("--h", area.hue);
+        chip.title = b.title + " · " + abschnitt.name + " · " + fmtDur(b.dauer)
+                   + (b.sug ? " (Vorschlag)" : "");
+        chip.innerHTML = "<span class='loosechip__t'>" + escapeHtml(b.title) + "</span>" +
+                         "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>";
+        chip.onclick = () => (b.sug ? sugSheet(b) : blockSheet({ ...b }));
+        cell.appendChild(chip);
+      });
+      band.appendChild(cell);
+    });
+  });
+
+  const hinweis = document.createElement("div");
+  hinweis.className = "loose__hint";
+  hinweis.textContent = isMobile
+    ? "Ohne feste Uhrzeit."
+    : "Ohne feste Uhrzeit — der Abschnitt ist reserviert, die Minute nicht.";
+  band.appendChild(hinweis);
 }
 
 /* ============================================================ Raster */
@@ -2885,9 +3148,18 @@ function blockSheet(draft) {
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
         "<div id='bOrtHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>" +
-      "<div class='sheet__row sheet__cols'>" +
+      "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
+        "<div class='chipset' id='bGenau'></div>" +
+        "<div id='bGenauHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+      "</div>" +
+      "<div class='sheet__row sheet__cols' id='bZeitRow'>" +
         "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
         "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
+      "</div>" +
+      "<div class='sheet__row' id='bGrobRow' hidden>" +
+        "<span class='label'>Wann ungefähr?</span><div class='chipset' id='bTeil'></div>" +
+        "<label class='label' style='margin-top:14px' for='bDauer'>Wie lange etwa?</label>" +
+        "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
         "<label class='switch'><input type='checkbox' id='bRepeat'> Jede Woche wiederholen</label>" +
@@ -2900,6 +3172,71 @@ function blockSheet(draft) {
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end);
     const rep = s.querySelector("#bRepeat"); rep.checked = draft.repeat === "weekly";
+
+    // ---- Genauigkeit: feste Uhrzeit oder grober Abschnitt
+    let grob = !!draft.grob;
+    let teil = ABSCHNITTE.some(x => x.id === draft.teil) ? draft.teil
+             : abschnittFuer(draft.start);
+    let dauer = draft.dauer || Math.max(30, draft.end - draft.start);
+
+    const genauWrap = s.querySelector("#bGenau");
+    const genauHint = s.querySelector("#bGenauHint");
+    const zeitRow = s.querySelector("#bZeitRow");
+    const grobRow = s.querySelector("#bGrobRow");
+    const teilWrap = s.querySelector("#bTeil");
+    const dauerWrap = s.querySelector("#bDauer");
+
+    const paintGenau = () => {
+      genauWrap.innerHTML = "";
+      [[false, "Feste Uhrzeit"], [true, "Ungefähr"]].forEach(([wert, text]) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(grob === wert));
+        c.textContent = text;
+        c.onclick = () => {
+          if (grob === wert) return;
+          if (wert) { teil = abschnittFuer(parseTime(from.value)); dauer = Math.max(30, parseTime(to.value) - parseTime(from.value)); }
+          else {
+            const a = abschnittVon(teil);
+            const st = clamp(Math.max(a.von, state.settings.dayStart * 60), 0, 1440 - dauer);
+            from.value = fmtTime(st); to.value = fmtTime(st + dauer);
+          }
+          grob = wert;
+          paintGenau(); paintTeil(); paintDauer();
+        };
+        genauWrap.appendChild(c);
+      });
+      zeitRow.hidden = grob;
+      grobRow.hidden = !grob;
+      genauHint.textContent = grob
+        ? "Steht ohne Uhrzeit im Band unter dem Raster. Nichts kollidiert, nichts muss umgeplant werden."
+        : "Liegt fest im Raster.";
+    };
+
+    const paintTeil = () => {
+      teilWrap.innerHTML = "";
+      ABSCHNITTE.forEach(a => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(teil === a.id));
+        c.textContent = a.name.charAt(0).toUpperCase() + a.name.slice(1);
+        c.onclick = () => { teil = a.id; paintTeil(); };
+        teilWrap.appendChild(c);
+      });
+    };
+
+    const paintDauer = () => {
+      dauerWrap.innerHTML = "";
+      [30, 60, 90, 120, 180].forEach(m => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(dauer === m));
+        c.textContent = fmtDur(m);
+        c.onclick = () => { dauer = m; paintDauer(); };
+        dauerWrap.appendChild(c);
+      });
+    };
+    paintGenau(); paintTeil(); paintDauer();
 
     // Bereiche
     const areaWrap = s.querySelector("#bAreas");
@@ -2995,15 +3332,21 @@ function blockSheet(draft) {
       if (en <= st) en = st + 30;
       const weekly = rep.checked;
       const list = [...days];
+      // Grobe Blöcke tragen ihre Dauer und den Abschnitt; start/end bleiben
+      // nur als Anhaltspunkt gefüllt, damit Sortierungen weiter funktionieren.
+      const grobFelder = () => grob
+        ? { grob: true, teil, dauer, start: abschnittVon(teil).von, end: abschnittVon(teil).von + dauer }
+        : { grob: false, teil: undefined, dauer: undefined, start: st, end: en };
+
       if (isNew) {
-        list.forEach(d => state.blocks.push({
+        list.forEach(d => state.blocks.push(Object.assign({
           id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
           day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
           since: iso(addDays(mon, d)), ortId: draft.ortId || null,
           // Der Frosch kam aus dem Entwurf und wurde hier stillschweigend
           // wieder auf false gesetzt — je nach Weg blieb er erhalten oder nicht.
-          start: st, end: en, frog: !!draft.frog
-        }));
+          frog: !!draft.frog
+        }, grobFelder())));
       } else {
         const b = state.blocks.find(x => x.id === draft.id);
         b.title = title.value.trim() || "Ohne Titel";
@@ -3014,7 +3357,8 @@ function blockSheet(draft) {
         b.ortId = draft.ortId || null;
         if (weekly && !b.since) b.since = b.date;
         if (!weekly) delete b.since;
-        b.start = st; b.end = en;
+        Object.assign(b, grobFelder());
+        if (!b.grob) { delete b.teil; delete b.dauer; }
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
         // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
         delete b.sug;
@@ -4517,6 +4861,7 @@ function maybeWelcome() {
 function renderAll() {
   renderHeader();
   wischenEinrichten();
+  renderLoose();
   renderDaySwitch();
   renderGrid();
   renderTasks();
