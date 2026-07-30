@@ -1,0 +1,65 @@
+const { chromium, devices } = require('playwright');
+const path = require('path');
+const F = 'file://' + path.resolve(__dirname, '..', 'index.html');
+(async () => {
+  const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
+  for (const dev of ['desktop', 'iPhone SE']) {
+    const ctx = dev === 'desktop'
+      ? await br.newContext({ viewport: { width: 1400, height: 950 } })
+      : await br.newContext({ ...devices[dev] });
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+    p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+    await p.goto(F);
+    await p.waitForTimeout 
+      ? await p.waitForTimeout(600) : null;
+
+    console.log('\n===== ' + dev);
+    const s0 = await p.evaluate(() => {
+      const s = document.querySelector('.sheet');
+      if (!s) return { kein: true };
+      const f = s.querySelector('.sheet__foot').getBoundingClientRect();
+      return { titel: s.querySelector('.sheet__title').textContent,
+               knopf: s.querySelector('.sheet__foot .btn--primary').textContent,
+               footSichtbar: f.bottom <= window.innerHeight + 1 };
+    });
+    console.log('0)', JSON.stringify(s0));
+    await p.screenshot({ path: `ob-${dev.replace(/ /g,'')}-0.png` });
+
+    for (const n of [1,2,3]) {
+      await p.click('.sheet__foot .btn--primary');
+      await p.waitForTimeout(300);
+      const st = await p.evaluate(() => {
+        const s = document.querySelector('.sheet');
+        const f = s.querySelector('.sheet__foot').getBoundingClientRect();
+        return { titel: s.querySelector('.sheet__title').textContent,
+                 schritt: s.querySelector('.steps__lab') && s.querySelector('.steps__lab').textContent,
+                 knopf: s.querySelector('.sheet__foot .btn--primary').textContent,
+                 footSichtbar: f.bottom <= window.innerHeight + 1,
+                 hint: (s.querySelector('#wSchlafHint')||{}).textContent,
+                 summe: (s.querySelector('.ritual__summe')||{}).textContent,
+                 querScroll: s.scrollWidth > s.clientWidth + 1 };
+      });
+      console.log(n + ')', JSON.stringify(st));
+      await p.screenshot({ path: `ob-${dev.replace(/ /g,'')}-${n}.png` });
+    }
+    await p.click('.sheet__foot .btn--primary');
+    await p.waitForTimeout(700);
+    const fin = await p.evaluate(() => ({
+      dialogWeg: !document.querySelector('.sheet'),
+      bloecke: state.blocks.filter(b=>!b.sug).length,
+      vorschlaege: state.blocks.filter(b=>b.sug).length,
+      vorschlagStunden: Math.round(state.blocks.filter(b=>b.sug).reduce((n,b)=>n+dauerVon(b),0)/6)/10,
+      ziele: state.areas.filter(a=>a.plan.goal>0).map(a=>a.name+' '+a.plan.goal+'h'),
+      schlaf: state.settings.sleep, tagVon: state.settings.dayStart, tagBis: state.settings.dayEnd,
+      inNachtruhe: state.blocks.filter(b=>b.sug&&!b.grob).filter(b=>restSpans().some(s=>b.start<s.end&&b.end>s.start)).length,
+      toast: (document.querySelector('.toast')||{}).textContent
+    }));
+    console.log('fertig:', JSON.stringify(fin));
+    await p.screenshot({ path: `ob-${dev.replace(/ /g,'')}-plan.png`, fullPage: true });
+    console.log('Fehler:', errs.length ? errs : 'keine');
+    await ctx.close();
+  }
+  await br.close();
+})();

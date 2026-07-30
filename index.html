@@ -796,8 +796,25 @@ html[data-theme="dark"] .rest {
 }
 .dayswitch__btn b { font-size: 16px; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .dayswitch__btn[aria-pressed="true"] { background: var(--surface-3); border-color: var(--border-strong); }
-.dayswitch__btn i { width: 5px; height: 5px; border-radius: 50%; background: transparent; flex: none; }
-.dayswitch__btn.has-items i { background: var(--text-faint); }
+/* Wie voll ist dieser Tag?
+
+   Die Eintagesansicht ist am Telefon richtig — sieben Spalten auf 390 Pixeln
+   kann niemand lesen. Sie kostet aber die Woche: „an welchem Tag ist noch
+   Luft" war nur noch durch Durchblättern zu beantworten. Der Punkt unter dem
+   Datum sagte lediglich „da ist irgendwas".
+
+   Jetzt ist er ein Balken. Voll heißt: an dieser Marke reißen Pläne — dieselben
+   65 %, die auch die Ampel bei den Wochenzielen benutzt. Damit steht die
+   Wochenverteilung wieder im Bild, ohne den Tag zu verlassen. */
+.dayswitch__btn i {
+  width: 20px; height: 3px; border-radius: 2px; flex: none;
+  background: linear-gradient(to right,
+    var(--last-farbe, var(--text-faint)) 0 var(--last, 0%),
+    var(--surface-3) var(--last, 0%) 100%);
+}
+.dayswitch__btn.is-voll i { --last-farbe: var(--warn); }
+.dayswitch__btn[aria-pressed="true"] i { --last-farbe: var(--ink); }
+.dayswitch__btn[aria-pressed="true"].is-voll i { --last-farbe: var(--warn); }
 
 /* ============================================================ Sheet / Modal */
 .scrim {
@@ -1861,6 +1878,28 @@ function renderHeader() {
 }
 
 /* ============================================================ Tag-Umschalter (Mobile) */
+
+/* Wie viel steht an einem Tag, gemessen an dem, was der Tag verträgt.
+
+   Zähler: alles, was an dem Tag liegt — auch Vorschläge. Wer verteilen lässt,
+   soll sofort sehen, wohin es die Woche kippt, und nicht erst nach dem
+   Übernehmen.
+
+   Nenner: die wache Zeit dieses Tages mal 65 %. Dieselbe Marke wie in der
+   Ampel bei den Wochenzielen; zwei verschiedene Maßstäbe für dieselbe Frage
+   wären schlimmer als keiner. */
+function tagesAuslastung(day) {
+  let wach = (state.settings.dayEnd - state.settings.dayStart) * 60;
+  restSpans().forEach(r => {
+    wach -= Math.max(0, Math.min(state.settings.dayEnd * 60, r.end)
+                      - Math.max(state.settings.dayStart * 60, r.start));
+  });
+  const grenze = Math.max(60, wach) * VERPLANT_GRENZE;
+  let min = 0;
+  state.blocks.forEach(b => { if (onDay(b, day.key, day.i)) min += dauerVon(b); });
+  return { min, grenze, quote: min / grenze };
+}
+
 function renderDaySwitch() {
   const wrap = $("#daySwitch");
   wrap.innerHTML = "";
@@ -1868,13 +1907,25 @@ function renderDaySwitch() {
   const todayIso = iso(new Date());
   for (let i = 0; i < 7; i++) {
     const d = addDays(mon, i);
+    const key = iso(d);
+    const frei = istFrei(key);
+    const last = tagesAuslastung({ key, i });
+
     const b = document.createElement("button");
-    b.className = "dayswitch__btn";
+    b.className = "dayswitch__btn" + (frei ? " is-frei" : "")
+      + (last.quote > 1 ? " is-voll" : "");
     b.setAttribute("aria-pressed", String(i === selectedDayIdx));
-    if (blocksFor(d, i).length) b.classList.add("has-items");
-    if (istFrei(iso(d))) b.classList.add("is-frei");
+    b.style.setProperty("--last", Math.round(clamp(last.quote, 0, 1) * 100) + "%");
     b.innerHTML = "<span>" + DAY_SHORT[i] + "</span><b>" + d.getDate() + "</b><i></i>";
-    if (iso(d) === todayIso) b.querySelector("b").style.color = "var(--focus)";
+    if (key === todayIso) b.querySelector("b").style.color = "var(--focus)";
+
+    // Ein Balken allein sagt niemandem etwas, der ihn nicht sieht.
+    const wieVoll = frei ? "freigehalten"
+      : last.min < 15 ? "nichts geplant"
+      : fmtDur(last.min) + " geplant" + (last.quote > 1 ? " — das wird eng" : "");
+    b.title = DAY_LONG[i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ". · " + wieVoll;
+    b.setAttribute("aria-label", b.title);
+
     b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderEnergy(); };
     wrap.appendChild(b);
   }

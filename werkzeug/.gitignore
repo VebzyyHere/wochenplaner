@@ -1,0 +1,5 @@
+# Was beim Pruefen entsteht, gehoert nicht in die Versionsverwaltung
+node_modules/
+package.json
+package-lock.json
+*.png
