@@ -4,6 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wochenplaner</title>
+<meta name="description" content="Deine Woche in Stunden statt nur in Terminen. Feste Termine, Wochenziele und Erholung in einem Plan.">
+<!-- Farbe der Statusleiste; wird beim Umschalten des Erscheinungsbilds
+     aus dem Code nachgezogen. -->
+<meta name="theme-color" id="themeColor" content="#ffffff">
+<!-- Vom Homescreen starten: ohne Browserleiste, mit eigenem Namen. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Wochenplan">
+<!-- Manifest und Symbole liegen als eigene Dateien daneben. Wer die
+     Einzeldatei heruntergeladen hat, hat sie nicht — dort wuerden drei
+     vergebliche Abrufe in der Konsole landen. Darum erst pruefen, dann
+     eintragen. Das passiert noch beim Lesen des Kopfes, also fruehzeitig
+     genug, dass der Browser die App als installierbar erkennt. -->
+<script>
+(function () {
+  if (location.protocol.indexOf("http") !== 0) return;
+  var v = [["manifest", "manifest.json"], ["apple-touch-icon", "apple-touch-icon.png"], ["icon", "icon-192.png"]];
+  for (var i = 0; i < v.length; i++) {
+    var l = document.createElement("link");
+    l.rel = v[i][0]; l.href = v[i][1];
+    document.head.appendChild(l);
+  }
+})();
+</script>
 <style>
 /* ============================================================
    Design Tokens
@@ -12,6 +37,7 @@
    ============================================================ */
 :root {
   color-scheme: light dark;
+  -webkit-text-size-adjust: 100%;   /* iOS blaeht Text im Querformat sonst auf */
 
   --h-ink: 265;
 
@@ -75,7 +101,7 @@ html[data-theme="dark"] {
 
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
-.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow,
+.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
 .hakenrow, .zielrow {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
@@ -84,7 +110,7 @@ html[data-theme="dark"] {
   --area-text:   oklch(0.350 0.090 var(--h));
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
-html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow,
+html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
 .hakenrow, .zielrow) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
@@ -179,7 +205,18 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .field:focus { outline: 2px solid var(--focus); outline-offset: -1px; border-color: transparent; }
 
 /* ============================================================ App shell */
-.app { display: flex; flex-direction: column; height: 100dvh; }
+/* overflow: hidden verhindert, dass die ganze Seite am Telefon gummiartig
+   mitfedert — gescrollt wird im Raster, nicht am Dokument. */
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+
+/* Langes Drücken legt einen Eintrag an. Ohne diese drei Zeilen kommt an
+   derselben Stelle die Textauswahl von iOS dazwischen und übernimmt die
+   Geste. */
+.gridwrap, .dayswitch, .tabbar, .loose, .dayhead, .block, .daycol {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+.block__title, .block__time { -webkit-user-select: none; user-select: none; }
 
 .topbar {
   display: flex; align-items: center; gap: var(--s-3);
@@ -330,7 +367,13 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .syncbadge.is-warn::before { background: var(--warn); }
 .syncbadge.is-work::before { background: var(--focus); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
-@media (max-width: 560px) { .syncbadge { font-size: 0; padding: 0; min-width: 40px; justify-content: center; } }
+.syncbadge__ico { display: none; width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 640px) {
+  .syncbadge { padding: 0; min-width: 44px; justify-content: center; gap: 3px; }
+  .syncbadge__txt { display: none; }
+  .syncbadge__ico { display: block; }
+  .syncbadge::before { width: 7px; height: 7px; }
+}
 
 /* ============================================================ Einstellungs-Menü */
 .setmenu { display: flex; flex-direction: column; gap: 2px; margin: 0 calc(var(--s-2) * -1); padding-bottom: var(--s-3); }
@@ -377,17 +420,17 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 }
 .goal__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
 .goal__num { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
+/* Drei Stufen im selben Balken: abgehakt, geplant, vorgeschlagen.
+   Unterschieden über die Deckkraft, nicht über eine Schraffur — in acht
+   Pixeln Höhe ist eine Schraffur kein Muster mehr, nur ein Farbton, und
+   ein Vorschlag sah aus wie Erledigtes. */
 .goal__track {
-  height: 7px; border-radius: 4px; background: var(--surface-3);
+  height: 8px; border-radius: 4px; background: var(--surface-3);
   overflow: hidden; display: flex;
 }
-.goal__fill { background: var(--area-line); transition: width .25s; opacity: .45; }
+.goal__fill { background: var(--area-line); opacity: .58; transition: width .25s; }
 .goal__fill--ist { opacity: 1; }
-.goal__fill--sug {
-  background-image: repeating-linear-gradient(
-    -45deg, var(--area-line) 0 2px, transparent 2px 6px);
-  opacity: .45; transition: width .25s;
-}
+.goal__fill--sug { opacity: .24; }
 .goal__rest { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
 .goal__rest b { color: var(--text); font-weight: 600; }
 .goals__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
@@ -440,6 +483,7 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .goalrow__body[hidden] { display: none; }
 .goalrow__art { display: flex; gap: 6px; margin-top: var(--s-2); flex-wrap: wrap; }
 .goalrow__art .chip { font-size: 12px; padding: 5px 10px; min-height: 32px; }
+@media (pointer: coarse) { .goalrow__art .chip { min-height: 44px; padding: 5px 12px; } }
 .goalrow__arthint { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
 .wegrow { display: flex; align-items: center; gap: var(--s-2); margin-bottom: 6px; }
 .wegrow__txt { flex: 1; font-size: 13px; min-width: 0; }
@@ -500,23 +544,25 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 html[data-theme="dark"] .task__check:checked::after { border-color: oklch(0.18 0.014 var(--h-ink)); }
-.task__body { flex: 1; min-width: 0; }
-.task__title { font-size: 14px; word-break: break-word; }
+.task__body { flex: 1; min-width: 0; cursor: pointer; }
+.task__title { font-size: 14.5px; word-break: break-word; line-height: 1.35; }
 .task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
-.task__tags { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
-.task__area { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-muted); }
-.task__frog {
-  border: 0; background: transparent; padding: 0 2px; font-size: 14px; line-height: 1;
-  filter: grayscale(1); opacity: .35; transition: filter .15s, opacity .15s;
+.task__star { font-size: 12px; margin-right: 4px; }
+.task__meta {
+  display: flex; align-items: center; gap: 5px; margin-top: 2px;
+  font-size: 11.5px; color: var(--text-muted);
 }
-.task__frog[aria-pressed="true"] { filter: none; opacity: 1; }
-.task__del {
-  border: 0; background: transparent; color: var(--text-faint); font-size: 18px;
-  line-height: 1; padding: 2px 6px; border-radius: 6px; opacity: 0;
-  transition: opacity .15s, color .15s;
+.task__dur {
+  margin-left: 4px; padding-left: 7px; border-left: 1px solid var(--border);
+  color: var(--text-faint);
 }
-.task:hover .task__del, .task:focus-within .task__del { opacity: 1; }
-.task__del:hover { color: var(--danger); background: var(--surface-2); }
+.task__more {
+  flex: none; border: 0; background: transparent; color: var(--text-muted);
+  font-size: 17px; letter-spacing: 1px; line-height: 1;
+  padding: 4px 8px; border-radius: 8px; align-self: center;
+  transition: background .15s, color .15s;
+}
+.task__more:hover { background: var(--surface-2); color: var(--text); }
 .taskadd { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
 .taskadd .field { min-height: 38px; }
 
@@ -543,6 +589,7 @@ html[data-theme="dark"] .task__check:checked::after { border-color: oklch(0.18 0
   background: var(--surface); padding: var(--s-2) 0;
   display: grid; grid-template-columns: var(--gutter, 56px) repeat(var(--lcols, 7), minmax(0, 1fr));
   max-height: 34dvh; overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .loose__lab {
   grid-column: 1; font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
@@ -574,15 +621,14 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
   grid-column: 1 / -1; font-size: 11.5px; color: var(--text-faint);
   padding: 2px var(--s-3) 4px calc(var(--gutter, 56px) + 3px);
 }
-@media (pointer: coarse) { .loosechip { min-height: 38px; } }
 
 /* Am Telefon ist links kein Platz für eine Beschriftungsspalte —
    der Abschnitt steht als Zeile über seinen Einträgen. */
 @media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
-  .loose { grid-template-columns: 1fr; padding: var(--s-1) 0 var(--s-2); }
-  .loose__lab { text-align: left; padding: 6px var(--s-3) 2px; }
-  .loose__cell { padding: 0 var(--s-3); }
-  .loose__hint { padding: 4px 76px 0 var(--s-3); }
+  body[data-tage="1"] .loose { grid-template-columns: 1fr; padding: var(--s-1) 0 var(--s-2); }
+  body[data-tage="1"] .loose__lab { text-align: left; padding: 6px var(--s-3) 2px; }
+  body[data-tage="1"] .loose__cell { padding: 0 var(--s-3); }
+  body[data-tage="1"] .loose__hint { padding: 4px 76px 0 var(--s-3); }
 }
 .grid {
   display: grid;
@@ -610,7 +656,8 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
    Fläche statt einer Sperrschraffur. */
 .daycol.is-frei { background: oklch(0.62 0.14 150 / .05); }
 html[data-theme="dark"] .daycol.is-frei { background: oklch(0.72 0.14 150 / .07); }
-.dayswitch__btn.is-frei b { color: var(--success); }
+.dayswitch__btn.is-frei { background: oklch(0.62 0.14 150 / .10); }
+html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 150 / .13); }
 .dayhead__name { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
 .dayhead__num {
   font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
@@ -644,7 +691,7 @@ html[data-theme="dark"] .dayhead.is-today .dayhead__num { color: oklch(0.18 0.01
 .daycol__line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); pointer-events: none; }
 .daycol__line--half { border-top-style: dotted; opacity: .6; }
 .now {
-  position: absolute; left: 0; right: 0; height: 0; z-index: 6; pointer-events: none;
+  position: absolute; left: 0; right: 0; height: 0; z-index: 9; pointer-events: none;
   border-top: 2px solid var(--danger);
 }
 .now::before {
@@ -733,16 +780,23 @@ html[data-theme="dark"] .rest {
 }
 
 /* ============================================================ Mobile day switcher */
-.dayswitch { display: none; gap: 4px; padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
+.dayswitch {
+  display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0;
+  padding: 4px 2px; border-bottom: 1px solid var(--border);
+  background: var(--surface); overflow: hidden;
+}
 .dayswitch__btn {
-  flex: 1 0 auto; min-width: 44px; min-height: 48px; border-radius: var(--radius-sm);
-  border: 1px solid transparent; background: transparent; padding: 4px 6px;
+  min-width: 0; min-height: 46px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; padding: 3px 1px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
 }
-.dayswitch__btn span { font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
-.dayswitch__btn b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.dayswitch__btn span {
+  font-size: 10px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--text-muted); line-height: 1.1;
+}
+.dayswitch__btn b { font-size: 16px; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .dayswitch__btn[aria-pressed="true"] { background: var(--surface-3); border-color: var(--border-strong); }
-.dayswitch__btn i { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.dayswitch__btn i { width: 5px; height: 5px; border-radius: 50%; background: transparent; flex: none; }
 .dayswitch__btn.has-items i { background: var(--text-faint); }
 
 /* ============================================================ Sheet / Modal */
@@ -842,13 +896,13 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 @media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
   .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
-    flex: none; gap: 2px; padding: 6px 6px 0;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    flex: none; gap: 2px; padding: 2px 6px 0;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--border); background: var(--surface);
   }
   .tabbar button {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; min-height: 52px; padding: 6px 2px 8px;
+    gap: 2px; min-height: 50px; padding: 4px 2px 5px;
     border: none; background: transparent; border-radius: var(--radius-sm);
     font-size: 11px; font-weight: 600; color: var(--text-faint);
     -webkit-tap-highlight-color: transparent;
@@ -864,7 +918,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   body[data-mview="plan"] .fab {
     display: grid; place-items: center; position: fixed;
     right: 16px; z-index: 40;
-    bottom: calc(70px + env(safe-area-inset-bottom));
+    bottom: calc(62px + env(safe-area-inset-bottom));
     width: 54px; height: 54px; border-radius: 50%;
     background: var(--ink); border: none; box-shadow: var(--shadow-2);
   }
@@ -875,49 +929,110 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   html[data-theme="dark"] .fab svg { stroke: oklch(0.18 0.014 var(--h-ink)); }
   .fab:active { transform: scale(0.94); }
 
-  /* Eine Ansicht zur Zeit */
+  /* ---- Eine Ansicht zur Zeit -------------------------------------------
+     Der Plan und die Karten teilen sich nicht den Bildschirm, sie ersetzen
+     sich. Entscheidend ist, dass die jeweils andere Seite **ganz** weg ist:
+     ein leeres `.planwrap` liess vorher das Band stehen und schnitt die
+     Karten mitten im Text ab. */
   .main { flex-direction: column; }
   .panel {
     width: 100%; flex: 1; min-height: 0;
     border-right: 0; max-height: none;
-    padding: var(--s-3);
-    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+    padding: var(--s-3) var(--s-3) 0;
+    gap: var(--s-3);
+    -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
   }
   body[data-mview="plan"] .panel { display: none; }
-  body:not([data-mview="plan"]) .gridwrap,
-  body:not([data-mview="plan"]) .dayswitch { display: none; }
-  body[data-mview="ziele"]    .card:not([data-card="ziele"]),
+  body:not([data-mview="plan"]) .planwrap { display: none; }
+  body[data-mview="ziele"]    .card:not([data-card="ziele"]):not(.ritual),
   body[data-mview="aufgaben"] .card:not([data-card="aufgaben"]),
   body[data-mview="heute"]    .card:not([data-card="heute"]) { display: none; }
 
-  /* In der Aufgaben-Ansicht darf die Liste den Platz auch nutzen */
-  body[data-mview="aufgaben"] .card[data-card="aufgaben"] {
-    flex: 1; display: flex; flex-direction: column; min-height: 0;
+  /* Eine Karte, die den ganzen Bildschirm hat, braucht keinen Rahmen mehr —
+     der Rahmen im Rahmen kostet nur Platz und Aufmerksamkeit. */
+  .panel > .card {
+    border-width: 0; border-radius: 0; background: transparent;
+    padding: 0 0 var(--s-4);
   }
-  body[data-mview="aufgaben"] .tasks { flex: 1; min-height: 0; overflow-y: auto; }
+  .card__head { margin-bottom: var(--s-3); }
 
-  .dayswitch { display: flex; }
-  .grid { --gutter: 46px; --colmin: 0; --hourh: 56px; }
+  /* Die Aufgabenliste darf den Platz nutzen, damit das Eingabefeld oben
+     stehen bleibt statt mit wegzuscrollen. */
+  body[data-mview="aufgaben"] .panel { overflow: hidden; }
+  body[data-mview="aufgaben"] .card[data-card="aufgaben"] {
+    flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0;
+  }
+  body[data-mview="aufgaben"] .tasks {
+    flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+  }
+
+  /* Eine Regel statt zweier gleich starker: die spätere gewann, und der
+     Tagwechsler stand über den Wochenzielen. */
+  body[data-mview="plan"][data-tage="1"] .dayswitch { display: grid; }
+  .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
   .block__title { top: 0; }
   .brand { display: none; }
-  .weeknav { margin-right: auto; }
-  .weeknav__label { min-width: 92px; font-size: 13px; }
-  .topbar { padding: var(--s-2) var(--s-3); gap: var(--s-1); }
+  .weeknav { margin-right: auto; min-width: 0; }
+  /* Datum und Woche in eine Zeile: die zweite Zeile kostete zwölf Pixel
+     Rasterhöhe und stand doppelt im Tagwechsler darunter. */
+  .weeknav__label {
+    min-width: 0; font-size: 13px; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .weeknav__label small { display: inline; font-size: 12px; }
+  .weeknav__label small::before { content: " · "; }
+  /* Unter 360 Pixeln bricht das Datum mitten durch. Die Tage stehen
+     ohnehin im Wechsler darunter — dann lieber nur die Kalenderwoche. */
+  @media (max-width: 360px) { .weeknav__label small { display: none; } }
+  .topbar { padding: 4px var(--s-2); gap: 0; }
+  .topbar { padding-top: max(4px, env(safe-area-inset-top)); }
   .sheet { max-width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
   .scrim { padding: 0; align-items: flex-end; }
   .card { padding: var(--s-3); }
 
+  /* Das Band nimmt hoechstens ein Viertel der Hoehe. Vorher durfte es ein
+     Drittel — auf einem 568er Display blieben dem Tag viereinhalb Stunden. */
+  .loose { max-height: 25dvh; padding: 4px 0; }
+  .loose__hint { font-size: 10.5px; line-height: 1.35; }
+
   /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter */
-  .toasts { bottom: calc(74px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
+  .toasts { bottom: calc(66px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
+
+  /* ---- Dialogfuss ------------------------------------------------------
+     Drei Knoepfe nebeneinander passen auf 320 px nicht. Loeschen rutscht in
+     eine eigene Zeile darunter — nebenbei die richtige Rangfolge. */
+  .sheet__foot { flex-wrap: wrap; }
+  .sheet__foot .spacer { display: none; }
+  .sheet__foot > .btn { flex: 1 1 40%; }
+  .sheet__foot > .btn--danger { order: 5; flex: 0 0 auto; }
 }
 
 /* Querformat am Handy: kaum Höhe, also flacher bauen */
 @media (max-height: 500px) and (max-width: 1000px) {
+  .tabbar { padding-top: 0; }
   .tabbar button { min-height: 44px; font-size: 0; gap: 0; padding: 4px; }
   .tabbar svg { width: 20px; height: 20px; }
   .grid { --hourh: 46px; }
-  .dayswitch { padding: 4px var(--s-2); }
-  .dayswitch__btn { padding: 4px 8px; }
+  .dayswitch { padding: 2px; }
+  .dayswitch__btn { min-height: 40px; padding: 2px; }
+  .dayswitch__btn b { font-size: 14px; }
+  /* Bei 390 Pixeln Höhe ist jeder Erklärsatz eine Stunde Plan */
+  .loose { max-height: 30dvh; }
+  .loose__hint { display: none; }
+  .dayhead { padding: 2px 2px 3px; }
+  .dayhead__name { font-size: 9.5px; }
+  .dayhead__num { font-size: 15px; width: 24px; height: 24px; line-height: 24px; margin-top: 0; }
+  .dayhead__frei { font-size: 8.5px; }
+  .dayhead__energy { display: none; }
+  /* Sieben Spalten auf 844 Pixeln heisst rund hundert Pixel je Tag. Zwei
+     fingergerechte Haken passen da nicht neben einen Titel, ohne ihn zu
+     verdecken — und ein Vorschlag, den man nicht lesen kann, ist keiner.
+     Das Querformat ist die Übersicht: annehmen geht im Hochformat, über
+     „Alle übernehmen" oder durch Antippen des Vorschlags. */
+  body[data-tage="7"] .block__sug { display: none; }
+  .topbar { padding: 2px var(--s-2); }
+  .weeknav__label { font-size: 12.5px; }
 }
 
 /* ============================================================
@@ -941,36 +1056,54 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
    Finger statt Maus — überall dort, wo mit dem Finger bedient wird,
    müssen die Ziele mindestens 44 px hoch sein.
    ============================================================ */
+/* ============================================================
+   Finger statt Zeiger
+
+   Alles, was man antippt, ist mindestens 44 x 44 Punkte gross. Das ist
+   keine Geschmacksfrage: darunter steigt die Fehlerrate messbar, und ein
+   Fehltipp in einem Planer heisst, dass etwas verschoben oder gelöscht
+   wird, das man nicht anfassen wollte.
+
+   Wo es optisch klein bleiben muss (Häkchen, Farbfeld), bleibt das Bild
+   klein und die Trefferfläche wächst über ein unsichtbares ::before.
+   ============================================================ */
 @media (pointer: coarse) {
   .btn { min-height: 44px; }
-  .syncbadge { min-width: 40px; }
-  .btn--sm { min-height: 40px; padding: 0 var(--s-3); }
+  .btn--sm { min-height: 44px; padding: 0 var(--s-3); }
   .btn--icon { min-width: 44px; min-height: 44px; }
-  .chip { min-height: 40px; padding: 0 var(--s-3); }
+  .chip { min-height: 44px; padding: 0 var(--s-3); }
   .field { min-height: 46px; }
-  .arearow .field { min-height: 42px; }
-  .syncbadge { min-height: 36px; padding: 0 12px; }
+  .arearow .field { min-height: 44px; }
+  .arearow__swatch { width: 40px; height: 40px; position: relative; }
+  .arearow__swatch::before { content: ""; position: absolute; inset: -2px; }
+  .syncbadge { min-height: 44px; min-width: 44px; padding: 0 12px; }
+  .setback { min-height: 44px; }
   .task { padding: var(--s-3) var(--s-2); }
-  /* Die Checkbox bleibt optisch klein, bekommt aber eine fingergerechte
-     Trefferflaeche - sonst tippt man staendig daneben */
   .task__check { width: 24px; height: 24px; position: relative; }
-  .task__check::before {
-    content: ""; position: absolute; inset: -11px; border-radius: 8px;
-  }
-  .syncbadge { min-height: 40px; }
-  .task__del { min-width: 40px; min-height: 40px; }
-  .task__area, .task__frog, .task__plan { min-height: 32px; padding: 4px 8px; }
+  .task__check::before { content: ""; position: absolute; inset: -11px; border-radius: 8px; }
+  .task__del, .task__more { min-width: 44px; min-height: 44px; }
+  /* Auf einem Touchgerät gibt es kein Hover — ein Knopf, der erst beim
+     Zeigen erscheint, existiert dort nicht. */
+  .task__del { opacity: 1; }
+  .task__area { min-height: 34px; padding: 4px 8px; }
+  .task__frog, .task__plan { min-height: 40px; min-width: 40px; padding: 4px 8px; }
   /* Ein Schalter ist eine ganze Zeile — die Box bleibt klein, die
      Trefferflaeche wird fingergerecht. */
   .switch { min-height: 44px; }
   .switch input { width: 22px; height: 22px; }
   .hakenrow input { width: 22px; height: 22px; }
   .energy__opt { min-height: 68px; }
-  .dayswitch__btn { min-height: 52px; min-width: 46px; }
-  .block__sug button { width: 30px; height: 30px; }
+  .dayswitch__btn { min-height: 46px; }
+  /* Annehmen und Verwerfen sind der Kern der Schleife — die dürfen nicht
+     die kleinsten Knöpfe im Bild sein. */
+  .block__sug { gap: 6px; right: 4px; top: 4px; }
+  .block__sug button { width: 34px; height: 34px; font-size: 14px; position: relative; }
+  .block__sug button::before { content: ""; position: absolute; inset: -5px; }
   .block__resize { height: 14px; }
-  .goalrow__more { min-width: 40px; min-height: 40px; }
-  .toast__act { padding: 8px 4px; }
+  .goalrow__more { min-width: 44px; min-height: 44px; }
+  .loosechip { min-height: 44px; }
+  .toast__act { padding: 12px 6px; margin: -12px 0; }
+  #inSwap { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1511,8 +1644,20 @@ function migrate(s) {
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
 let selectedDayIdx = (new Date().getDay() + 6) % 7;   // für Mobile
+/* Zwei Fragen, die bisher eine waren:
+
+   MOBILE_Q — bekommt der Bildschirm die Tableiste unten und eine Ansicht
+   zur Zeit? Das hängt daran, ob Karten und Raster nebeneinander passen.
+
+   EINTAG_Q — zeigt das Raster einen Tag oder die ganze Woche? Das hängt
+   allein an der Breite. Wer das Telefon dreht, hat plötzlich 844 Pixel —
+   da passt die Woche, und der Tagwechsler wird überflüssig. Vorher war
+   beides dieselbe Bedingung, und im Querformat blieb ein einzelner Tag
+   über die volle Breite gezogen. */
 const MOBILE_Q = "(max-width: 780px), (max-height: 500px) and (max-width: 1000px)";
+const EINTAG_Q = "(max-width: 640px)";
 let isMobile = window.matchMedia(MOBILE_Q).matches;
+let einTag   = window.matchMedia(EINTAG_Q).matches;
 
 /* ============================================================
    Änderungen erkennen — Grundlage für den Abgleich zwischen Geräten.
@@ -1614,7 +1759,12 @@ function istFrei(dateIso) {
 function applyTheme() {
   const t = state.settings.theme;
   const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.theme = (t === "auto" ? (sysDark ? "dark" : "light") : t);
+  const dunkel = (t === "auto" ? sysDark : t === "dark");
+  document.documentElement.dataset.theme = dunkel ? "dark" : "light";
+  // Vom Homescreen gestartet ist das die Farbe der Statusleiste. Ohne das
+  // sitzt eine weisse Leiste ueber einer dunklen App.
+  const mc = document.getElementById("themeColor");
+  if (mc) mc.setAttribute("content", dunkel ? "#15131c" : "#ffffff");
 }
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (state.settings.theme === "auto") applyTheme();
@@ -1696,9 +1846,11 @@ function renderHeader() {
   const mon = mondayOf(anchor);
   const sun = addDays(mon, 6);
   const sameMonth = mon.getMonth() === sun.getMonth();
-  const range = sameMonth
-    ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
-    : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
+  const range = isMobile
+    ? mon.getDate() + "." + (mon.getMonth() + 1) + ".–" + sun.getDate() + "." + (sun.getMonth() + 1) + "."
+    : sameMonth
+      ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
+      : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
   $("#weekLabel").innerHTML = "KW " + isoWeek(mon) + "<small>" + range + "</small>";
   $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
   // In der laufenden Woche braucht niemand einen Knopf, der dorthin führt.
@@ -2770,7 +2922,7 @@ function renderLoose() {
   const band = $("#looseBand");
   if (!band) return;
   const mon = mondayOf(anchor);
-  const tage = isMobile ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
+  const tage = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
 
   const daten = tage.map(i => {
     const d = addDays(mon, i);
@@ -2781,7 +2933,7 @@ function renderLoose() {
   band.hidden = false;
   band.innerHTML = "";
   band.style.setProperty("--lcols", tage.length);
-  band.style.setProperty("--gutter", isMobile ? "46px" : "56px");
+  band.style.setProperty("--gutter", einTag ? "44px" : "56px");
 
   // Eine Zeile je Abschnitt, damit man sieht, wann am Tag es ungefähr sein soll
   ABSCHNITTE.forEach(abschnitt => {
@@ -2836,11 +2988,11 @@ function renderGrid() {
   const bodyH = hours * hourH;
   const mon = mondayOf(anchor);
   const todayIso = iso(new Date());
-  const dayIdxs = isMobile ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
+  const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
 
   // Kopfzeile — am Handy übernimmt das der Tag-Umschalter oben
-  if (!isMobile) {
+  if (!einTag) {
   const gh = document.createElement("div");
   gh.className = "dayhead dayhead--gutter";
   grid.appendChild(gh);
@@ -2857,7 +3009,7 @@ function renderGrid() {
       "<div class='dayhead__num'>" + d.getDate() + "</div>" +
       (frei ? "<span class='dayhead__frei'>frei</span>" : "") +
       "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
-    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); if (isMobile) renderGrid(); };
+    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); if (einTag) renderGrid(); };
     grid.appendChild(h);
   });
   }
@@ -2931,9 +3083,35 @@ function renderGrid() {
 
   // keepScroll === 0 ist falsy — wer ganz oben stand, wurde vom Minutentakt
   // sonst jede Minute zurück zur aktuellen Uhrzeit gerissen.
-  wrap.scrollTop = keepScroll > 0
-    ? keepScroll
-    : Math.max(0, ((new Date().getHours() - 1 - dayStart) * hourH));
+  wrap.scrollTop = keepScroll > 0 ? keepScroll : startScroll(hourH);
+}
+
+/* Wohin das Raster beim ersten Zeichnen springt.
+
+   Bisher immer „aktuelle Stunde minus eins". Am Telefon zeigt der Plan aber
+   einen einzelnen Tag, und wer den Sonntag ansieht, will nicht die Uhrzeit
+   von heute sehen, sondern was an dem Tag ansteht. Und wenn der erste
+   Eintrag um neun beginnt, ist eine Kopfzeile bei zehn nutzlos. */
+function startScroll(hourH) {
+  const { dayStart } = state.settings;
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+  let ziel;
+
+  if (isMobile) {
+    const d = addDays(mondayOf(anchor), selectedDayIdx);
+    const heute = iso(d) === iso(new Date());
+    const starts = blocksFor(d, selectedDayIdx).map(b => b.start);
+    if (starts.length) ziel = Math.min(...starts);
+    else if (heute) ziel = jetzt;
+    else ziel = Math.max(dayStart * 60, 8 * 60);
+    if (heute) ziel = Math.min(ziel, jetzt);
+  } else {
+    ziel = jetzt;
+  }
+
+  // Eine Dreiviertelstunde Vorlauf, damit der erste Eintrag nicht am
+  // oberen Rand klebt.
+  return Math.max(0, (ziel - 45 - dayStart * 60) / 60 * hourH);
 }
 
 function blockEl({ b, col, of }, hourH, dayKey) {
@@ -3140,11 +3318,12 @@ function attachColumnHandlers(col, hourH) {
     if (!t) return;
     // Startzeit klemmen, nicht die Endzeit — sonst entsteht beim Fallenlassen
     // ganz unten ein Block „22:00–22:00" ohne Dauer.
+    const laenge = t.dauer || 60;
     const s = Math.min(minAt(e.clientY), state.settings.dayEnd * 60 - 30);
     state.blocks.push({
       id: uid(), title: t.title, areaId: t.areaId || state.areas[0].id,
       day: +col.dataset.day, date: col.dataset.date, repeat: "none",
-      start: s, end: Math.min(s + 60, state.settings.dayEnd * 60), frog: !!t.frog
+      start: s, end: Math.min(s + laenge, state.settings.dayEnd * 60), frog: !!t.frog
     });
     save(); renderAll();
     toast("Eingeplant: " + t.title);
@@ -3549,6 +3728,23 @@ function renderTasks() {
   [...open, ...done].forEach(t => list.appendChild(taskEl(t)));
 }
 
+/* ============================================================
+   Eine Aufgabenzeile
+
+   Vorher hing an jeder Zeile ein Streifen aus vier winzigen Knöpfen: Bereich
+   durchtippen, Stern, Kalender, Löschen. Am Telefon war davon einer gar nicht
+   erreichbar — Löschen erschien nur beim Zeigen mit der Maus, und Zeigen gibt
+   es dort nicht. Der Bereichsknopf schaltete pro Tipp einen Bereich weiter:
+   sieben Tipps für den falschen Nachbarn.
+
+   Jetzt hat die Zeile ein Häkchen, den Text und einen Punkt-Knopf. Alles
+   andere steht im Blatt dahinter — mit Platz für richtige Trefferflächen und
+   für Dinge, die vorher gar nicht gingen: den Titel ändern und sagen, wie
+   lange die Aufgabe dauert.
+   ============================================================ */
+
+const TASK_DAUERN = [15, 30, 45, 60, 90, 120];
+
 function taskEl(t) {
   const row = document.createElement("div");
   row.className = "task" + (t.done ? " is-done" : "");
@@ -3561,63 +3757,38 @@ function taskEl(t) {
 
   const body = document.createElement("div");
   body.className = "task__body";
+
   const ti = document.createElement("div");
-  ti.className = "task__title"; ti.textContent = t.title;
-  const tags = document.createElement("div");
-  tags.className = "task__tags";
+  ti.className = "task__title";
+  if (t.frog) {
+    const st = document.createElement("span");
+    st.className = "task__star"; st.textContent = "⭐";
+    st.title = "Das Wichtigste";
+    ti.appendChild(st);
+  }
+  ti.append(t.title);
 
-  const areaBtn = document.createElement("button");
-  areaBtn.className = "task__area";
   const a = areaById(t.areaId);
-  areaBtn.style.setProperty("--h", a.hue);
-  areaBtn.style.border = "0"; areaBtn.style.background = "transparent"; areaBtn.style.padding = "0";
-  areaBtn.innerHTML = "<span class='chip__dot'></span>";
-  areaBtn.append(a.name);
-  areaBtn.title = "Bereich wechseln";
-  areaBtn.onclick = () => {
-    const i = state.areas.findIndex(x => x.id === t.areaId);
-    t.areaId = state.areas[(i + 1) % state.areas.length].id;
-    save(); renderTasks();
-  };
+  const meta = document.createElement("div");
+  meta.className = "task__meta";
+  meta.style.setProperty("--h", a.hue);
+  meta.innerHTML = "<span class='chip__dot'></span>" + escapeHtml(a.name)
+    + (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "");
 
-  const frog = document.createElement("button");
-  frog.className = "task__frog"; frog.textContent = "⭐";
-  frog.title = "Das Wichtigste — die eine Aufgabe, die zuerst dran ist";
-  frog.setAttribute("aria-pressed", String(!!t.frog));
-  frog.setAttribute("aria-label", "Als das Wichtigste markieren");
-  frog.onclick = () => {
-    const on = !t.frog;
-    if (on) state.tasks.forEach(x => x.frog = false);
-    t.frog = on; save(); renderTasks(); renderEnergy();
-  };
+  body.append(ti, meta);
 
-  const plan = document.createElement("button");
-  plan.className = "task__frog"; plan.textContent = "📅";
-  plan.style.filter = "none"; plan.style.opacity = ".55";
-  plan.title = "In den Wochenplan legen";
-  plan.setAttribute("aria-label", "In den Wochenplan legen");
-  plan.onclick = () => {
-    const d = addDays(mondayOf(anchor), selectedDayIdx);
-    const start = clamp(snap(new Date().getHours() * 60 + 60), state.settings.dayStart * 60, state.settings.dayEnd * 60 - 60);
-    blockSheet({
-      id: null, title: t.title, areaId: t.areaId || state.areas[0].id,
-      day: selectedDayIdx, date: iso(d), repeat: "none",
-      start, end: start + 60, frog: !!t.frog
-    });
-  };
+  const more = document.createElement("button");
+  more.className = "task__more"; more.type = "button"; more.innerHTML = "···";
+  more.title = "Bearbeiten";
+  more.setAttribute("aria-label", "Aufgabe bearbeiten: " + t.title);
+  more.onclick = e => { e.stopPropagation(); taskSheet(t); };
 
-  tags.append(areaBtn, frog, plan);
-  body.append(ti, tags);
+  row.append(cb, body, more);
 
-  const del = document.createElement("button");
-  del.className = "task__del"; del.innerHTML = "×";
-  del.setAttribute("aria-label", "Aufgabe löschen");
-  del.onclick = () => {
-    state.tasks = state.tasks.filter(x => x.id !== t.id);
-    save(); renderTasks(); toastUndo("Aufgabe gelöscht");
-  };
+  // Der Text selbst öffnet dasselbe Blatt — am Telefon zielt niemand gern
+  // auf drei Punkte, wenn die ganze Zeile daneben liegt.
+  body.onclick = () => taskSheet(t);
 
-  row.append(cb, body, del);
   row.addEventListener("dragstart", e => {
     dragTaskId = t.id; row.classList.add("is-dragging");
     e.dataTransfer.effectAllowed = "copy";
@@ -3625,6 +3796,121 @@ function taskEl(t) {
   });
   row.addEventListener("dragend", () => { dragTaskId = null; row.classList.remove("is-dragging"); });
   return row;
+}
+
+function taskSheet(t) {
+  modal((s, close) => {
+    let areaId = t.areaId || state.areas[0].id;
+    let dauer = t.dauer || 0;
+    let wichtig = !!t.frog;
+
+    s.innerHTML =
+      "<h2 class='sheet__title'>Aufgabe</h2>" +
+      "<div class='sheet__row'><label class='label' for='tkTitle'>Was ist zu tun?</label>" +
+      "<input class='field' id='tkTitle' autocomplete='off'></div>" +
+      "<div class='sheet__row'><span class='label'>Bereich</span>" +
+      "<div class='chipset' id='tkAreas'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
+      "<div class='chipset' id='tkDauer'></div>" +
+      "<div id='tkDauerHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
+      "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
+      "⭐ Das Wichtigste — zuerst dran</label></div>";
+
+    const titel = s.querySelector("#tkTitle");
+    titel.value = t.title;
+
+    const areaWrap = s.querySelector("#tkAreas");
+    const malAreas = () => {
+      areaWrap.innerHTML = "";
+      state.areas.forEach(a => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.style.setProperty("--h", a.hue);
+        c.setAttribute("aria-pressed", String(a.id === areaId));
+        c.innerHTML = "<span class='chip__dot'></span>";
+        c.append(a.name);
+        c.onclick = () => { areaId = a.id; malAreas(); };
+        areaWrap.appendChild(c);
+      });
+    };
+    malAreas();
+
+    const dWrap = s.querySelector("#tkDauer");
+    const dHint = s.querySelector("#tkDauerHint");
+    const malDauer = () => {
+      dWrap.innerHTML = "";
+      const keine = document.createElement("button");
+      keine.type = "button"; keine.className = "chip";
+      keine.textContent = "weiß nicht";
+      keine.setAttribute("aria-pressed", String(!dauer));
+      keine.onclick = () => { dauer = 0; malDauer(); };
+      dWrap.appendChild(keine);
+      TASK_DAUERN.forEach(m => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip num";
+        c.textContent = fmtDur(m);
+        c.setAttribute("aria-pressed", String(dauer === m));
+        c.onclick = () => { dauer = m; malDauer(); };
+        dWrap.appendChild(c);
+      });
+      dHint.textContent = dauer
+        ? "„In den Wochenplan legen\" nimmt " + fmtDur(dauer) + " statt einer Stunde."
+        : "Ohne Angabe wird beim Einplanen eine Stunde angenommen.";
+    };
+    malDauer();
+
+    const frogBox = s.querySelector("#tkFrog");
+    frogBox.checked = wichtig;
+    frogBox.onchange = () => { wichtig = frogBox.checked; };
+
+    const inPlan = document.createElement("button");
+    inPlan.className = "btn"; inPlan.type = "button";
+    inPlan.style.width = "100%";
+    inPlan.textContent = "📅 In den Wochenplan legen";
+    inPlan.onclick = () => {
+      uebernehmen();
+      const d = addDays(mondayOf(anchor), selectedDayIdx);
+      const laenge = dauer || 60;
+      const start = clamp(snap(new Date().getHours() * 60 + 60),
+        state.settings.dayStart * 60, state.settings.dayEnd * 60 - laenge);
+      close();
+      blockSheet({
+        id: null, title: titel.value.trim() || t.title, areaId,
+        day: selectedDayIdx, date: iso(d), repeat: "none",
+        start, end: start + laenge, frog: wichtig
+      }, iso(d));
+    };
+    s.appendChild(inPlan);
+
+    function uebernehmen() {
+      const neu = titel.value.trim();
+      if (neu) t.title = neu;
+      t.areaId = areaId;
+      if (dauer) t.dauer = dauer; else delete t.dauer;
+      if (wichtig && !t.frog) state.tasks.forEach(x => x.frog = false);
+      t.frog = wichtig;
+      save();
+    }
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const del = document.createElement("button");
+    del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
+    del.onclick = () => {
+      state.tasks = state.tasks.filter(x => x.id !== t.id);
+      save(); close(); renderTasks(); renderEnergy(); toastUndo("Aufgabe gelöscht");
+    };
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const ab = document.createElement("button");
+    ab.className = "btn"; ab.type = "button"; ab.textContent = "Abbrechen";
+    ab.onclick = close;
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Speichern";
+    ok.onclick = () => { uebernehmen(); close(); renderTasks(); renderEnergy(); };
+    titel.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); ok.onclick(); } };
+    foot.append(del, sp, ab, ok);
+    s.appendChild(foot);
+  });
 }
 
 $("#taskForm").addEventListener("submit", e => {
@@ -4232,7 +4518,27 @@ $("#settingsBtn").onclick = () => {
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
       "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
       "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
-      "</div><div id='sStore' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>";
+      "</div><div id='sStore' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>" +
+      "<div class='sheet__row' data-page='app'><span class='label'>Auf den Startbildschirm</span>" +
+      "<p style='margin:0 0 12px;font-size:14px;color:var(--text-muted);line-height:1.6'>" +
+      "Dann startet der Planer ohne Browserleiste, mit eigenem Symbol — und er geht auch " +
+      "auf, wenn du gerade kein Netz hast.</p>" +
+      "<ol id='sAppSchritte' style='margin:0;padding-left:20px;font-size:14px;line-height:1.75;color:var(--text-muted)'></ol>" +
+      "<div id='sAppStand' style='font-size:12px;color:var(--text-faint);margin-top:12px;line-height:1.5'></div></div>";
+
+    {
+      const ol = s.querySelector("#sAppSchritte");
+      if (ol) {
+        appAnleitung().forEach(x => {
+          const li = document.createElement("li");
+          li.innerHTML = x;
+          ol.appendChild(li);
+        });
+        s.querySelector("#sAppStand").textContent = ("serviceWorker" in navigator)
+          ? "Der Plan liegt weiter in deinem Konto — die App holt ihn beim Start ab."
+          : "Dieser Browser unterstützt das Installieren nicht. Ein Lesezeichen tut es auch.";
+      }
+    }
 
     const name = s.querySelector("#sName"); name.value = state.profile.name;
     const f = s.querySelector("#sFrom"); f.value = state.settings.dayStart;
@@ -4512,8 +4818,41 @@ const SETTINGS_SEITEN = [
     wennVerfuegbar: () => Sync.configured() },
   { id: "daten",    name: "Daten und Sicherung", kurz: () => (
       state.backupAt ? "zuletzt gesichert am " + new Date(state.backupAt).toLocaleDateString("de-DE")
-                     : "noch nie gesichert") }
+                     : "noch nie gesichert") },
+  // Nur zeigen, solange die App im Browser läuft — wer sie schon auf dem
+  // Startbildschirm hat, braucht die Anleitung nicht mehr.
+  { id: "app",      name: "Auf den Startbildschirm", kurz: () => "wie eine App öffnen",
+    wennVerfuegbar: () => !laeuftAlsApp() }
 ];
+
+/* Läuft die Seite schon als eigenständige App? */
+function laeuftAlsApp() {
+  return window.matchMedia("(display-mode: standalone)").matches
+      || window.matchMedia("(display-mode: minimal-ui)").matches
+      || navigator.standalone === true;
+}
+
+/* Die Wege dahin unterscheiden sich pro Gerät, und keiner davon ist
+   erratbar. Also einmal aufschreiben, statt es niemandem zu sagen. */
+function appAnleitung() {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  if (ios) return [
+    "Unten in der Leiste auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).",
+    "In der Liste <b>Zum Home-Bildschirm</b> wählen.",
+    "Oben rechts auf <b>Hinzufügen</b>."
+  ];
+  if (/Android/.test(ua)) return [
+    "Oben rechts auf die <b>drei Punkte</b> tippen.",
+    "<b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b> wählen.",
+    "Bestätigen — der Planer liegt dann bei deinen Apps."
+  ];
+  return [
+    "In der Adresszeile rechts erscheint ein <b>Installieren</b>-Symbol.",
+    "Alternativ im Browsermenü <b>App installieren</b> wählen.",
+    "Danach startet der Planer in einem eigenen Fenster."
+  ];
+}
 
 function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   const titel = s.querySelector(".sheet__title");
@@ -5131,8 +5470,13 @@ function paintSyncBadge() {
     off:       { t: "", cls: "", title: "" }
   };
   const m = map[s] || map.signedout;
-  el.textContent = m.t;
+  el.innerHTML =
+    "<svg class='syncbadge__ico' viewBox='0 0 24 24' aria-hidden='true'>" +
+    "<path d='M7 18h9.5a3.5 3.5 0 0 0 .4-6.98A5.5 5.5 0 0 0 6.3 9.2A4.4 4.4 0 0 0 7 18z'/></svg>" +
+    "<span class='syncbadge__txt'></span>";
+  el.querySelector(".syncbadge__txt").textContent = m.t;
   el.title = m.title;
+  el.setAttribute("aria-label", m.title);
   el.className = "syncbadge " + m.cls;
 }
 
@@ -5151,8 +5495,8 @@ document.addEventListener("keydown", e => {
   if (openModal) return;
   const tag = (e.target.tagName || "").toLowerCase();
   if (tag === "input" || tag === "textarea" || tag === "select") return;
-  if (e.key === "ArrowLeft")  { if (isMobile) tagWechseln(-1); else $("#prevWeek").click(); }
-  if (e.key === "ArrowRight") { if (isMobile) tagWechseln(1);  else $("#nextWeek").click(); }
+  if (e.key === "ArrowLeft")  { if (einTag) tagWechseln(-1); else $("#prevWeek").click(); }
+  if (e.key === "ArrowRight") { if (einTag) tagWechseln(1);  else $("#nextWeek").click(); }
   if (e.key.toLowerCase() === "t") { $("#todayBtn").click(); }
   if (e.key.toLowerCase() === "n") {
     e.preventDefault();
@@ -5185,7 +5529,7 @@ function wischenEinrichten() {
 
   wrap.addEventListener("pointerdown", e => {
     if (e.pointerType === "mouse") return;      // Maus zieht Blöcke, nicht Tage
-    if (!isMobile) return;
+    if (!einTag) return;                        // in der Wochenansicht wechselt nichts
     if (e.target.closest(".block")) return;     // Block verschieben hat Vorrang
     x0 = e.clientX; y0 = e.clientY;
     aktiv = true; entschieden = false;
@@ -5226,7 +5570,15 @@ function tagWechseln(richtung) {
 window.matchMedia(MOBILE_Q).addEventListener("change", e => {
   isMobile = e.matches;
   if (!isMobile) setView("plan");
-  renderGrid();
+  renderAll();
+});
+
+// Beim Drehen wird aus einem Tag die Woche und zurück. renderAll, nicht
+// renderGrid: Kopfzeile, Tagwechsler und Band hängen alle daran.
+window.matchMedia(EINTAG_Q).addEventListener("change", e => {
+  einTag = e.matches;
+  document.body.dataset.tage = einTag ? "1" : "7";
+  renderAll();
 });
 
 /* ============================================================ Ansicht am Handy */
@@ -5554,6 +5906,7 @@ $("#syncBadge").onclick = () => {
 };
 
 applyTheme();
+document.body.dataset.tage = einTag ? "1" : "7";
 setView("plan");
 renderAll();
 paintSyncBadge();
@@ -5582,7 +5935,61 @@ setInterval(() => {
 // Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Sync.active()) Sync.pull();
+  if (!document.hidden) sucheNeueFassung();
 });
+
+/* ============================================================
+   Vom Homescreen starten
+
+   Der Service Worker macht aus der Seite eine App, die auch ohne Netz
+   aufgeht. Sein bekanntes Risiko ist die Kehrseite: er kann eine alte
+   Fassung festhalten. Zwei Gegenmittel — die Seite selbst wird immer
+   zuerst aus dem Netz geholt (siehe sw.js), und wenn trotzdem eine neue
+   Fassung wartet, fragt die App einmal nach, statt sie stillschweigend
+   erst beim nächsten Mal zu nehmen.
+
+   In der Einzeldatei-Fassung (über file:// geöffnet) gibt es keinen
+   Service Worker — dort ist die Datei selbst schon die Offline-Fassung.
+   ============================================================ */
+let swReg = null;
+
+function sucheNeueFassung() {
+  if (swReg) swReg.update().catch(() => {});
+}
+
+function neueFassungAnbieten(worker) {
+  if (!worker) return;
+  toast("Eine neue Fassung ist da", {
+    label: "Jetzt laden",
+    run: () => {
+      // Erst wenn der neue Worker das Ruder hat, neu laden — sonst kommt
+      // die alte Seite zurück.
+      navigator.serviceWorker.addEventListener("controllerchange",
+        () => location.reload(), { once: true });
+      worker.postMessage("uebernehmen");
+      setTimeout(() => location.reload(), 1500);   // Notausgang
+    }
+  });
+}
+
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      swReg = reg;
+      if (reg.waiting && navigator.serviceWorker.controller) neueFassungAnbieten(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const neu = reg.installing;
+        if (!neu) return;
+        neu.addEventListener("statechange", () => {
+          // Ohne controller ist es die erste Installation — da gibt es
+          // nichts zu melden.
+          if (neu.state === "installed" && navigator.serviceWorker.controller)
+            neueFassungAnbieten(neu);
+        });
+      });
+    }).catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
