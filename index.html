@@ -75,7 +75,8 @@ html[data-theme="dark"] {
 
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
-.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow {
+.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow,
+.hakenrow, .zielrow {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
   --area-edge:   oklch(0.870 0.070 var(--h));
@@ -83,7 +84,8 @@ html[data-theme="dark"] {
   --area-text:   oklch(0.350 0.090 var(--h));
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
-html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow) {
+html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__area, .dayswitch__btn, .goal, .goalrow, .reliefrow,
+.hakenrow, .zielrow) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
   --area-edge:   oklch(0.430 0.080 var(--h));
@@ -247,18 +249,70 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 }
 .hint b { color: var(--text); font-weight: 600; }
 
-/* ============================================================ Pomodoro */
-.pomo { text-align: center; }
-.pomo__time {
-  font-size: 42px; font-weight: 700; letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums; line-height: 1.1;
+/* ============================================================ Wochenstart */
+.ritual { border-color: var(--border-strong); }
+.ritual__head {
+  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
 }
-.pomo__phase { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
-.pomo__track { height: 4px; border-radius: 2px; background: var(--surface-3); margin: var(--s-3) 0; overflow: hidden; }
-.pomo__bar { height: 100%; background: var(--ink); width: 0%; transition: width 1s linear; }
-.pomo__bar.is-break { background: var(--success); }
-.pomo__actions { display: flex; gap: var(--s-2); justify-content: center; }
-.pomo__meta { font-size: 12px; color: var(--text-faint); margin-top: var(--s-2); }
+.ritual__txt { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+.ritual__txt b { color: var(--text); }
+.ritual__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
+.ritual__lead {
+  margin: 0 0 16px; font-size: 13.5px; line-height: 1.6; color: var(--text-muted);
+}
+.ritual__lead b { color: var(--text); font-weight: 600; }
+
+.steps { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.steps__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-3); }
+.steps__dot.is-on { background: var(--ink); }
+.steps__lab { font-size: 11.5px; color: var(--text-faint); margin-left: 6px; }
+.ritual__summe {
+  margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--text-muted);
+}
+.ritual__summe b { color: var(--text); font-weight: 600; }
+
+.hakenliste { display: flex; flex-direction: column; gap: 2px; }
+.hakenliste__tag:first-child { margin-top: 0; }
+.hakenkopf {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.hakenkopf__sum { font-size: 13px; color: var(--text-muted); flex: 1; min-width: 120px; }
+.hakenkopf__sum b { color: var(--text); font-weight: 600; }
+.hakenliste__tag {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-faint); margin: 12px 0 4px;
+}
+.hakenrow {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 4px 8px; border-radius: var(--r-2); cursor: pointer;
+}
+.hakenrow:hover { background: var(--surface-2); }
+.hakenrow.is-on .hakenrow__txt { opacity: .55; text-decoration: line-through; }
+.hakenrow input { width: 20px; height: 20px; flex: none; accent-color: var(--area-line); }
+.hakenrow__txt {
+  display: flex; align-items: center; gap: 7px; font-size: 13.5px;
+  min-width: 0; flex: 1;
+}
+.hakenrow__txt > span:first-child { flex: none; }
+.hakenrow__zeit { margin-left: auto; font-size: 11.5px; color: var(--text-faint); flex: none; }
+
+.zieleliste { display: flex; flex-direction: column; gap: 2px; }
+.zielrow {
+  display: flex; align-items: center; gap: 10px; min-height: 48px;
+  padding: 4px 0; opacity: .55;
+}
+.zielrow.is-on { opacity: 1; }
+.zielrow__name { display: flex; align-items: center; gap: 7px; font-size: 13.5px; flex: 1; min-width: 0; }
+.zielrow__ist { color: var(--text-faint); font-size: 11.5px; }
+.stepper { display: flex; align-items: center; gap: 6px; flex: none; }
+.stepper__val { min-width: 42px; text-align: center; font-size: 13px; font-weight: 600; }
+
+/* Freihalten sitzt unter der Tagesform, weil beides dieselbe Frage ist:
+   was verträgt dieser Tag? */
+.freischalter { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
 
 /* ============================================================ Konto-Anzeige */
 .syncbadge {
@@ -327,11 +381,12 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
   height: 7px; border-radius: 4px; background: var(--surface-3);
   overflow: hidden; display: flex;
 }
-.goal__fill { background: var(--area-line); transition: width .25s; }
+.goal__fill { background: var(--area-line); transition: width .25s; opacity: .45; }
+.goal__fill--ist { opacity: 1; }
 .goal__fill--sug {
   background-image: repeating-linear-gradient(
-    -45deg, var(--area-line) 0 3px, transparent 3px 7px);
-  opacity: .75; transition: width .25s;
+    -45deg, var(--area-line) 0 2px, transparent 2px 6px);
+  opacity: .45; transition: width .25s;
 }
 .goal__rest { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
 .goal__rest b { color: var(--text); font-weight: 600; }
@@ -513,6 +568,7 @@ html[data-theme="dark"] .loosechip {
 html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 .loosechip.is-sug { opacity: .72; }
 .loosechip__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loosechip.is-done { opacity: .5; text-decoration: line-through; }
 .loosechip__d { flex: none; opacity: .75; font-variant-numeric: tabular-nums; font-weight: 500; }
 .loose__hint {
   grid-column: 1 / -1; font-size: 11.5px; color: var(--text-faint);
@@ -536,10 +592,6 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
   --colmin: 116px;
   --hourh: 52px;
 }
-.grid__head {
-  position: sticky; top: 0; z-index: 20;
-  display: contents;
-}
 .dayhead {
   position: sticky; top: 0; z-index: 20;
   background: var(--bg);
@@ -549,6 +601,16 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
   text-align: center;
 }
 .dayhead--gutter { border-left: 0; }
+.dayhead.is-frei { background: var(--surface-2); }
+.dayhead__frei {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--success); margin-top: 2px;
+}
+/* Ein freier Tag ist nicht leer — er ist geschützt. Darum eine ruhige
+   Fläche statt einer Sperrschraffur. */
+.daycol.is-frei { background: oklch(0.62 0.14 150 / .05); }
+html[data-theme="dark"] .daycol.is-frei { background: oklch(0.72 0.14 150 / .07); }
+.dayswitch__btn.is-frei b { color: var(--success); }
 .dayhead__name { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
 .dayhead__num {
   font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
@@ -623,8 +685,13 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block__time { font-size: 11px; opacity: .78; font-variant-numeric: tabular-nums; }
 .block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
 .block.is-short .block__time { display: none; }
+.block.is-done { opacity: .55; }
+.block.is-done .block__title { text-decoration: line-through; text-decoration-thickness: 1px; }
+.block.is-done::before {
+  content: "✓"; position: absolute; right: 5px; bottom: 3px; font-size: 11px; font-weight: 700;
+}
 .block.is-frog::after {
-  content: "🐸"; position: absolute; right: 4px; top: 3px; font-size: 11px;
+  content: "⭐"; position: absolute; right: 4px; top: 3px; font-size: 11px;
 }
 .block__resize {
   position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
@@ -821,7 +888,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   body:not([data-mview="plan"]) .dayswitch { display: none; }
   body[data-mview="ziele"]    .card:not([data-card="ziele"]),
   body[data-mview="aufgaben"] .card:not([data-card="aufgaben"]),
-  body[data-mview="fokus"]    .card:not([data-card="fokus"]) { display: none; }
+  body[data-mview="heute"]    .card:not([data-card="heute"]) { display: none; }
 
   /* In der Aufgaben-Ansicht darf die Liste den Platz auch nutzen */
   body[data-mview="aufgaben"] .card[data-card="aufgaben"] {
@@ -893,6 +960,11 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   .syncbadge { min-height: 40px; }
   .task__del { min-width: 40px; min-height: 40px; }
   .task__area, .task__frog, .task__plan { min-height: 32px; padding: 4px 8px; }
+  /* Ein Schalter ist eine ganze Zeile — die Box bleibt klein, die
+     Trefferflaeche wird fingergerecht. */
+  .switch { min-height: 44px; }
+  .switch input { width: 22px; height: 22px; }
+  .hakenrow input { width: 22px; height: 22px; }
   .energy__opt { min-height: 68px; }
   .dayswitch__btn { min-height: 52px; min-width: 46px; }
   .block__sug button { width: 30px; height: 30px; }
@@ -935,7 +1007,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     <aside class="panel">
 
       <!-- Tagesform -->
-      <section class="card" data-card="fokus">
+      <section class="card" data-card="heute">
         <div class="card__head">
           <h2 class="card__title">Tagesform</h2>
           <span id="energyDay" style="font-size:12px;color:var(--text-faint)"></span>
@@ -956,7 +1028,11 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
         </div>
         <div class="hint" id="energyHint"></div>
         <div id="energyAct"></div>
+        <label class="switch freischalter"><input type="checkbox" id="dayFrei"> <span id="dayFreiLab">Diesen Tag freihalten</span></label>
       </section>
+
+      <!-- Wochenstart -->
+      <section class="card ritual" data-card="ziele" id="ritualCard" hidden></section>
 
       <!-- Wochenziele -->
       <section class="card" data-card="ziele">
@@ -966,21 +1042,6 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
         </div>
         <div class="goals" id="goalsList"></div>
         <div class="goals__foot" id="goalsFoot"></div>
-      </section>
-
-      <!-- Pomodoro -->
-      <section class="card pomo" data-card="fokus">
-        <div class="card__head">
-          <h2 class="card__title">Fokus-Timer</h2>
-          <span class="pomo__phase" id="pomoPhase">Bereit</span>
-        </div>
-        <div class="pomo__time num" id="pomoTime">25:00</div>
-        <div class="pomo__track"><div class="pomo__bar" id="pomoBar"></div></div>
-        <div class="pomo__actions">
-          <button class="btn btn--primary btn--sm" id="pomoStart">Start</button>
-          <button class="btn btn--sm" id="pomoReset">Zurücksetzen</button>
-        </div>
-        <div class="pomo__meta" id="pomoMeta"></div>
       </section>
 
       <!-- Aufgaben -->
@@ -1023,9 +1084,9 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
       Aufgaben
     </button>
-    <button type="button" data-view="fokus">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>
-      Fokus
+    <button type="button" data-view="heute">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15h3v5H4zM10.5 9h3v11h-3zM17 12h3v8h-3z"/></svg>
+      Tagesform
     </button>
   </nav>
 
@@ -1286,7 +1347,7 @@ function defaultSleep() {
 
 function freshState() {
   return {
-    version: 7,
+    version: 8,
     profile: { id: uid(), name: "" },
     settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
     settingsAt: 0,
@@ -1298,7 +1359,10 @@ function freshState() {
     tasks: [],
     days: {},
     tombs: {},        // gelöschte IDs mit Zeitpunkt — sonst kommen sie beim Sync zurück
-    backupAt: 0       // wann zuletzt eine Sicherung gespeichert wurde
+    erledigt: {},     // "blockId|datum" -> { on, at } — abgehakt, pro Tag statt pro Serie
+    rituale: {},      // "montag-datum" -> Zeitpunkt des Wochenstarts
+    backupAt: 0,      // wann zuletzt eine Sicherung gespeichert wurde
+    nagAt: 0          // wann zuletzt an eine Sicherung erinnert wurde
   };
 }
 
@@ -1432,7 +1496,17 @@ function migrate(s) {
       delete b.teil; delete b.dauer;
     }
   });
-  s.version = 7;
+  // v8: Abhaken und Wochenstart
+  if (!s.erledigt || typeof s.erledigt !== "object") s.erledigt = {};
+  if (!s.rituale || typeof s.rituale !== "object") s.rituale = {};
+  // Ein Tag kann auf einem anderen Gerät freigehalten worden sein, nachdem
+  // hier schon verteilt wurde. Vorschläge dort gelten dann nicht mehr.
+  s.blocks = s.blocks.filter(b => {
+    if (!b.sug) return true;
+    const m = s.days[b.date];
+    return !(m && m.frei);
+  });
+  s.version = 8;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -1527,6 +1601,13 @@ const areaById = id => state.areas.find(a => a.id === id) || state.areas[0];
 function dayMeta(dateIso) {
   if (!state.days[dateIso]) state.days[dateIso] = { energy: null };
   return state.days[dateIso];
+}
+
+/* Ein freigehaltener Tag: der Verteiler schlägt hier nichts vor. Was von
+   Hand drinsteht, bleibt — frei heißt „nichts Neues", nicht „gesperrt". */
+function istFrei(dateIso) {
+  const m = state.days[dateIso];
+  return !!(m && m.frei);
 }
 
 /* ============================================================ Theme */
@@ -1639,6 +1720,7 @@ function renderDaySwitch() {
     b.className = "dayswitch__btn";
     b.setAttribute("aria-pressed", String(i === selectedDayIdx));
     if (blocksFor(d, i).length) b.classList.add("has-items");
+    if (istFrei(iso(d))) b.classList.add("is-frei");
     b.innerHTML = "<span>" + DAY_SHORT[i] + "</span><b>" + d.getDate() + "</b><i></i>";
     if (iso(d) === todayIso) b.querySelector("b").style.color = "var(--focus)";
     b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderEnergy(); };
@@ -1708,8 +1790,6 @@ function layout(items) {
    von dem, was dieser Planer sein soll.
    ============================================================ */
 
-const ENERGY_WEIGHT = { low: 0.55, mid: 1, high: 1.45 };
-
 function weekDays() {
   const mon = mondayOf(anchor);
   return [0, 1, 2, 3, 4, 5, 6].map(i => {
@@ -1720,6 +1800,54 @@ function weekDays() {
 
 /* Minuten eines Bereichs in der angezeigten Woche.
    sug=false: echte Einträge · sug=true: offene Vorschläge */
+/* ============================================================
+   Abhaken
+
+   Ein wöchentlicher Eintrag ist derselbe Datensatz in jeder Woche — ein
+   Häkchen am Block würde ihn in allen Wochen als erledigt zeigen. Darum
+   hängt das Häkchen am Paar aus Eintrag und Datum.
+
+   Warum überhaupt von Hand abhaken, wenn die App die Zeiten kennt? Weil
+   selbst festgehaltener Fortschritt messbar stärker wirkt als automatisch
+   mitgeschriebener — und weil nur der Mensch weiß, ob die geplante Stunde
+   wirklich stattgefunden hat.
+   ============================================================ */
+
+function hakenKey(b, dayKey) { return b.id + "|" + (b.repeat === "weekly" ? dayKey : b.date); }
+
+function istErledigt(b, dayKey) {
+  const e = state.erledigt[hakenKey(b, dayKey)];
+  return !!(e && e.on);
+}
+function setzeErledigt(b, dayKey, on) {
+  state.erledigt[hakenKey(b, dayKey)] = { on: !!on, at: Date.now() };
+}
+
+/* Wie viel von einem Bereich in dieser Woche wirklich stattgefunden hat. */
+function areaIst(areaId) {
+  let sum = 0;
+  weekDays().forEach(day => {
+    state.blocks.forEach(b => {
+      if (b.areaId !== areaId || b.sug) return;
+      if (onDay(b, day.key, day.i) && istErledigt(b, day.key)) sum += dauerVon(b);
+    });
+  });
+  return sum;
+}
+
+/* Alle Einträge einer Woche, chronologisch — Grundlage für den Rückblick. */
+function wocheEintraege(mon) {
+  const out = [];
+  [0, 1, 2, 3, 4, 5, 6].forEach(i => {
+    const key = iso(addDays(mon, i));
+    state.blocks.forEach(b => {
+      if (b.sug) return;
+      if (onDay(b, key, i)) out.push({ b, key, i });
+    });
+  });
+  return out.sort((x, y) => x.i - y.i || (x.b.start || 0) - (y.b.start || 0));
+}
+
 function areaMinutes(areaId, sug) {
   let sum = 0;
   weekDays().forEach(day => {
@@ -1951,6 +2079,7 @@ function freeGaps(day, plan, area) {
   const areaId = area && area.id;
   const todayKey = iso(new Date());
   if (day.key < todayKey) return [];
+  if (istFrei(day.key)) return [];
 
   const lo = Math.max(state.settings.dayStart * 60, plan.from == null ? 0 : plan.from);
   const hi = Math.min(state.settings.dayEnd * 60, plan.to == null ? 1440 : plan.to);
@@ -2006,11 +2135,6 @@ function bereichAmTag(areaId, day) {
     s + (b.areaId === areaId && onDay(b, day.key, day.i) ? b.end - b.start : 0), 0);
 }
 
-function dayWeight(day) {
-  const e = (state.days[day.key] || {}).energy;
-  return ENERGY_WEIGHT[e] || 1;
-}
-
 /* Bewertet einen möglichen Platz. Je höher, desto besser.
 
    Der alte Verteiler nahm immer die erste freie Lücke und schrieb den Block an
@@ -2043,7 +2167,6 @@ function slotScore(start, len, area, day, gap) {
 
   // Tagesform: an einem Tag mit wenig Energie landet weniger.
   // Ist nichts eingetragen, ist das Gewicht 1 und dieser Term null.
-  s += (dayWeight(day) - 1) * 18;
 
   // Tageszeit — hängt an der Art. Kopfarbeit früh, Erholung in den Feierabend.
   // Ohne diesen Term landet alles am Tagesende, weil dort nichts zerschnitten
@@ -2105,6 +2228,7 @@ function placeGrob(area, open, tage) {
   const moeglich = [];
   tage.forEach(day => {
     if (day.key < heuteKey) return;
+    if (istFrei(day.key)) return;
     reihenfolge.forEach((teil, rang) => {
       const a = abschnittVon(teil);
       // Ein Abschnitt, der heute schon vorbei ist, hilft niemandem mehr
@@ -2368,15 +2492,19 @@ function renderGoals() {
     row.className = "goal";
     row.style.setProperty("--h", a.hue);
 
-    const pDone = clamp(done / goal * 100, 0, 100);
-    const pSug  = clamp(sug / goal * 100, 0, 100 - pDone);
+    const ist   = Math.min(areaIst(a.id), done);
+    const pIst  = clamp(ist / goal * 100, 0, 100);
+    const pDone = clamp((done - ist) / goal * 100, 0, 100 - pIst);
+    const pSug  = clamp(sug / goal * 100, 0, 100 - pIst - pDone);
 
     row.innerHTML =
       "<div class='goal__top'>" +
         "<span class='goal__name'><span class='goal__dot'></span>" + escapeHtml(a.name) + "</span>" +
-        "<span class='goal__num'>" + fmtDur(done) + " / " + fmtDur(goal) + "</span>" +
+        "<span class='goal__num'>" + (ist > 0 ? "✓ " + fmtDur(ist) + " · " : "") +
+          fmtDur(done) + " / " + fmtDur(goal) + "</span>" +
       "</div>" +
       "<div class='goal__track'>" +
+        "<div class='goal__fill goal__fill--ist' style='width:" + pIst + "%'></div>" +
         "<div class='goal__fill' style='width:" + pDone + "%'></div>" +
         "<div class='goal__fill goal__fill--sug' style='width:" + pSug + "%'></div>" +
       "</div>" +
@@ -2674,11 +2802,13 @@ function renderLoose() {
         chip.type = "button";
         chip.className = "loosechip" + (b.sug ? " is-sug" : "");
         chip.style.setProperty("--h", area.hue);
-        chip.title = b.title + " · " + abschnitt.name + " · " + fmtDur(b.dauer)
+        const fertig = !b.sug && istErledigt(b, daten[n].key);
+        if (fertig) chip.classList.add("is-done");
+        chip.title = (fertig ? "Erledigt: " : "") + b.title + " · " + abschnitt.name + " · " + fmtDur(b.dauer)
                    + (b.sug ? " (Vorschlag)" : "");
         chip.innerHTML = "<span class='loosechip__t'>" + escapeHtml(b.title) + "</span>" +
                          "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>";
-        chip.onclick = () => (b.sug ? sugSheet(b) : blockSheet({ ...b }));
+        chip.onclick = () => (b.sug ? sugSheet(b) : blockSheet({ ...b }, daten[n].key));
         cell.appendChild(chip);
       });
       band.appendChild(cell);
@@ -2718,18 +2848,22 @@ function renderGrid() {
   dayIdxs.forEach(i => {
     const d = addDays(mon, i);
     const h = document.createElement("div");
-    h.className = "dayhead" + (iso(d) === todayIso ? " is-today" : "");
+    const frei = istFrei(iso(d));
+    h.className = "dayhead" + (iso(d) === todayIso ? " is-today" : "") + (frei ? " is-frei" : "");
     const en = state.days[iso(d)] && state.days[iso(d)].energy;
     if (en) h.dataset.energy = en;
     h.innerHTML =
       "<div class='dayhead__name'>" + DAY_SHORT[i] + "</div>" +
       "<div class='dayhead__num'>" + d.getDate() + "</div>" +
+      (frei ? "<span class='dayhead__frei'>frei</span>" : "") +
       "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
     h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); if (isMobile) renderGrid(); };
     grid.appendChild(h);
   });
   }
 
+  // Ein freigehaltener Tag wird nicht bebaut — der Verteiler lässt ihn aus,
+  // von Hand eintragen bleibt erlaubt.
   // Zeitspalte
   const tc = document.createElement("div");
   tc.className = "timecol";
@@ -2747,7 +2881,7 @@ function renderGrid() {
   dayIdxs.forEach(i => {
     const d = addDays(mon, i);
     const col = document.createElement("div");
-    col.className = "daycol" + (i >= 5 ? " is-weekend" : "");
+    col.className = "daycol" + (i >= 5 ? " is-weekend" : "") + (istFrei(iso(addDays(mon, i))) ? " is-frei" : "");
     col.style.height = bodyH + "px";
     col.dataset.day = i;
     col.dataset.date = iso(d);
@@ -2789,7 +2923,7 @@ function renderGrid() {
       }
     }
 
-    layout(blocksFor(d, i)).forEach(p => col.appendChild(blockEl(p, hourH)));
+    layout(blocksFor(d, i)).forEach(p => col.appendChild(blockEl(p, hourH, iso(d))));
 
     attachColumnHandlers(col, hourH);
     grid.appendChild(col);
@@ -2802,12 +2936,14 @@ function renderGrid() {
     : Math.max(0, ((new Date().getHours() - 1 - dayStart) * hourH));
 }
 
-function blockEl({ b, col, of }, hourH) {
+function blockEl({ b, col, of }, hourH, dayKey) {
   const { dayStart } = state.settings;
   const el = document.createElement("div");
   const area = areaById(b.areaId);
   const h = (b.end - b.start) / 60 * hourH;
-  el.className = "block" + (h < 34 ? " is-short" : "") + (b.frog ? " is-frog" : "") + (b.sug ? " is-sug" : "");
+  const fertig = !b.sug && istErledigt(b, dayKey || b.date);
+  el.className = "block" + (h < 34 ? " is-short" : "") + (b.frog ? " is-frog" : "")
+    + (b.sug ? " is-sug" : "") + (fertig ? " is-done" : "");
   el.style.setProperty("--h", area.hue);
   el.style.top = ((b.start - dayStart * 60) / 60 * hourH) + "px";
   el.style.height = Math.max(18, h - 2) + "px";
@@ -2820,7 +2956,8 @@ function blockEl({ b, col, of }, hourH) {
   el.dataset.id = b.id;
   el.setAttribute("role", "button");
   el.setAttribute("aria-label",
-    (b.sug ? "Vorschlag: " : "") + b.title + ", " + fmtTime(b.start) + " bis " + fmtTime(b.end) + ", " + area.name);
+    (b.sug ? "Vorschlag: " : "") + (fertig ? "Erledigt: " : "") + b.title + ", "
+    + fmtTime(b.start) + " bis " + fmtTime(b.end) + ", " + area.name);
   const t = document.createElement("div");
   t.className = "block__title"; t.textContent = b.title || "Ohne Titel";
   const tm = document.createElement("div");
@@ -2850,7 +2987,7 @@ function blockEl({ b, col, of }, hourH) {
   el.addEventListener("keydown", e => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (b.sug) acceptOne(b.id); else editBlock(b.id);
+      if (b.sug) acceptOne(b.id); else editBlock(b.id, dayKey || b.date);
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
@@ -2933,7 +3070,7 @@ function attachColumnHandlers(col, hourH) {
           b.start = ns; b.end = ns + len;
           save(); renderAll();
         } else {
-          editBlock(b.id);
+          editBlock(b.id, col.dataset.date);
         }
       };
       document.addEventListener("pointermove", move);
@@ -2945,7 +3082,7 @@ function attachColumnHandlers(col, hourH) {
        Vorher ging der Editor schon beim Aufsetzen des Fingers auf, sodass
        jeder Scrollversuch einen Dialog erzeugt hat. */
     if (blockNode) {
-      tapOrScroll(e, () => editBlock(blockNode.dataset.id));
+      tapOrScroll(e, () => editBlock(blockNode.dataset.id, col.dataset.date));
       return;
     }
 
@@ -3090,11 +3227,11 @@ function newBlock(dayIdx, dateIso, start, end) {
     start, end, frog: false
   });
 }
-function editBlock(id) {
+function editBlock(id, dayKey) {
   const b = state.blocks.find(x => x.id === id);
   if (!b) return;
   if (b.sug) { sugSheet(b); return; }
-  blockSheet({ ...b });
+  blockSheet({ ...b }, dayKey || b.date);
 }
 
 /* Antippen eines Vorschlags — am Handy der Hauptweg, am PC die Alternative
@@ -3135,8 +3272,9 @@ function sugSheet(b) {
   });
 }
 
-function blockSheet(draft) {
+function blockSheet(draft, dayKey) {
   const isNew = !draft.id;
+  const hakenTag = dayKey || draft.date;
   const mon = mondayOf(anchor);
   let days = new Set([draft.day]);
 
@@ -3165,13 +3303,34 @@ function blockSheet(draft) {
         "<label class='switch'><input type='checkbox' id='bRepeat'> Jede Woche wiederholen</label>" +
         "<div class='chipset' id='bDays' style='margin-top:12px'></div>" +
         "<div id='bDaysHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div>" +
-      "</div>";
+      "</div>" +
+      (isNew ? "" :
+      "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
+        "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
+        "<div id='bDoneHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+      "</div>");
 
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end);
     const rep = s.querySelector("#bRepeat"); rep.checked = draft.repeat === "weekly";
+
+    // ---- Abhaken. Bei einer Serie gilt das Häkchen nur für diesen Tag.
+    const doneBox = s.querySelector("#bDone");
+    if (doneBox) {
+      doneBox.checked = istErledigt(draft, hakenTag);
+      const dh = s.querySelector("#bDoneHint");
+      const malen = () => {
+        const d = hakenTag ? new Date(hakenTag + "T12:00:00") : null;
+        const tagText = d ? DAY_LONG[(d.getDay() + 6) % 7] + ", " + d.getDate() + "." + (d.getMonth() + 1) + "." : "diesen Tag";
+        dh.textContent = draft.repeat === "weekly"
+          ? "Gilt nur für " + tagText + " — die anderen Wochen bleiben unberührt."
+          : (doneBox.checked ? "Zählt auf das Wochenziel als wirklich passiert." : "Hake ab, was stattgefunden hat — daraus wird dein Wochenrückblick.");
+      };
+      doneBox.onchange = malen;
+      malen();
+    }
 
     // ---- Genauigkeit: feste Uhrzeit oder grober Abschnitt
     let grob = !!draft.grob;
@@ -3343,8 +3502,9 @@ function blockSheet(draft) {
           id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
           day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
           since: iso(addDays(mon, d)), ortId: draft.ortId || null,
-          // Der Frosch kam aus dem Entwurf und wurde hier stillschweigend
-          // wieder auf false gesetzt — je nach Weg blieb er erhalten oder nicht.
+          // Die Stern-Markierung kam aus dem Entwurf und wurde hier
+          // stillschweigend wieder auf false gesetzt — je nach Weg blieb sie
+          // erhalten oder nicht.
           frog: !!draft.frog
         }, grobFelder())));
       } else {
@@ -3362,6 +3522,7 @@ function blockSheet(draft) {
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
         // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
         delete b.sug;
+        if (doneBox) setzeErledigt(b, hakenTag, doneBox.checked);
       }
       save(); close(); renderAll();
     };
@@ -3420,10 +3581,10 @@ function taskEl(t) {
   };
 
   const frog = document.createElement("button");
-  frog.className = "task__frog"; frog.textContent = "🐸";
-  frog.title = "Frosch des Tages — die Aufgabe mit der größten Überwindung";
+  frog.className = "task__frog"; frog.textContent = "⭐";
+  frog.title = "Das Wichtigste — die eine Aufgabe, die zuerst dran ist";
   frog.setAttribute("aria-pressed", String(!!t.frog));
-  frog.setAttribute("aria-label", "Als Frosch des Tages markieren");
+  frog.setAttribute("aria-label", "Als das Wichtigste markieren");
   frog.onclick = () => {
     const on = !t.frog;
     if (on) state.tasks.forEach(x => x.frog = false);
@@ -3486,10 +3647,10 @@ $("#clearDone").onclick = () => {
 
 /* ============================================================ Tagesform */
 const ENERGY = {
-  low:  { pomo: [15, 5],  text: "<b>Wenig Energie.</b> Frosch nicht streichen, nur schrumpfen: 15 Minuten anfangen reicht. Sonst Alltagskram und Pausen — das zählt auch." },
-  mid:  { pomo: [25, 5],  text: "<b>Normal.</b> Kurz warmlaufen, dann der Frosch. 25 Minuten Fokus, 5 Minuten Pause." },
-  high: { pomo: [50, 10], text: "<b>Viel Energie.</b> Frosch zuerst, bevor der Tag ihn frisst. Langer Block: 50 Minuten Fokus, 10 Minuten Pause." },
-  none: { pomo: [25, 5],  text: "Wie fühlst du dich heute? Der Plan passt sich an — bei wenig Energie wird der Frosch kleiner statt verschoben." }
+  low:  { text: "<b>Wenig Energie.</b> Dann muss nicht alles heute sein. Der Planer zeigt dir unten, was an diesem Tag optional ist — streichen oder verschieben ist auch eine Entscheidung." },
+  mid:  { text: "<b>Normal.</b> Das Wichtigste zuerst, der Rest ergibt sich. Pausen nimmst du, wenn du sie brauchst — nicht, wenn ein Timer klingelt." },
+  high: { text: "<b>Viel Energie.</b> Guter Tag für das, was sonst liegen bleibt. Nimm es dir jetzt, bevor der Tag es frisst." },
+  none: { text: "Wie fühlst du dich heute? An einem schwachen Tag zeigt der Planer, was heute nicht sein muss — an einem starken bleibt er still." }
 };
 
 function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
@@ -3503,12 +3664,16 @@ function renderEnergy() {
   });
   const d = addDays(mondayOf(anchor), selectedDayIdx);
   $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
-  const frog = state.tasks.find(t => t.frog && !t.done);
+  const wichtig = state.tasks.find(t => t.frog && !t.done);
   let html = ENERGY[lvl || "none"].text;
-  if (frog) html += "<br><br>🐸 <b>Frosch heute:</b> " + escapeHtml(frog.title);
+  if (wichtig) html += "<br><br>⭐ <b>Das Wichtigste:</b> " + escapeHtml(wichtig.title);
   $("#energyHint").innerHTML = html;
   renderEnergyAction();
-  if (!pomo.running) setPomoFromEnergy();
+
+  const freiBox = $("#dayFrei");
+  freiBox.checked = istFrei(key);
+  $("#dayFreiLab").textContent = freiBox.checked
+    ? "Dieser Tag bleibt frei" : "Diesen Tag freihalten";
 }
 /* ============================================================
    Was kann heute weg?
@@ -3705,6 +3870,22 @@ function escapeHtml(s) {
   }[c]));
 }
 
+/* Freihalten heißt: der Verteiler lässt den Tag aus. Was schon drinsteht,
+   bleibt stehen — sonst wäre es Löschen mit anderem Namen. */
+$("#dayFrei").onchange = () => {
+  const key = currentDayIso();
+  const an = $("#dayFrei").checked;
+  if (an) dayMeta(key).frei = true; else if (state.days[key]) delete state.days[key].frei;
+  if (an) {
+    // Ein Vorschlag an einem freien Tag hat seine Erlaubnis verloren
+    const vorher = state.blocks.length;
+    state.blocks = state.blocks.filter(b => !(b.sug && onDay(b, key, selectedDayIdx)));
+    toast(state.blocks.length < vorher
+      ? "Tag freigehalten — Vorschläge hier zurückgenommen" : "Tag freigehalten");
+  } else toast("Tag wieder verplanbar");
+  save(); renderAll();
+};
+
 document.querySelectorAll(".energy__opt").forEach(btn => {
   btn.onclick = () => {
     const key = currentDayIso();
@@ -3714,52 +3895,297 @@ document.querySelectorAll(".energy__opt").forEach(btn => {
   };
 });
 
-/* ============================================================ Pomodoro */
-const pomo = { running: false, phase: "work", left: 25 * 60, total: 25 * 60, rounds: 0, timer: null };
+/* ============================================================
+   Der Wochenstart
 
-function setPomoFromEnergy() {
-  const meta = state.days[currentDayIso()] || {};
-  const [w] = ENERGY[meta.energy || "none"].pomo;
-  pomo.phase = "work"; pomo.total = w * 60; pomo.left = w * 60;
-  paintPomo();
+   Zehn Minuten, drei Schritte: Was ist letzte Woche wirklich passiert? →
+   Was nimmst du dir für diese vor? → Verteilen.
+
+   Der Wochenbeginn ist der wirksamste wiederkehrende Neuanfang, den ein
+   Kalender hat — deshalb bekommt er hier einen eigenen Ort statt nur eine
+   Spalte weiter links zu sein. Angeboten wird er am Sonntagabend und am
+   Wochenanfang; danach schweigt er, statt jeden Tag zu erinnern.
+   ============================================================ */
+
+function ritualKey() { return iso(mondayOf(anchor)); }
+function ritualErledigt() { return !!state.rituale[ritualKey()]; }
+
+/* Ist jetzt die Zeit dafür? Sonntag ab 16 Uhr zählt schon zur neuen Woche. */
+function ritualFaellig() {
+  if (!istDieseWoche() || ritualErledigt()) return false;
+  const jetzt = new Date();
+  const wt = (jetzt.getDay() + 6) % 7;          // 0 = Montag
+  if (wt === 6 && jetzt.getHours() >= 16) return true;
+  return wt <= 1;
 }
-function paintPomo() {
-  $("#pomoTime").textContent = pad2(Math.floor(pomo.left / 60)) + ":" + pad2(pomo.left % 60);
-  $("#pomoPhase").textContent = pomo.running ? (pomo.phase === "work" ? "Fokus" : "Pause") : (pomo.phase === "work" ? "Bereit" : "Pause");
-  const pct = pomo.total ? (1 - pomo.left / pomo.total) * 100 : 0;
-  const bar = $("#pomoBar");
-  bar.style.width = pct + "%";
-  bar.classList.toggle("is-break", pomo.phase === "break");
-  $("#pomoStart").textContent = pomo.running ? "Pause" : "Start";
-  const meta = state.days[currentDayIso()] || {};
-  const [w, b] = ENERGY[meta.energy || "none"].pomo;
-  $("#pomoMeta").textContent = w + " min Fokus · " + b + " min Pause" + (pomo.rounds ? " · " + pomo.rounds + " Runden heute" : "");
+
+function renderRitual() {
+  const card = $("#ritualCard");
+  if (!card) return;
+  if (!ritualFaellig()) { card.hidden = true; return; }
+  card.hidden = false;
+  const mon = mondayOf(anchor);
+  const offen = wocheEintraege(addDays(mon, -7)).filter(x => !istErledigt(x.b, x.key)).length;
+  card.innerHTML =
+    "<div class='ritual__head'>Neue Woche</div>" +
+    "<p class='ritual__txt'>Zehn Minuten, drei Schritte: Was ist letzte Woche gelaufen, " +
+    "was nimmst du dir vor, wie verteilt es sich." +
+    (offen ? " <b>" + offen + "</b> Einträge aus der letzten Woche sind noch nicht abgehakt." : "") +
+    "</p>";
+  const los = document.createElement("button");
+  los.className = "btn btn--primary btn--sm";
+  los.textContent = "Wochenstart";
+  los.onclick = ritualSheet;
+  const spaeter = document.createElement("button");
+  spaeter.className = "btn btn--sm btn--ghost";
+  spaeter.textContent = "Nicht jetzt";
+  spaeter.onclick = () => { card.hidden = true; };
+  const row = document.createElement("div");
+  row.className = "ritual__foot";
+  row.append(los, spaeter);
+  card.appendChild(row);
 }
-function tick() {
-  pomo.left--;
-  if (pomo.left <= 0) {
-    const meta = state.days[currentDayIso()] || {};
-    const [w, b] = ENERGY[meta.energy || "none"].pomo;
-    if (pomo.phase === "work") {
-      pomo.rounds++; pomo.phase = "break"; pomo.total = b * 60; pomo.left = b * 60;
-      toast("Runde geschafft — " + b + " Minuten Pause");
-    } else {
-      pomo.phase = "work"; pomo.total = w * 60; pomo.left = w * 60;
-      toast("Pause vorbei — weiter geht's");
+
+function ritualSheet() {
+  let schritt = 0;
+  const mon = mondayOf(anchor);
+  const vorwoche = addDays(mon, -7);
+
+  modal((s, close) => {
+    const body = document.createElement("div");
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    s.append(body, foot);
+
+    const TITEL = ["Was ist gelaufen?", "Was nimmst du dir vor?", "Und wann?"];
+
+    const malen = () => {
+      body.innerHTML =
+        "<div class='steps'>" + [0, 1, 2].map(i =>
+          "<span class='steps__dot" + (i === schritt ? " is-on" : "") + "'></span>").join("") +
+        "<span class='steps__lab'>Schritt " + (schritt + 1) + " von 3</span></div>" +
+        "<h2 class='sheet__title'>" + TITEL[schritt] + "</h2>";
+      const box = document.createElement("div");
+      body.appendChild(box);
+      [schrittRueckblick, schrittZiele, schrittVerteilen][schritt](box);
+      malenFoot();
+    };
+
+    /* --- Schritt 1: die letzte Woche abhaken --------------------------- */
+    function schrittRueckblick(box) {
+      const eintraege = wocheEintraege(vorwoche);
+      if (!eintraege.length) {
+        box.innerHTML = "<div class='empty'><b>Die letzte Woche ist leer</b>" +
+          "Dann fängst du hier an — beim nächsten Wochenstart gibt es was zum Abhaken.</div>";
+        return;
+      }
+      const lead = document.createElement("p");
+      lead.className = "ritual__lead";
+      lead.textContent = "Hake ab, was wirklich stattgefunden hat. Das ist keine Note — es ist die Grundlage für Ziele, die aufgehen.";
+      box.appendChild(lead);
+
+      const kopf = document.createElement("div");
+      kopf.className = "hakenkopf";
+      const sumEl = document.createElement("div");
+      sumEl.className = "hakenkopf__sum";
+      const alle = document.createElement("button");
+      alle.className = "btn btn--sm";
+      alle.type = "button";
+      kopf.append(sumEl, alle);
+      box.appendChild(kopf);
+
+      const liste = document.createElement("div");
+      liste.className = "hakenliste";
+      box.appendChild(liste);
+
+      const summe = () => {
+        const ab = eintraege.filter(x => istErledigt(x.b, x.key));
+        const min = ab.reduce((n, x) => n + dauerVon(x.b), 0);
+        const ges = eintraege.reduce((n, x) => n + dauerVon(x.b), 0);
+        sumEl.innerHTML = "<b>" + fmtDur(min) + "</b> von " + fmtDur(ges) + " geplant · " +
+          ab.length + " von " + eintraege.length + " Einträgen";
+        const allesAb = ab.length === eintraege.length;
+        alle.textContent = allesAb ? "Alle abwählen" : "Alle abhaken";
+        alle.onclick = () => {
+          eintraege.forEach(x => setzeErledigt(x.b, x.key, !allesAb));
+          save(); malen();
+        };
+      };
+
+      let letzterTag = -1;
+      eintraege.forEach(x => {
+        if (x.i !== letzterTag) {
+          letzterTag = x.i;
+          const h = document.createElement("div");
+          h.className = "hakenliste__tag";
+          const d = addDays(vorwoche, x.i);
+          h.textContent = DAY_LONG[x.i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
+          liste.appendChild(h);
+        }
+        const area = areaById(x.b.areaId);
+        const lab = document.createElement("label");
+        lab.className = "hakenrow";
+        lab.style.setProperty("--h", area.hue);
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = istErledigt(x.b, x.key);
+        cb.onchange = () => {
+          setzeErledigt(x.b, x.key, cb.checked);
+          lab.classList.toggle("is-on", cb.checked);
+          save(); summe();
+        };
+        lab.classList.toggle("is-on", cb.checked);
+        const txt = document.createElement("span");
+        txt.className = "hakenrow__txt";
+        txt.innerHTML = "<span class='goal__dot'></span>" + escapeHtml(x.b.title || "Ohne Titel") +
+          "<span class='hakenrow__zeit num'>" +
+          (x.b.grob ? abschnittVon(x.b.teil).name + " · " + fmtDur(x.b.dauer)
+                    : fmtTime(x.b.start) + "–" + fmtTime(x.b.end)) + "</span>";
+        lab.append(cb, txt);
+        liste.appendChild(lab);
+      });
+
+      summe();
     }
-  }
-  paintPomo();
+
+    /* --- Schritt 2: Ziele für die neue Woche --------------------------- */
+    function schrittZiele(box) {
+      const lead = document.createElement("p");
+      lead.className = "ritual__lead";
+      lead.innerHTML = "Was letzte Woche stattgefunden hat, steht in Klammern. " +
+        "Ein Ziel, das drei Wochen nicht aufging, war kein Ziel, sondern ein Wunsch.";
+      box.appendChild(lead);
+
+      const liste = document.createElement("div");
+      liste.className = "zieleliste";
+      box.appendChild(liste);
+
+      const zeichnen = () => {
+        liste.innerHTML = "";
+        state.areas.forEach(a => {
+          const ist = istVorwoche(a.id, vorwoche);
+          const row = document.createElement("div");
+          row.className = "zielrow" + (a.plan.goal > 0 ? " is-on" : "");
+          row.style.setProperty("--h", a.hue);
+          const name = document.createElement("div");
+          name.className = "zielrow__name";
+          name.innerHTML = "<span class='goal__dot'></span>" + escapeHtml(a.name) +
+            (ist > 0 ? " <span class='zielrow__ist'>(" + fmtDur(ist) + " gelaufen)</span>" : "");
+          const stepper = document.createElement("div");
+          stepper.className = "stepper";
+          const minus = document.createElement("button");
+          minus.type = "button"; minus.className = "btn btn--sm"; minus.textContent = "−";
+          minus.setAttribute("aria-label", a.name + ": eine Stunde weniger");
+          minus.onclick = () => { a.plan.goal = Math.max(0, (a.plan.goal || 0) - 1); save(); zeichnen(); };
+          const wert = document.createElement("span");
+          wert.className = "stepper__val num";
+          wert.textContent = a.plan.goal > 0 ? a.plan.goal + " h" : "—";
+          const plus = document.createElement("button");
+          plus.type = "button"; plus.className = "btn btn--sm"; plus.textContent = "+";
+          plus.setAttribute("aria-label", a.name + ": eine Stunde mehr");
+          plus.onclick = () => { a.plan.goal = Math.min(80, (a.plan.goal || 0) + 1); save(); zeichnen(); };
+          stepper.append(minus, wert, plus);
+          row.append(name, stepper);
+          liste.appendChild(row);
+        });
+        const amp = document.createElement("div");
+        amp.style.marginTop = "16px";
+        ampelZeichnen(amp);
+        liste.appendChild(amp);
+      };
+      zeichnen();
+    }
+
+    /* --- Schritt 3: verteilen ----------------------------------------- */
+    function schrittVerteilen(box) {
+      const zeichnen = () => {
+        box.innerHTML = "";
+        const lead = document.createElement("p");
+        lead.className = "ritual__lead";
+        const offen = state.areas.reduce((n, a) => {
+          if (!(a.plan.goal > 0)) return n;
+          return n + Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true));
+        }, 0);
+        if (hasSuggestions()) {
+          lead.innerHTML = "Der Vorschlag steht im Plan. Schau ihn dir an — was nicht passt, " +
+            "verschiebst du oder wirfst du raus.";
+        } else if (offen >= 15) {
+          lead.innerHTML = "<b>" + fmtDur(offen) + "</b> aus deinen Wochenzielen haben noch " +
+            "keinen Platz. Der Planer sucht ihn — annehmen musst du selbst.";
+        } else {
+          lead.innerHTML = "Deine Ziele stehen schon im Plan. Nichts mehr zu verteilen.";
+        }
+        box.appendChild(lead);
+
+        if (!hasSuggestions() && offen >= 15) {
+          const b = document.createElement("button");
+          b.className = "btn btn--primary";
+          b.type = "button";
+          b.textContent = "Verteilen";
+          b.onclick = () => {
+            const r = buildSuggestions();
+            save(); renderAll(); zeichnen();
+            if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+          };
+          box.appendChild(b);
+        }
+        if (hasSuggestions()) {
+          const ok = document.createElement("button");
+          ok.className = "btn btn--primary"; ok.type = "button";
+          ok.textContent = "Alle übernehmen";
+          ok.onclick = () => { acceptSuggestions(); save(); renderAll(); zeichnen(); };
+          const no = document.createElement("button");
+          no.className = "btn"; no.type = "button";
+          no.style.marginLeft = "8px";
+          no.textContent = "Verwerfen";
+          no.onclick = () => { clearSuggestions(); save(); renderAll(); zeichnen(); };
+          const row = document.createElement("div");
+          row.append(ok, no);
+          box.appendChild(row);
+        }
+      };
+      zeichnen();
+    }
+
+    /* --- Fußzeile ------------------------------------------------------ */
+    function malenFoot() {
+      foot.innerHTML = "";
+      if (schritt > 0) {
+        const z = document.createElement("button");
+        z.className = "btn"; z.type = "button"; z.textContent = "Zurück";
+        z.onclick = () => { schritt--; malen(); };
+        foot.appendChild(z);
+      }
+      const sp = document.createElement("span"); sp.className = "spacer";
+      foot.appendChild(sp);
+      const w = document.createElement("button");
+      w.className = "btn btn--primary"; w.type = "button";
+      w.textContent = schritt < 2 ? "Weiter" : "Fertig";
+      w.onclick = () => {
+        if (schritt < 2) { schritt++; malen(); return; }
+        state.rituale[ritualKey()] = Date.now();
+        save(); close(); renderAll();
+        toast("Wochenstart erledigt — gute Woche.");
+      };
+      foot.appendChild(w);
+    }
+
+    malen();
+  }, { wide: true });
 }
-$("#pomoStart").onclick = () => {
-  pomo.running = !pomo.running;
-  clearInterval(pomo.timer);
-  if (pomo.running) pomo.timer = setInterval(tick, 1000);
-  paintPomo();
-};
-$("#pomoReset").onclick = () => {
-  pomo.running = false; clearInterval(pomo.timer);
-  setPomoFromEnergy();
-};
+
+/* Ist-Stunden einer vergangenen Woche, für den Vergleich im Schritt 2. */
+function istVorwoche(areaId, mon) {
+  let sum = 0;
+  [0, 1, 2, 3, 4, 5, 6].forEach(i => {
+    const key = iso(addDays(mon, i));
+    state.blocks.forEach(b => {
+      if (b.areaId !== areaId || b.sug) return;
+      if (onDay(b, key, i) && istErledigt(b, key)) sum += dauerVon(b);
+    });
+  });
+  return sum;
+}
 
 /* ============================================================ Einstellungen */
 $("#settingsBtn").onclick = () => {
@@ -3769,6 +4195,13 @@ $("#settingsBtn").onclick = () => {
       "<div class='sheet__row' data-page='person'><label class='label' for='sName'>Wer plant hier?</label>" +
       "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
       "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
+      "<div class='sheet__row' data-page='zeit'><span class='label'>Wochenstart</span>" +
+        "<div style='font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px'>" +
+        "Rückblick, Ziele, Verteilung — in drei Schritten. Wird am Wochenanfang von selbst " +
+        "angeboten; hier kannst du ihn jederzeit aufrufen.</div>" +
+        "<button class='btn btn--sm' type='button' id='sRitual'>Wochenstart öffnen</button>" +
+        "<div id='sRitualHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div>" +
+      "</div>" +
       "<div class='sheet__row sheet__cols' data-page='zeit'>" +
         "<div><label class='label' for='sFrom'>Tag beginnt</label><input class='field' id='sFrom' type='number' min='0' max='12' step='1'></div>" +
         "<div><label class='label' for='sTo'>Tag endet</label><input class='field' id='sTo' type='number' min='13' max='24' step='1'></div>" +
@@ -4085,6 +4518,19 @@ const SETTINGS_SEITEN = [
 function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   const titel = s.querySelector(".sheet__title");
   const abschnitte = {};
+  {
+    const rb = s.querySelector("#sRitual");
+    if (rb) {
+      rb.onclick = () => { closeModal(); ritualSheet(); };
+      const h = s.querySelector("#sRitualHint");
+      const wann = state.rituale[iso(mondayOf(anchor))];
+      h.textContent = wann
+        ? "Diese Woche schon gemacht — am " + new Date(wann).toLocaleDateString("de-DE",
+            { weekday: "long", hour: "2-digit", minute: "2-digit" }) + "."
+        : "Diese Woche noch offen.";
+    }
+  }
+
   s.querySelectorAll(".sheet__row[data-page]").forEach(r => {
     (abschnitte[r.dataset.page] = abschnitte[r.dataset.page] || []).push(r);
   });
@@ -4393,6 +4839,18 @@ function mergeStates(mine, theirs) {
     out[c] = [...byId.values()].filter(r => (out.tombs[r.id] || 0) <= (r.at || 0));
   });
 
+  // Abgehaktes und erledigte Wochenstarts: der jüngere Eintrag gewinnt.
+  out.erledigt = Object.assign({}, out.erledigt);
+  Object.keys(theirs.erledigt || {}).forEach(k => {
+    const m = out.erledigt[k], e = theirs.erledigt[k];
+    if (!e) return;
+    if (!m || (e.at || 0) > (m.at || 0)) out.erledigt[k] = e;
+  });
+  out.rituale = Object.assign({}, out.rituale);
+  Object.keys(theirs.rituale || {}).forEach(k => {
+    out.rituale[k] = Math.max(out.rituale[k] || 0, theirs.rituale[k] || 0);
+  });
+
   out.days = out.days || {};
   Object.keys(theirs.days || {}).forEach(k => {
     const m = out.days[k], t = theirs.days[k];
@@ -4412,6 +4870,12 @@ function mergeStates(mine, theirs) {
   // Grabsteine älter als ein halbes Jahr wegräumen
   const cutoff = Date.now() - 180 * 86400000;
   Object.keys(out.tombs).forEach(id => { if (out.tombs[id] < cutoff) delete out.tombs[id]; });
+  // Ein „doch nicht erledigt" muss nur so lange bleiben, wie es ein älteres
+  // „erledigt" auf einem anderen Gerät überstimmen können muss.
+  Object.keys(out.erledigt).forEach(k => {
+    const e = out.erledigt[k];
+    if (!e || (!e.on && (e.at || 0) < cutoff)) delete out.erledigt[k];
+  });
 
   return out;
 }
@@ -4536,36 +5000,6 @@ const Sync = (() => {
     return "confirm";     // Bestätigungsmail ist eingeschaltet
   }
 
-  /* Anmeldung per Link in der E-Mail — braucht einen eingerichteten
-     Mailversand im Supabase-Projekt, sonst kommt die Mail nicht an. */
-  async function signInLink(email) {
-    const res = await fetch(base() + "/auth/v1/otp", {
-      method: "POST", headers: anonHead,
-      body: JSON.stringify({
-        email, create_user: true,
-        options: { email_redirect_to: location.origin + location.pathname }
-      })
-    });
-    if (!res.ok) throw new Error("Der Link konnte nicht verschickt werden.");
-    return true;
-  }
-
-  /* Nach dem Klick auf den Link kommt das Token im Adress-Anhang zurück. */
-  function catchRedirect() {
-    if (!location.hash || location.hash.indexOf("access_token") < 0) return false;
-    const p = new URLSearchParams(location.hash.slice(1));
-    const at = p.get("access_token");
-    if (!at) return false;
-    storeSession({
-      access_token: at,
-      refresh_token: p.get("refresh_token"),
-      expires_at: Date.now() + (+p.get("expires_in") || 3600) * 1000,
-      user_id: null, email: null
-    });
-    history.replaceState(null, "", location.pathname + location.search);
-    return true;
-  }
-
   async function whoAmI() {
     const res = await api("/auth/v1/user");
     if (!res.ok) return null;
@@ -4630,15 +5064,14 @@ const Sync = (() => {
     renderAll();
   }
 
-  /* Beim Start: Rücksprung vom E-Mail-Link einsammeln, Konto ermitteln,
-     auf den Speicherplatz dieses Kontos umschalten, dann abgleichen. */
+  /* Beim Start: Konto ermitteln, auf den Speicherplatz dieses Kontos
+     umschalten, dann abgleichen. */
   async function boot(opts) {
     if (!configured()) { setStatus("off"); return; }
-    const viaLink = catchRedirect();
     // Nur direkt nach einer Anmeldung wird der bisherige lokale Plan
     // übernommen — sonst würde beim Anmelden auf einem fremden Gerät
     // dessen Plan in den eigenen wandern.
-    const adopt = viaLink || (opts && opts.adopt);
+    const adopt = !!(opts && opts.adopt);
 
     if (!session) loadSession();
     if (!session) { setStatus("signedout"); return; }
@@ -4665,7 +5098,7 @@ const Sync = (() => {
   }
 
   return {
-    configured, active, signInPassword, signUp, signInLink, signOut, pull, push, boot,
+    configured, active, signInPassword, signUp, signOut, pull, push, boot,
     afterSignIn: () => boot({ adopt: true }),
     get status() { return status; },
     get email() { return session && session.email; },
@@ -4825,36 +5258,266 @@ $("#fabAdd").onclick = () => {
   newBlock(selectedDayIdx, iso(d), s, s + 60);
 };
 
-/* ============================================================ Erststart */
+/* ============================================================
+   Erststart
+
+   Ein leerer Planer ist die härteste Hürde des Produkts: er zeigt ein
+   Raster und erwartet, dass jemand von Null anfängt. Deshalb endet der
+   Erststart nicht mit einem leeren Raster, sondern mit einer Woche, in
+   der schon etwas steht — dem Schlaf, dem Festen, und einem Vorschlag
+   für den Rest. Ändern ist leichter als anfangen.
+
+   Vier Fragen, alle überspringbar. Wer durchklickt, bekommt trotzdem
+   einen brauchbaren Startplan.
+   ============================================================ */
+
+/* Was sich die meisten vornehmen, wenn man sie fragt — als Startwert,
+   nicht als Vorgabe. Zahlen in Stunden pro Woche. */
+const START_ZIELE = { a3: 3, a4: 2, a5: 6, a6: 3, a7: 2 };
+
 function maybeWelcome() {
   if (state.blocks.length || state.tasks.length || state.profile.name) return;
+
+  let schritt = 0;
+  const ein = {
+    name: "",
+    auf: "07:00", bett: "22:30",
+    festAn: true, festName: "Arbeit", festArea: "a1",
+    festVon: "09:00", festBis: "17:00", festTage: new Set([0, 1, 2, 3, 4]),
+    ziele: Object.assign({}, START_ZIELE)
+  };
+
   modal((s, close) => {
-    s.innerHTML =
-      "<h2 class='sheet__title'>Deine Woche, dein Rhythmus</h2>" +
-      "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14.5px;line-height:1.6'>" +
-      "Nichts ist vorgegeben — du trägst ein, was zu dir passt.</p>" +
-      "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
-      "<li><b style='color:var(--text)'>Eintragen:</b> aufs Plus tippen oder ins Raster ziehen.</li>" +
-      "<li><b style='color:var(--text)'>Ohne feste Uhrzeit:</b> als Wochenziel in Stunden — z.B. 10 h Lernen. " +
-      "Der Planer schlägt vor, wie sich das über die Woche verteilen lässt.</li>" +
-      "<li><b style='color:var(--text)'>Pausen zählen:</b> Serienabend und Nichtstun dürfen genauso im Plan stehen wie Arbeit.</li>" +
-      "</ul>" +
-      "<div class='sheet__row'><label class='label' for='wName'>Wie heißt du?</label>" +
-      "<input class='field' id='wName' placeholder='Optional' autocomplete='off'></div>";
+    const body = document.createElement("div");
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
-    foot.innerHTML = "<span class='spacer'></span>";
-    const ok = document.createElement("button");
-    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Los geht's";
-    const go = () => {
-      state.profile.name = s.querySelector("#wName").value.trim();
-      save(); close(); renderHeader();
+    s.append(body, foot);
+
+    const TITEL = ["Deine Woche, dein Rhythmus", "Wann schläfst du?",
+                   "Was ist fest?", "Was willst du dir nehmen?"];
+
+    const malen = () => {
+      body.innerHTML =
+        (schritt > 0 ? "<div class='steps'>" + [1, 2, 3].map(i =>
+          "<span class='steps__dot" + (i === schritt ? " is-on" : "") + "'></span>").join("") +
+          "<span class='steps__lab'>Schritt " + schritt + " von 3</span></div>" : "") +
+        "<h2 class='sheet__title'>" + TITEL[schritt] + "</h2>";
+      const box = document.createElement("div");
+      body.appendChild(box);
+      [wHallo, wSchlaf, wFest, wZiele][schritt](box);
+      malenFoot();
     };
-    ok.onclick = go;
-    s.querySelector("#wName").addEventListener("keydown", ev => { if (ev.key === "Enter") go(); });
-    foot.appendChild(ok);
-    s.appendChild(foot);
-  });
+
+    /* --- 0: was das hier ist ------------------------------------------ */
+    function wHallo(box) {
+      box.innerHTML =
+        "<p class='ritual__lead'>Nichts ist vorgegeben — du trägst ein, was zu dir passt. " +
+        "Drei kurze Fragen, dann steht eine erste Woche, die du nur noch anpassen musst.</p>" +
+        "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
+        "<li><b style='color:var(--text)'>Feste Termine</b> trägst du mit Uhrzeit ein.</li>" +
+        "<li><b style='color:var(--text)'>Alles andere</b> als Wochenziel in Stunden — z.B. 10 h Lernen. " +
+        "Wann genau, schlägt der Planer vor.</li>" +
+        "<li><b style='color:var(--text)'>Pausen zählen mit.</b> Serienabend und Nichtstun dürfen " +
+        "genauso im Plan stehen wie Arbeit.</li>" +
+        "</ul>" +
+        "<div class='sheet__row' style='margin:0'><label class='label' for='wName'>Wie heißt du?</label>" +
+        "<input class='field' id='wName' placeholder='Optional' autocomplete='off'></div>";
+      const f = box.querySelector("#wName");
+      f.value = ein.name;
+      f.oninput = () => { ein.name = f.value; };
+      f.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); schritt = 1; malen(); } };
+    }
+
+    /* --- 1: Schlaf ---------------------------------------------------- */
+    function wSchlaf(box) {
+      box.innerHTML =
+        "<p class='ritual__lead'>Der Schlaf ist der einzige Block, der jeden Tag gleich bleibt. " +
+        "Er wird nicht verplant — und eine halbe Stunde davor und danach auch nicht.</p>" +
+        "<div class='sheet__cols'>" +
+          "<div><label class='label' for='wAuf'>Aufstehen</label>" +
+          "<input class='field' id='wAuf' type='time' step='900'></div>" +
+          "<div><label class='label' for='wBett'>Ins Bett</label>" +
+          "<input class='field' id='wBett' type='time' step='900'></div>" +
+        "</div>" +
+        "<div id='wSchlafHint' style='font-size:13px;color:var(--text-faint);margin-top:12px;line-height:1.55'></div>";
+      const auf = box.querySelector("#wAuf"), bett = box.querySelector("#wBett");
+      const hint = box.querySelector("#wSchlafHint");
+      auf.value = ein.auf; bett.value = ein.bett;
+      const zeig = () => {
+        ein.auf = auf.value || "07:00"; ein.bett = bett.value || "22:30";
+        const a = parseTime(ein.auf), b = parseTime(ein.bett);
+        const schlaf = ((a - b) + 1440) % 1440;
+        hint.innerHTML = "Dein Tag läuft von <b>" + ein.auf + "</b> bis <b>" + ein.bett +
+          "</b> — das sind " + fmtDur(1440 - schlaf) + " wach und " + fmtDur(schlaf) + " Schlaf.";
+      };
+      auf.oninput = zeig; bett.oninput = zeig; zeig();
+    }
+
+    /* --- 2: der feste Block ------------------------------------------- */
+    function wFest(box) {
+      box.innerHTML =
+        "<p class='ritual__lead'>Das eine, was fast jede Woche gleich ist — Arbeit, Uni, Schule. " +
+        "Weiteres trägst du später mit zwei Fingertipps nach.</p>" +
+        "<label class='switch'><input type='checkbox' id='wFestAn'> Ich habe so etwas</label>" +
+        "<div id='wFestBody' style='margin-top:14px'>" +
+          "<div class='sheet__row' style='margin:0 0 14px'>" +
+            "<label class='label' for='wFestName'>Wie heißt es?</label>" +
+            "<input class='field' id='wFestName' autocomplete='off'></div>" +
+          "<div class='sheet__cols' style='margin-bottom:14px'>" +
+            "<div><label class='label' for='wFestVon'>Von</label>" +
+            "<input class='field' id='wFestVon' type='time' step='900'></div>" +
+            "<div><label class='label' for='wFestBis'>Bis</label>" +
+            "<input class='field' id='wFestBis' type='time' step='900'></div>" +
+          "</div>" +
+          "<span class='label'>An welchen Tagen?</span>" +
+          "<div class='chipset' id='wFestTage' style='margin-top:8px'></div>" +
+        "</div>";
+      const an = box.querySelector("#wFestAn");
+      const bodyF = box.querySelector("#wFestBody");
+      const nm = box.querySelector("#wFestName");
+      const von = box.querySelector("#wFestVon"), bis = box.querySelector("#wFestBis");
+      const tage = box.querySelector("#wFestTage");
+      an.checked = ein.festAn; nm.value = ein.festName;
+      von.value = ein.festVon; bis.value = ein.festBis;
+      nm.oninput = () => { ein.festName = nm.value; };
+      von.oninput = () => { ein.festVon = von.value; };
+      bis.oninput = () => { ein.festBis = bis.value; };
+      const malTage = () => {
+        tage.innerHTML = "";
+        for (let i = 0; i < 7; i++) {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.textContent = DAY_SHORT[i];
+          c.setAttribute("aria-pressed", String(ein.festTage.has(i)));
+          c.onclick = () => {
+            if (ein.festTage.has(i)) ein.festTage.delete(i); else ein.festTage.add(i);
+            malTage();
+          };
+          tage.appendChild(c);
+        }
+      };
+      const umschalten = () => {
+        ein.festAn = an.checked;
+        bodyF.hidden = !an.checked;
+      };
+      an.onchange = umschalten;
+      malTage(); umschalten();
+    }
+
+    /* --- 3: Wochenziele ----------------------------------------------- */
+    function wZiele(box) {
+      box.innerHTML =
+        "<p class='ritual__lead'>Stunden pro Woche, ohne feste Uhrzeit — den Platz sucht der " +
+        "Planer. Null heißt: diese Woche nicht.</p>";
+      const liste = document.createElement("div");
+      liste.className = "zieleliste";
+      box.appendChild(liste);
+      const summe = document.createElement("div");
+      summe.className = "ritual__summe";
+      box.appendChild(summe);
+
+      const zeichnen = () => {
+        liste.innerHTML = "";
+        state.areas.forEach(a => {
+          const wert = ein.ziele[a.id] || 0;
+          const row = document.createElement("div");
+          row.className = "zielrow" + (wert > 0 ? " is-on" : "");
+          row.style.setProperty("--h", a.hue);
+          const name = document.createElement("div");
+          name.className = "zielrow__name";
+          name.innerHTML = "<span class='goal__dot'></span>" + escapeHtml(a.name);
+          const stepper = document.createElement("div");
+          stepper.className = "stepper";
+          const minus = document.createElement("button");
+          minus.type = "button"; minus.className = "btn btn--sm"; minus.textContent = "−";
+          minus.setAttribute("aria-label", a.name + ": eine Stunde weniger");
+          minus.onclick = () => { ein.ziele[a.id] = Math.max(0, wert - 1); zeichnen(); };
+          const v = document.createElement("span");
+          v.className = "stepper__val num";
+          v.textContent = wert > 0 ? wert + " h" : "—";
+          const plus = document.createElement("button");
+          plus.type = "button"; plus.className = "btn btn--sm"; plus.textContent = "+";
+          plus.setAttribute("aria-label", a.name + ": eine Stunde mehr");
+          plus.onclick = () => { ein.ziele[a.id] = Math.min(80, wert + 1); zeichnen(); };
+          stepper.append(minus, v, plus);
+          row.append(name, stepper);
+          liste.appendChild(row);
+        });
+        const ges = Object.values(ein.ziele).reduce((n, x) => n + (x || 0), 0);
+        const fest = ein.festAn
+          ? ein.festTage.size * Math.max(0, parseTime(ein.festBis) - parseTime(ein.festVon)) / 60 : 0;
+        summe.innerHTML = "<b>" + fmtDur(ges * 60) + "</b> Wochenziele" +
+          (fest ? " · dazu " + fmtDur(Math.round(fest * 60)) + " " + escapeHtml(ein.festName || "Fest") : "");
+      };
+      zeichnen();
+    }
+
+    /* --- Fußzeile ----------------------------------------------------- */
+    function malenFoot() {
+      foot.innerHTML = "";
+      if (schritt > 0) {
+        const z = document.createElement("button");
+        z.className = "btn"; z.type = "button"; z.textContent = "Zurück";
+        z.onclick = () => { schritt--; malen(); };
+        foot.appendChild(z);
+      }
+      const sp = document.createElement("span"); sp.className = "spacer";
+      foot.appendChild(sp);
+      const w = document.createElement("button");
+      w.className = "btn btn--primary"; w.type = "button";
+      w.textContent = schritt === 0 ? "Los geht's" : schritt < 3 ? "Weiter" : "Woche anlegen";
+      w.onclick = () => {
+        if (schritt < 3) { schritt++; malen(); return; }
+        anlegen();
+        close();
+      };
+      foot.appendChild(w);
+    }
+
+    /* --- Aus den Antworten eine Woche bauen ---------------------------- */
+    function anlegen() {
+      state.profile.name = ein.name.trim();
+
+      const auf = parseTime(ein.auf), bett = parseTime(ein.bett);
+      state.settings.sleep = { on: true, from: bett, to: auf, wind: 30 };
+      // Das Raster soll den wachen Tag zeigen, mit einer Stunde Luft.
+      state.settings.dayStart = clamp(Math.floor(auf / 60) - 1, 0, 22);
+      // Bis eine halbe Stunde nach dem Zubettgehen — mehr wäre leere Fläche.
+      state.settings.dayEnd = clamp(Math.ceil((bett + 30) / 60), state.settings.dayStart + 1, 24);
+
+      const mon = mondayOf(anchor);
+      if (ein.festAn && ein.festTage.size) {
+        let von = parseTime(ein.festVon), bis = parseTime(ein.festBis);
+        if (bis <= von) bis = von + 60;
+        const area = areaById(ein.festArea) || state.areas[0];
+        [...ein.festTage].sort((x, y) => x - y).forEach(d => {
+          state.blocks.push({
+            id: uid(), title: ein.festName.trim() || area.name, areaId: area.id,
+            day: d, date: iso(addDays(mon, d)), repeat: "weekly",
+            since: iso(addDays(mon, d)), ortId: null,
+            grob: false, start: von, end: bis, frog: false
+          });
+        });
+      }
+
+      state.areas.forEach(a => { a.plan.goal = ein.ziele[a.id] || 0; });
+
+      save();
+      renderAll();
+
+      // Erst jetzt verteilen — der Verteiler braucht Schlaf, Feste und Ziele.
+      const r = buildSuggestions();
+      save();
+      renderAll();
+      if (r && r.placed)
+        toast("Deine Woche steht.",
+          { label: "Alle übernehmen", run: () => { acceptSuggestions(); save(); renderAll(); } });
+      else
+        toast("Los geht's — trag ein, was fest ist");
+    }
+
+    malen();
+  }, { wide: true });
 }
 
 /* ============================================================ Start */
@@ -4867,7 +5530,7 @@ function renderAll() {
   renderTasks();
   renderGoals();
   renderEnergy();
-  paintPomo();
+  renderRitual();
 }
 
 if (!Store.available) {
