@@ -156,14 +156,18 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
       }
     });
     const heroTitle = document.querySelector('.agenda__hero-title');
-    const danachTitle = document.querySelector('.agenda__row .agenda__title');
-    return { quer, clip, heroTitle: heroTitle && heroTitle.textContent, danachTitle: danachTitle && danachTitle.textContent };
+    // Alle Danach-Titel, nicht nur den ersten: geprueft wird, ob lange deutsche
+    // Namen vollstaendig ankommen — nicht, in welcher Reihenfolge der Verteiler
+    // sie sortiert. Die Reihenfolge haengt an der Bewertung und darf sich aendern.
+    const danachTitel = [...document.querySelectorAll('.agenda__row .agenda__title')]
+      .map(e => e.textContent);
+    return { quer, clip, heroTitle: heroTitle && heroTitle.textContent, danachTitel };
   });
   console.log('   ' + JSON.stringify(langCheck));
   ok(!langCheck.quer, 'kein waagerechtes Scrollen der Seite');
   ok(langCheck.clip.length === 0, 'kein abgeschnittener Text in der Agenda');
   ok(!!langCheck.heroTitle && langCheck.heroTitle.includes('Vorlesung Statistik II'), 'langer Titel im laufenden Eintrag vollständig');
-  ok(!!langCheck.danachTitle && langCheck.danachTitle.includes('Fitnessstudio Innenstadt'), 'langer Titel im Danach-Eintrag vollständig');
+  ok(langCheck.danachTitel.some(t => t.includes('Fitnessstudio Innenstadt')), 'langer Titel im Danach-Eintrag vollständig');
 
   const wegText = await p.evaluate(() => {
     const sub = document.querySelector('#agenda .agenda__row .agenda__sub');
