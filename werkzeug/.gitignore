@@ -3,3 +3,6 @@ node_modules/
 package.json
 package-lock.json
 *.png
+
+# Kratzordner, den wunsch.js bei jedem Lauf selbst anlegt
+.wunsch-tmp/

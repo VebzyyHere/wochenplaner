@@ -464,6 +464,14 @@ html[data-theme="dark"] .agenda__loading {
 .zielanker .chip { font-size: var(--t-sm); padding: 5px 10px; min-height: 32px; }
 @media (pointer: coarse) { .zielanker .chip { min-height: 44px; padding: 5px 12px; } }
 
+/* Wochenrückblick (Stufe 14), unter der Abhak-Liste in Schritt 1: geplant
+   gegen tatsächlich als Satz statt als Diagramm — Bereichsfarbe als 3px-Strich
+   links (--area-line), wie die Agenda oben, keine Balken, keine Ampelfarbe. */
+.rueckblick { display: flex; flex-direction: column; gap: 2px; margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.rueckblick__row { padding: 6px 0 6px 10px; border-left: 2px solid var(--area-line); font-size: var(--t-sm); color: var(--text-muted); }
+.rueckblick__hinweis { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; padding: 8px 0 8px 10px; border-left: 2px solid var(--area-line); font-size: var(--t-sm); color: var(--text-muted); }
+.rueckblick__hinweis-txt { flex: 1 1 220px; min-width: 0; }
+
 /* Freihalten sitzt unter der Tagesform, weil beides dieselbe Frage ist:
    was verträgt dieser Tag? */
 .freischalter { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
@@ -700,8 +708,32 @@ html[data-theme="dark"] .agenda__loading {
   transition: background .15s, color .15s;
 }
 .task__more:hover { background: var(--surface-2); color: var(--text); }
+/* Stufe 14: der direkte Weg in den Plan, nur an Zeilen ohne Platz — die
+   einzige Stelle auf diesem Bildschirm, an der der Akzent (--ink) für eine
+   Primäraktion steht, statt nur für Zustand (Häkchen). */
+.task__go {
+  flex: none; align-self: center; border: 0; border-radius: 8px;
+  background: var(--ink); color: var(--on-ink);
+  min-width: 32px; min-height: 32px; padding: 4px 8px;
+  font-size: var(--t-body); line-height: 1;
+  transition: background .15s;
+}
+.task__go:hover { background: var(--ink-hover); }
 .taskadd { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
 .taskadd .field { min-height: 38px; }
+
+/* Stufe 14: Gliederung der Aufgabenliste — Abschnittsköpfe und der
+   Tagesschwerpunkt teilen sich die Sprache der Agenda (.agenda__label,
+   .agenda__frog, .agenda__foot), dieselbe Karte-in-der-Karte-Vermeidung:
+   ein Strich, keine Fläche. */
+.tasks__invite {
+  display: block; padding: 4px 0 10px; border-bottom: 1px solid var(--border);
+  font-size: var(--t-sm); color: var(--text-muted); line-height: 1.5;
+}
+.tasks__toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  width: 100%; min-height: 44px; padding: 0; border: none; background: transparent;
+}
 
 .empty {
   text-align: center; padding: var(--s-5) var(--s-3);
@@ -1377,7 +1409,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .task__check { width: 24px; height: 24px; position: relative; }
   .task__check::before { content: ""; position: absolute; inset: -11px; border-radius: 8px; }
   .agenda__check::before { content: ""; position: absolute; inset: -14px; border-radius: 8px; }
-  .task__del, .task__more { min-width: 44px; min-height: 44px; }
+  .task__del, .task__more, .task__go { min-width: 44px; min-height: 44px; }
   /* Auf einem Touchgerät gibt es kein Hover — ein Knopf, der erst beim
      Zeigen erscheint, existiert dort nicht. */
   .task__del { opacity: 1; }
@@ -1488,13 +1520,13 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       <section class="card" data-card="aufgaben">
         <div class="card__head">
           <h2 class="card__title">Aufgaben</h2>
-          <button class="btn btn--sm btn--ghost" id="clearDone">Erledigte weg</button>
         </div>
         <form class="taskadd" id="taskForm">
           <input class="field" id="taskInput" placeholder="Was steht an?" aria-label="Neue Aufgabe" autocomplete="off">
           <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen">+</button>
         </form>
         <div class="tasks" id="taskList"></div>
+        <div class="agenda__foot" id="tasksFoot" hidden></div>
       </section>
 
     </aside>
@@ -1620,7 +1652,44 @@ const Store = (() => {
       }
     },
     get full() { return full; },
-    clear() { if (available) { try { localStorage.removeItem(key()); } catch (e) {} } }
+    clear() { if (available) { try { localStorage.removeItem(key()); } catch (e) {} } },
+
+    /* Einmalige Sicherung, bevor migrate() zum ersten Mal einen Stand mit
+       version < 9 anfasst (Stufe 9: Regeln wandern vom Bereich zum Vorhaben).
+       Die Migration lief bisher nur gegen synthetische Daten — dieser Aufruf
+       ist das Sicherheitsnetz für echte.
+       Eigener Schlüssel neben dem eigentlichen Zustand, nicht darin: so bleibt
+       die Sicherung außerhalb von snapshot()/mergeStates() und wird nie
+       mitsynchronisiert — sie ist geräteseitig und je Konto (scope) getrennt.
+       „Genau einmal" heißt: existiert der Schlüssel schon, wird nicht
+       überschrieben, sonst wäre die Sicherung nach dem ersten fehlgeschlagenen
+       Migrationsversuch schon wieder weg. */
+    backupVorV9(s) {
+      if (!available || !s || typeof s !== "object") return;
+      if ((s.version || 0) >= 9) return;
+      const k = key() + ".vor-v9";
+      try {
+        if (localStorage.getItem(k) !== null) return;
+        localStorage.setItem(k, JSON.stringify(s));
+      } catch (e) {
+        // Wie bei save(): ein voller Speicher darf die App nicht aufhalten,
+        // nur den vorhandenen Hinweis auslösen.
+        if (!full) {
+          full = true;
+          try { window.dispatchEvent(new CustomEvent("wp-speicher-voll")); } catch (e2) {}
+        }
+      }
+    },
+    hasVorV9() {
+      return available && localStorage.getItem(key() + ".vor-v9") !== null;
+    },
+    loadVorV9() {
+      if (!available) return null;
+      try {
+        const raw = localStorage.getItem(key() + ".vor-v9");
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
   };
 })();
 
@@ -1823,6 +1892,9 @@ let state = Store.load() || freshState();
 migrate(state);
 
 function migrate(s) {
+  // Sicherung vor der v9-Migration — muss vor jeder Änderung an s stehen,
+  // sonst wäre der „unveränderte" Stand schon nicht mehr unverändert.
+  Store.backupVorV9(s);
   if (!s.profile) s.profile = { id: uid(), name: "" };
   if (!s.settings) s.settings = { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() };
   if (!Array.isArray(s.areas) || !s.areas.length) s.areas = DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan() }));
@@ -5254,17 +5326,111 @@ function blockSheet(draft, dayKey) {
 /* ============================================================ Aufgaben */
 let dragTaskId = null;
 
+/* Bleibt zusammengeklappt, solange man nicht selbst aufklappt — kein Teil
+   von state, das ist Bildschirmzustand, kein Datum, das der Abgleich
+   irgendwem mitteilen müsste. */
+let aufgabenErledigtOffen = false;
+
+/* ============================================================
+   Stufe 14: der Aufgaben-Bildschirm beantwortet eine Frage — "was hat noch
+   keinen Platz?" — statt eine flache Liste zu sein. Drei Abschnitte, in
+   dieser Reihenfolge: ohne Platz (das Wichtigste, steht oben), eingeplant
+   (steht schon, wandert nur hierher), erledigt (zusammengeklappt). Leere
+   Abschnitte erscheinen nicht — kein Platzhalter, kein "0 Aufgaben".
+   ============================================================ */
 function renderTasks() {
   const list = $("#taskList");
+  const foot = $("#tasksFoot");
   list.innerHTML = "";
-  const open = state.tasks.filter(t => !t.done);
-  const done = state.tasks.filter(t => t.done);
+  foot.hidden = true; foot.innerHTML = "";
 
   if (!state.tasks.length) {
     list.innerHTML = "<div class='empty'><b>Noch nichts notiert</b>Schreib oben rein, was ansteht. Aufgaben kannst du später einfach in den Wochenplan ziehen.</div>";
     return;
   }
-  [...open, ...done].forEach(t => list.appendChild(taskEl(t)));
+
+  const open = state.tasks.filter(t => !t.done);
+  const done = state.tasks.filter(t => t.done);
+
+  // Punkt C: mit Dauer vor ohne Dauer (die kann der Planer einplanen),
+  // alphabetisch nur als letzter Schlüssel — Scannbarkeit vor Anlegereihenfolge.
+  const ohnePlatz = open.filter(t => !t.geplant).sort((a, b) =>
+    (a.dauer ? 0 : 1) - (b.dauer ? 0 : 1) || a.title.localeCompare(b.title, "de"));
+
+  // Chronologisch nach Tag+Uhrzeit des Blocks, alphabetisch nur als letzter
+  // Schlüssel.
+  const eingeplant = open.filter(t => t.geplant).sort((a, b) => {
+    const ba = state.blocks.find(x => x.id === a.geplant);
+    const bb = state.blocks.find(x => x.id === b.geplant);
+    return (ba ? ba.day : 99) - (bb ? bb.day : 99)
+      || (ba ? ba.start : 0) - (bb ? bb.start : 0)
+      || a.title.localeCompare(b.title, "de");
+  });
+
+  // Punkt B: der Tagesschwerpunkt steht ganz oben, dieselbe Sprache wie die
+  // Agenda ("Heute zählt", ~5702) — dort für den Tag, hier für die Woche.
+  // Ist keiner gesetzt: eine ruhige Einladung, keine Mahnung, kein Zwang.
+  if (open.length) {
+    const wichtig = open.find(t => t.frog);
+    const kopf = document.createElement("div");
+    kopf.className = "agenda__label";
+    kopf.textContent = "Heute zählt";
+    list.appendChild(kopf);
+    if (wichtig) {
+      const frog = document.createElement("button");
+      frog.type = "button"; frog.className = "agenda__frog";
+      frog.textContent = wichtig.title;
+      frog.onclick = () => taskSheet(wichtig);
+      list.appendChild(frog);
+    } else {
+      const einladung = document.createElement("div");
+      einladung.className = "tasks__invite";
+      einladung.textContent = "Noch kein Schwerpunkt gesetzt — öffne eine Aufgabe unten und wähle „Das Wichtigste“.";
+      list.appendChild(einladung);
+    }
+  }
+
+  const abschnitt = (label, tasks) => {
+    if (!tasks.length) return;
+    const kopf = document.createElement("div");
+    kopf.className = "agenda__label";
+    kopf.textContent = label;
+    list.appendChild(kopf);
+    tasks.forEach(t => list.appendChild(taskEl(t)));
+  };
+  abschnitt("Ohne Platz", ohnePlatz);
+  abschnitt("Eingeplant", eingeplant);
+
+  if (done.length) {
+    const kopf = document.createElement("button");
+    kopf.type = "button"; kopf.className = "agenda__label tasks__toggle";
+    kopf.setAttribute("aria-expanded", String(aufgabenErledigtOffen));
+    kopf.innerHTML = "<span>Erledigt (" + done.length + ")</span><span aria-hidden='true'>"
+      + (aufgabenErledigtOffen ? "⌃" : "⌄") + "</span>";
+    kopf.onclick = () => { aufgabenErledigtOffen = !aufgabenErledigtOffen; renderTasks(); };
+    list.appendChild(kopf);
+    if (aufgabenErledigtOffen) {
+      done.forEach(t => list.appendChild(taskEl(t)));
+      const weg = document.createElement("button");
+      weg.type = "button"; weg.className = "btn btn--sm btn--ghost";
+      weg.textContent = "Erledigte weg";
+      weg.style.marginTop = "6px";
+      weg.onclick = () => {
+        const n = done.length;
+        state.tasks = state.tasks.filter(x => !x.done);
+        save(); renderTasks(); toastUndo(n + " erledigt & weggeräumt");
+      };
+      list.appendChild(weg);
+    }
+  }
+
+  // Punkt F: eine Kennzahl im Fuß, keine Wertung — dieselbe Sprache wie im
+  // Wochenstart (Schritt "verteilen", ~6426: "X von Y Zielen hat einen
+  // Platz"). Kein Ring, kein Balken, keine Farbe, nur der Satz.
+  if (open.length) {
+    foot.hidden = false;
+    foot.innerHTML = "<b>" + eingeplant.length + " von " + open.length + "</b> Aufgaben haben einen Platz diese Woche.";
+  }
 }
 
 /* ============================================================
@@ -5322,13 +5488,26 @@ function taskEl(t) {
 
   body.append(ti, meta);
 
+  row.append(cb, body);
+
+  // Punkt A/C: nur eine Aufgabe ohne Platz braucht einen direkten Weg
+  // hinein — eingeplante und erledigte haben ihren Platz schon.
+  if (!t.done && !geplantBlock) {
+    const go = document.createElement("button");
+    go.className = "task__go"; go.type = "button"; go.textContent = "→";
+    go.title = "In den Wochenplan legen";
+    go.setAttribute("aria-label", "In den Wochenplan legen: " + t.title);
+    go.onclick = e => { e.stopPropagation(); planTask(t); };
+    row.append(go);
+  }
+
   const more = document.createElement("button");
   more.className = "task__more"; more.type = "button"; more.innerHTML = "···";
   more.title = "Bearbeiten";
   more.setAttribute("aria-label", "Aufgabe bearbeiten: " + t.title);
   more.onclick = e => { e.stopPropagation(); taskSheet(t); };
 
-  row.append(cb, body, more);
+  row.append(more);
 
   // Der Text selbst öffnet dasselbe Blatt — am Telefon zielt niemand gern
   // auf drei Punkte, wenn die ganze Zeile daneben liegt.
@@ -5341,6 +5520,26 @@ function taskEl(t) {
   });
   row.addEventListener("dragend", () => { dragTaskId = null; row.classList.remove("is-dragging"); });
   return row;
+}
+
+/* Stufe 14: der Weg "Aufgabe -> Plan", bisher nur der Knopf im Aufgaben-
+   blatt (taskSheet unten), jetzt auch der Knopf direkt an der Zeile
+   (taskEl, .task__go). Sucht wie gehabt die nächstgelegene freie Stelle
+   des Tages (naechsteStelle) und öffnet den Block-Editor damit vorausgefüllt
+   — kein stilles Eintragen ohne Blick auf Tag und Uhrzeit. */
+function planTask(t) {
+  const d = addDays(mondayOf(anchor), selectedDayIdx);
+  const laenge = t.dauer || 60;
+  const wunsch = clamp(snap(new Date().getHours() * 60 + 60),
+    state.settings.dayStart * 60, state.settings.dayEnd * 60 - laenge);
+  const day = { i: selectedDayIdx, key: iso(d) };
+  const gefunden = naechsteStelle(day, laenge, wunsch, taskVorhaben(t));
+  const start = gefunden == null ? wunsch : gefunden;
+  blockSheet({
+    id: null, title: t.title, areaId: t.areaId || state.areas[0].id,
+    day: selectedDayIdx, date: iso(d), repeat: "none",
+    start, end: start + laenge, frog: !!t.frog, taskId: t.id
+  }, iso(d));
 }
 
 function taskSheet(t) {
@@ -5431,24 +5630,14 @@ function taskSheet(t) {
     inPlan.style.width = "100%";
     inPlan.textContent = "📅 In den Wochenplan legen";
     inPlan.onclick = () => {
+      // Stufe 14: dieselbe Suche nach der nächstgelegenen freien Stelle
+      // (naechsteStelle) steckt jetzt in planTask() — geteilt mit dem
+      // Knopf direkt an der Zeile ohne Platz (taskEl, .task__go).
+      // uebernehmen() zieht Titel/Bereich/Dauer/Stern vorher auf t, damit
+      // planTask(t) denselben Stand sieht wie diese Felder gerade zeigen.
       uebernehmen();
-      const d = addDays(mondayOf(anchor), selectedDayIdx);
-      const laenge = dauer || 60;
-      const wunsch = clamp(snap(new Date().getHours() * 60 + 60),
-        state.settings.dayStart * 60, state.settings.dayEnd * 60 - laenge);
-      // Stufe 12: nicht stur "jetzt + 1 h" — die nächstgelegene wirklich
-      // freie Stelle des Tages nehmen (naechsteStelle), wie beim
-      // Verschieben. Passt nirgends etwas hinein, bleibt "jetzt + 1 h" als
-      // grober Rückfall.
-      const day = { i: selectedDayIdx, key: iso(d) };
-      const gefunden = naechsteStelle(day, laenge, wunsch, taskVorhaben(t));
-      const start = gefunden == null ? wunsch : gefunden;
       close();
-      blockSheet({
-        id: null, title: titel.value.trim() || t.title, areaId,
-        day: selectedDayIdx, date: iso(d), repeat: "none",
-        start, end: start + laenge, frog: wichtig, taskId: t.id
-      }, iso(d));
+      planTask(t);
     };
     s.appendChild(inPlan);
 
@@ -5498,13 +5687,6 @@ $("#taskForm").addEventListener("submit", e => {
   save(); renderTasks();
 });
 $("#goalsEdit").onclick = goalsSheet;
-
-$("#clearDone").onclick = () => {
-  const n = state.tasks.filter(t => t.done).length;
-  if (!n) { toast("Nichts zu räumen"); return; }
-  state.tasks = state.tasks.filter(t => !t.done);
-  save(); renderTasks(); toastUndo(n + " erledigt & weggeräumt");
-};
 
 /* ============================================================ Tagesform */
 const ENERGY = {
@@ -6148,6 +6330,56 @@ function ritualSheet() {
       });
 
       summe();
+
+      /* --- Rückblick je Bereich (Stufe 14): geplant gegen tatsächlich, als
+         Satz statt als Diagramm. Nur Bereiche mit Wochenziel — ohne Ziel gibt
+         es nichts, wogegen man "vorgenommen" vergleichen könnte. Ohne solche
+         Bereiche bleibt der Abschnitt ganz weg statt als leere Trennlinie. */
+      if (!state.areas.some(a => a.plan.goal > 0)) return;
+      const musterVerworfen = new Set();
+      const rueckblick = document.createElement("div");
+      rueckblick.className = "rueckblick";
+      box.appendChild(rueckblick);
+
+      const zeichnenRueckblick = () => {
+        rueckblick.innerHTML = "";
+        state.areas.filter(a => a.plan.goal > 0).forEach(a => {
+          const geplant = eintraege
+            .filter(x => x.b.areaId === a.id)
+            .reduce((n, x) => n + dauerVon(x.b), 0);
+          const geschafft = istVorwoche(a.id, vorwoche);
+          const row = document.createElement("div");
+          row.className = "rueckblick__row";
+          row.style.setProperty("--h", a.hue);
+          row.innerHTML = "<span class='num'>" + escapeHtml(a.name) + ": " +
+            fmtDur(a.plan.goal * 60) + " vorgenommen · " + fmtDur(geplant) +
+            " eingeplant · " + fmtDur(geschafft) + " geschafft</span>";
+          rueckblick.appendChild(row);
+
+          if (musterVerworfen.has(a.id)) return;
+          const vorschlag = rueckblickMuster(a, mon);
+          if (vorschlag == null) return;
+          const hin = document.createElement("div");
+          hin.className = "rueckblick__hinweis";
+          hin.style.setProperty("--h", a.hue);
+          const txt = document.createElement("span");
+          txt.className = "rueckblick__hinweis-txt";
+          txt.textContent = a.name + ": in drei von vier Wochen unter dem Ziel. Ziel auf " +
+            vorschlag + " h setzen?";
+          const setzen = document.createElement("button");
+          setzen.type = "button"; setzen.className = "btn btn--sm";
+          setzen.textContent = "Auf " + vorschlag + " h setzen";
+          setzen.onclick = () => { a.plan.goal = vorschlag; save(); zeichnenRueckblick(); };
+          const weg = document.createElement("button");
+          weg.type = "button"; weg.className = "btn btn--sm btn--ghost";
+          weg.textContent = "Verstanden";
+          weg.setAttribute("aria-label", "Hinweis zu " + a.name + " ausblenden");
+          weg.onclick = () => { musterVerworfen.add(a.id); hin.remove(); };
+          hin.append(txt, setzen, weg);
+          rueckblick.appendChild(hin);
+        });
+      };
+      zeichnenRueckblick();
     }
 
     /* --- Schritt 2: Ziele für die neue Woche --------------------------- */
@@ -6354,6 +6586,34 @@ function istVorwoche(areaId, mon) {
   return sum;
 }
 
+/* Stufe 14 Teil B: taucht ein Bereich in drei von vier zurückliegenden Wochen
+   deutlich unter seinem Ziel auf (unter zwei Dritteln), ist das laut dem
+   Kommentar zu wochenKapazitaet oben ein Zielproblem, kein Charakterfehler —
+   der Rückblick bietet dann an, das Ziel zu senken. Eine Historie der
+   Zielwerte gibt es nicht (das Ziel wird jede Woche überschrieben, dafür
+   legen wir kein neues Feld an) — verglichen wird darum gegen das *aktuelle*
+   a.plan.goal, das zum Zeitpunkt von Schritt 1 noch der Wert der letzten
+   Woche ist (Schritt 2 ändert ihn erst danach). Wochen ganz ohne Einträge
+   zählen nicht mit — sonst gälte die Zeit vor der ersten Nutzung fälschlich
+   als verfehltes Ziel. Gibt den vorgeschlagenen neuen Zielwert in ganzen
+   Stunden zurück, oder null, wenn kein Hinweis angezeigt werden soll. */
+function rueckblickMuster(a, mon) {
+  if (!(a.plan.goal > 0)) return null;
+  const schwelle = a.plan.goal * 60 * 2 / 3;
+  let gewertet = 0, unter = 0, summe = 0;
+  for (let i = 1; i <= 4; i++) {
+    const wocheMon = addDays(mon, -7 * i);
+    if (!wocheEintraege(wocheMon).length) continue;
+    gewertet++;
+    const ist = istVorwoche(a.id, wocheMon);
+    summe += ist;
+    if (ist < schwelle) unter++;
+  }
+  if (gewertet < 4 || unter < 3) return null;
+  const vorschlag = Math.max(1, Math.round(summe / 4 / 60));
+  return vorschlag < a.plan.goal ? vorschlag : null;
+}
+
 /* ============================================================ Einstellungen */
 $("#settingsBtn").onclick = () => {
   modal((s, close) => {
@@ -6399,7 +6659,8 @@ $("#settingsBtn").onclick = () => {
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
       "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
       "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
-      "</div><div id='sStore' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
+      "</div><div id='sStore' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
+      "<div id='sVorV9' style='margin-top:10px'></div></div>" +
       "<div class='sheet__row' data-page='app'><span class='label'>Auf den Startbildschirm</span>" +
       "<p style='margin:0 0 12px;font-size:var(--t-body);color:var(--text-muted);line-height:1.6'>" +
       "Dann startet der Planer ohne Browserleiste, mit eigenem Symbol — und er geht auch " +
@@ -6622,6 +6883,32 @@ $("#settingsBtn").onclick = () => {
         "Alles löschen",
         () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurückgesetzt"); });
     };
+
+    // Nur sichtbar, solange die einmalige Sicherung vor der v9-Migration
+    // existiert (Store.backupVorV9 in migrate()) — unaufdringlich, weil sie
+    // die meisten nie brauchen.
+    if (Store.hasVorV9()) {
+      const b = document.createElement("button");
+      b.className = "btn btn--sm btn--ghost"; b.type = "button";
+      b.textContent = "Stand vor dem letzten großen Update wiederherstellen";
+      b.onclick = () => {
+        close();
+        confirmSheet("Alten Stand wiederherstellen?",
+          "Ersetzt den aktuellen Plan durch den Stand von vor dem letzten großen Update. Das lässt sich nicht rückgängig machen.",
+          "Wiederherstellen",
+          () => {
+            const alt = Store.loadVorV9();
+            if (!alt) { toast("Sicherung nicht gefunden"); return; }
+            state = alt;
+            migrate(state);
+            lastSnap = snapshot(state);
+            lastSavedJson = JSON.stringify(state);
+            save(); renderAll();
+            toast("Alter Stand wiederhergestellt");
+          });
+      };
+      s.querySelector("#sVorV9").appendChild(b);
+    }
 
     // Hell/Dunkel wohnt jetzt hier statt in der Kopfzeile — dort war kein
     // Platz mehr, und umgestellt wird es ohnehin einmal und nie wieder.

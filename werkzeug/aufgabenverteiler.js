@@ -32,7 +32,12 @@
       Laenge, die dem Bereich noch offenstand.
 
    Stil wie stabil.js/erklaer.js: eine Chromium-Seite, deutsche Ausgabe,
-   Exit 1 bei Fehlern.
+   Exit 1 bei Fehlern. Die Uhrzeit wird ueber page.clock.setFixedTime()
+   festgenagelt (wie in schleife.js) — Teil e) testet den Standard-
+   Wunschzeitpunkt "jetzt + 1 h" auf dem HEUTIGEN Tag, und freeGaps()
+   schneidet den Tag am aktuellen Zeitpunkt ab. Ohne feste Uhr blieb je
+   nach Tageszeit irgendwann kein Platz mehr nach dem geblockten
+   Wunschzeitpunkt uebrig, und Teil e) schlug rein zeitabhaengig fehl.
    ============================================================ */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -48,6 +53,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  await p.clock.setFixedTime(new Date('2026-08-05T09:00:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });

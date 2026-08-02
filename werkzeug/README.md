@@ -38,6 +38,21 @@ Falsch-positive Meldungen in `audit.js`: Häkchen und Farbfelder sind bewusst
 klein und haben ihre Trefferfläche über ein unsichtbares `::before`. Das Skript
 sieht Pseudo-Elemente nicht. Alles andere ist echt.
 
+## Alles auf einmal
+
+```bash
+node alles.js              # jedes *.js in diesem Ordner, außer sich selbst,
+                            # mockserver.js und serve.js (die laufen endlos)
+node alles.js --nur audit  # nur Skripte, deren Name "audit" enthält
+```
+
+Sucht die Skripte bei jedem Lauf neu im Ordner, statt eine Liste zu pflegen,
+die beim nächsten neuen Prüfskript sowieso veraltet wäre. Führt sie nacheinander
+aus, zeigt bei Rot sofort die volle Ausgabe des betroffenen Skripts, und druckt
+am Ende eine Tabelle mit Skript, Ampel und Dauer. Skripte, die einen eigenen
+Server brauchen (`test3.js`, `pwatest.js`, `pwaupd.js`), laufen mit — dafür
+vorher `mockserver.js` bzw. `serve.js` von Hand starten, siehe unten.
+
 ## Oberfläche und Bedienung
 
 | Skript | prüft |
