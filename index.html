@@ -123,7 +123,7 @@ html[data-theme="dark"] {
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
 .block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow, .agenda__hero, .agenda__row {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
   --area-edge:   oklch(0.870 0.070 var(--h));
@@ -132,7 +132,7 @@ html[data-theme="dark"] {
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
 html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow, .agenda__hero, .agenda__row) {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
   --area-edge:   oklch(0.430 0.080 var(--h));
@@ -457,6 +457,13 @@ html[data-theme="dark"] .agenda__loading {
 .stepper { display: flex; align-items: center; gap: 6px; flex: none; }
 .stepper__val { min-width: 42px; text-align: center; font-size: var(--t-sm); font-weight: 600; }
 
+/* Anker-Frage (Stufe 13 Teil B), unter der Zielzeile: dieselbe kleine
+   Chip-Größe wie .goalrow__art, damit sie neben dem Stepper nicht dominiert. */
+.zielanker { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -2px 0 10px; }
+.zielanker__lab { font-size: var(--t-xs); color: var(--text-faint); flex: none; }
+.zielanker .chip { font-size: var(--t-sm); padding: 5px 10px; min-height: 32px; }
+@media (pointer: coarse) { .zielanker .chip { min-height: 44px; padding: 5px 12px; } }
+
 /* Freihalten sitzt unter der Tagesform, weil beides dieselbe Frage ist:
    was verträgt dieser Tag? */
 .freischalter { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
@@ -574,6 +581,20 @@ html[data-theme="dark"] .agenda__loading {
 .reliefrow__title { font-size: var(--t-body); font-weight: 600; display: flex; align-items: center; gap: 7px; }
 .reliefrow__time { font-size: var(--t-sm); color: var(--text-faint); margin-top: 2px; }
 .reliefrow .goal__dot { background: var(--area-dot); }
+
+/* Tagesabschluss (Stufe 13 Teil E) — drei Aktionen statt zwei, darum eigene
+   Zeile statt .reliefrow: Titel oben, Aktionen darunter im eigenen, umbrechenden
+   Streifen. Nebeneinander wie bei .reliefrow würde auf 320px überlaufen. */
+.abschlussliste { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-3); }
+.abschlussrow {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--s-3); background: var(--surface);
+}
+.abschlussrow__title { font-size: var(--t-body); font-weight: 600; display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.abschlussrow__zeit { margin-left: auto; font-size: var(--t-sm); color: var(--text-faint); font-weight: 400; }
+.abschlussrow__acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.abschlussrow__acts .btn { flex: 1 1 auto; }
+.abschlussrow .goal__dot { background: var(--area-dot); }
 .tag {
   font-size: var(--t-xs); font-weight: 600; letter-spacing: .02em;
   padding: 2px 7px; border-radius: 999px; white-space: nowrap;
@@ -592,10 +613,10 @@ html[data-theme="dark"] .agenda__loading {
   border-top: 1px dashed var(--border);
 }
 .goalrow__body[hidden] { display: none; }
-.goalrow__art { display: flex; gap: 6px; margin-top: var(--s-2); flex-wrap: wrap; }
-.goalrow__art .chip { font-size: var(--t-sm); padding: 5px 10px; min-height: 32px; }
-@media (pointer: coarse) { .goalrow__art .chip { min-height: 44px; padding: 5px 12px; } }
-.goalrow__arthint { font-size: var(--t-xs); color: var(--text-faint); margin-top: 6px; }
+.goalrow__art, .goalrow__grob { display: flex; gap: 6px; margin-top: var(--s-2); flex-wrap: wrap; }
+.goalrow__art .chip, .goalrow__grob .chip { font-size: var(--t-sm); padding: 5px 10px; min-height: 32px; }
+@media (pointer: coarse) { .goalrow__art .chip, .goalrow__grob .chip { min-height: 44px; padding: 5px 12px; } }
+.goalrow__arthint, .goalrow__grobhint { font-size: var(--t-xs); color: var(--text-faint); margin-top: 6px; }
 .wegrow { display: flex; align-items: center; gap: var(--s-2); margin-bottom: 6px; }
 .wegrow__txt { flex: 1; font-size: var(--t-sm); min-width: 0; }
 .wegrow__min { width: 74px; flex: none; text-align: right; }
@@ -1762,7 +1783,10 @@ function defaultPlan() {
     ortId: null,
     // grob: plant dieser Bereich ohne feste Uhrzeit? Für Erholung ist das
     // der bessere Standard — siehe Kommentar oben.
-    grob: false
+    grob: false,
+    // keinVorschlag (Stufe 13 Teil F): der Verteiler lässt diesen Bereich
+    // aus — gesetzt über das "×" im Vorschlags-Blatt, nicht hier.
+    keinVorschlag: false
   };
 }
 
@@ -1820,7 +1844,12 @@ function migrate(s) {
       pad:  clamp(+p.pad || 0, 0, 180),
       art:  ARTEN[p.art] ? p.art : null,
       ortId: p.ortId || null,
-      grob: p.grob === undefined ? undefined : !!p.grob
+      grob: p.grob === undefined ? undefined : !!p.grob,
+      // Stufe 13 Teil F: "×" im Vorschlags-Blatt schaltet Vorschläge für
+      // diesen Bereich dauerhaft ab — dasselbe Feld wie plan.goal/must, sonst
+      // verschwindet die Wahl beim nächsten Laden (a.plan wird hier komplett
+      // neu aufgebaut, jedes fremde Feld fiele sonst weg).
+      keinVorschlag: !!p.keinVorschlag
     };
     if (a.plan.max < a.plan.min) a.plan.max = a.plan.min;
     if (!a.plan.art) a.plan.art = artRaten(a);
@@ -1971,10 +2000,15 @@ function migrate(s) {
     // auch um 23:30 noch formal erfüllt. ref muss auf einen noch vorhandenen
     // Bereich zeigen — wie plan.ortId oben verwaist eine Referenz, wenn der
     // Bereich auf einem anderen Gerät gelöscht wurde.
+    // Stufe 13 Teil B: ein zweiter, schlankerer Anker-Zweig ohne ref — die
+    // Anker-Frage im Wochenstart kennt neben "Nach [Bereich]" auch "Morgens"
+    // und "Abends", ohne Bezugsbereich. Beide Zweige schließen sich aus.
     const anker = (roh && typeof roh === "object" && roh.ref && typeof roh.max === "number" &&
                    s.areas.some(x => x.id === roh.ref))
       ? { ref: roh.ref, min: typeof roh.min === "number" ? roh.min : 0, max: roh.max,
           sonst: roh.sonst === "fenster" ? "fenster" : "aus" }
+      : (roh && typeof roh === "object" && (roh.tageszeit === "morgen" || roh.tageszeit === "abend"))
+      ? { tageszeit: roh.tageszeit }
       : null;
     a.regeln = (fenster.length || anker) ? { fenster, anker } : null;
   });
@@ -2864,6 +2898,19 @@ function freeGaps(day, plan, area, opts) {
                        end: Math.min(sp.end, ende + regeln.anker.max) }))
         .filter(sp => sp.end - sp.start >= 15);
     }
+  } else if (!opts.ignoreAnker && regeln && regeln.anker && regeln.anker.tageszeit) {
+    // Stufe 13 Teil B: der zweite Anker-Zweig ohne ref, aus der Anker-Frage
+    // im Wochenstart. Grenzen wie ABSCHNITTE (vm endet, ab beginnt) — dieselbe
+    // Tagesteilung wie bei groben Blöcken, damit "morgens" überall dasselbe
+    // meint. gruende bekommt den Eintrag IMMER, nicht nur beim Einschränken:
+    // das ist die Zeile, unter der der Nutzer seinen Vorsatz wiederliest.
+    const morgen = regeln.anker.tageszeit === "morgen";
+    const grenze = morgen ? abschnittVon("vm").bis : abschnittVon("ab").von;
+    gruende.push(morgen ? "Morgens, wie vorgenommen" : "Abends, wie vorgenommen");
+    spans = spans
+      .map(sp => morgen ? { start: sp.start, end: Math.min(sp.end, grenze) }
+                         : { start: Math.max(sp.start, grenze), end: sp.end })
+      .filter(sp => sp.end - sp.start >= 15);
   }
   if (!spans.length) return leer();
 
@@ -3029,8 +3076,14 @@ function placeGrob(area, open, tage) {
   const heuteKey = iso(new Date());
   const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
 
-  // Bevorzugter Abschnitt je Art — Erholung abends, Kopfarbeit vormittags
-  const reihenfolge = A === ARTEN.kopf ? ["vm", "nm", "ab"]
+  // Bevorzugter Abschnitt je Art — Erholung abends, Kopfarbeit vormittags.
+  // Stufe 13 Teil B: ein Tageszeit-Anker aus der Anker-Frage sticht das, statt
+  // nur die Reihenfolge zu verschieben — sonst könnte der Grund unten "Morgens,
+  // wie vorgenommen" behaupten und der Block landete trotzdem nachmittags.
+  const ankerTZ = area.regeln && area.regeln.anker && area.regeln.anker.tageszeit;
+  const reihenfolge = ankerTZ === "morgen" ? ["vm"]
+                    : ankerTZ === "abend" ? ["ab"]
+                    : A === ARTEN.kopf ? ["vm", "nm", "ab"]
                     : A === ARTEN.koerper ? ["nm", "ab", "vm"]
                     : ["ab", "nm", "vm"];
 
@@ -3081,7 +3134,8 @@ function placeGrob(area, open, tage) {
       grob: true, teil: ziel.teil, dauer: nimm,
       start: abschnittVon(ziel.teil).von, end: abschnittVon(ziel.teil).von + nimm,
       frog: false, sug: true,
-      grund: DAY_LONG[ziel.day.i] + " " + abschnittVon(ziel.teil).name + " war noch am freisten"
+      grund: ankerTZ ? (ankerTZ === "morgen" ? "Morgens, wie vorgenommen" : "Abends, wie vorgenommen")
+        : DAY_LONG[ziel.day.i] + " " + abschnittVon(ziel.teil).name + " war noch am freisten"
     });
     ziel.frei -= nimm;
     ziel.schonHier += nimm;
@@ -3387,7 +3441,10 @@ function buildSuggestions() {
   // open zieht jetzt auch schon liegen gebliebene Vorschläge ab (areaMinutes
   // mit sug=true) — sonst plant der Warm Start oben drauf, statt nur die
   // Lücke zu füllen, die das Wegfallen ungültiger Vorschläge gerissen hat.
+  // Teil F: "×" im Vorschlags-Blatt (plan.keinVorschlag) — der Bereich bleibt
+  // planbar, bekommt vom Verteiler nur nichts mehr vorgeschlagen.
   const todo = state.areas
+    .filter(a => !a.plan.keinVorschlag)
     .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true),
       kandidatentage: weekDays().filter(d => a.plan.days.includes(d.i) && fensterErlaubtTag(a.regeln, d.i)).length }))
     .filter(x => x.open >= 15)
@@ -3411,6 +3468,7 @@ function buildSuggestions() {
   // nur an der fehlenden Dauer-Anzeige zu erkennen, kein Fehler.
   state.tasks
     .filter(t => !t.done && !t.geplant && t.dauer)
+    .filter(t => { const ar = areaById(t.areaId); return !ar || !ar.plan.keinVorschlag; })
     .sort((x, y) => y.frog - x.frog)
     .forEach(t => {
       const got = placeTask(t);
@@ -3477,8 +3535,14 @@ function mcsHinweis(area) {
   const varianten = [];
   if (area.regeln && area.regeln.fenster && area.regeln.fenster.length)
     varianten.push(["die Uhrzeit-Grenze", { ignoreFenster: true }]);
-  if (area.regeln && area.regeln.anker)
-    varianten.push(["den Anker nach " + ((areaById(area.regeln.anker.ref) || {}).name || ""), { ignoreAnker: true }]);
+  if (area.regeln && area.regeln.anker) {
+    // Zwei Anker-Formen (Stufe 13 Teil B): mit ref "nach [Bereich]", ohne
+    // ref eine Tageszeit — beide räumt opts.ignoreAnker gleich weg.
+    const ak = area.regeln.anker;
+    const label = ak.ref ? "den Anker nach " + ((areaById(ak.ref) || {}).name || "")
+      : "den Anker (" + (ak.tageszeit === "morgen" ? "morgens" : "abends") + ")";
+    varianten.push([label, { ignoreAnker: true }]);
+  }
   varianten.push(["freigehaltene Tage", { ignoreFrei: true }]);
 
   for (const [label, opts] of varianten) {
@@ -3747,6 +3811,11 @@ function regelnEditor(wrap, obj, selbstId) {
   let ankerRef = aAlt ? aAlt.ref : null;
   let ankerMin = aAlt ? aAlt.min : 30;
   let ankerMax = aAlt ? aAlt.max : 180;
+  // Ein Tageszeit-Anker aus der Anker-Frage im Wochenstart (Stufe 13 Teil B)
+  // hat hier keine eigenen Regler — er bleibt unangetastet, bis "Aus" oder
+  // ein Bereich angeklickt wird. Sonst würde allein das Öffnen dieses Blatts
+  // ihn beim Speichern wortlos löschen.
+  let ankerTageszeit = aAlt && aAlt.tageszeit ? aAlt.tageszeit : null;
 
   wrap.innerHTML =
     "<p class='goalrow__sub'>Nur an bestimmten Tagen/Uhrzeiten möglich? " +
@@ -3797,15 +3866,17 @@ function regelnEditor(wrap, obj, selbstId) {
   const paintAHint = () => {
     aHint.textContent = ankerRef
       ? "Nach " + ((areaById(ankerRef) || {}).name || "") + " +" + fmtDur(ankerMin) + " bis +" + fmtDur(ankerMax)
+      : ankerTageszeit
+      ? (ankerTageszeit === "morgen" ? "Morgens" : "Abends") + " — aus der Anker-Frage im Wochenstart, hier nur ersetzbar."
       : "Kein Anker — das Zeitfenster oben gilt unverändert.";
   };
   const paintBereich = () => {
     bereichW.innerHTML = "";
     const aus = document.createElement("button");
     aus.type = "button"; aus.className = "chip";
-    aus.setAttribute("aria-pressed", String(ankerRef === null));
+    aus.setAttribute("aria-pressed", String(ankerRef === null && !ankerTageszeit));
     aus.textContent = "Aus";
-    aus.onclick = () => { ankerRef = null; paintBereich(); paintAHint(); };
+    aus.onclick = () => { ankerRef = null; ankerTageszeit = null; paintBereich(); paintAHint(); };
     bereichW.appendChild(aus);
     state.areas.forEach(ar => {
       if (selbstId && ar.id === selbstId) return;
@@ -3815,7 +3886,7 @@ function regelnEditor(wrap, obj, selbstId) {
       c.setAttribute("aria-pressed", String(ankerRef === ar.id));
       c.innerHTML = "<span class='chip__dot'></span>";
       c.append(ar.name);
-      c.onclick = () => { ankerRef = ar.id; paintBereich(); paintAHint(); };
+      c.onclick = () => { ankerRef = ar.id; ankerTageszeit = null; paintBereich(); paintAHint(); };
       bereichW.appendChild(c);
     });
   };
@@ -3855,7 +3926,8 @@ function regelnEditor(wrap, obj, selbstId) {
         ? [{ tage: [...tage].sort((x, y) => x - y), von, bis }] : [];
       // sonst: "aus" ist der einzige Weg, den diese Stufe anbietet — ein Tag
       // ohne Bezugsblock fällt weg, statt das Fenster ungebremst zu öffnen.
-      const anker = ankerRef ? { ref: ankerRef, min: ankerMin, max: ankerMax, sonst: "aus" } : null;
+      const anker = ankerRef ? { ref: ankerRef, min: ankerMin, max: ankerMax, sonst: "aus" }
+        : ankerTageszeit ? { tageszeit: ankerTageszeit } : null;
       obj.regeln = (fenster.length || anker) ? { fenster, anker } : null;
     }
   };
@@ -3895,14 +3967,20 @@ function goalsSheet() {
         "</div>" +
         "<div class='goalrow__art'></div>" +
         "<div class='goalrow__arthint'></div>" +
+        // Stufe 13 Teil F: der grob-Haken war hier hinter dem Chevron
+        // versteckt (goalrow__body) — dieselbe Sichtbarkeit wie die Art
+        // jetzt, zwei Chips statt eines Kontrollkästchens. Eigene Klassen,
+        // damit row.querySelector(".goalrow__art") weiter eindeutig bleibt
+        // (s. CSS: goalrow__grob(hint) teilt sich die Regel mit goalrow__art(hint)).
+        "<div class='goalrow__grob' style='margin-top:6px'></div>" +
+        "<div class='goalrow__grobhint'></div>" +
         "<div class='goalrow__body' hidden>" +
-          "<label class='switch' style='margin-bottom:6px'>" +
-            "<input type='checkbox' class='gGrob'> Ohne feste Uhrzeit planen</label>" +
-          "<p class='goalrow__sub' style='margin:0 0 14px'>Der Vorschlag legt nur einen " +
-            "Tagesabschnitt fest — „Samstagabend, etwa zwei Stunden\" statt 14:00–16:30. " +
-            "Für Freizeit und Zeit mit Menschen ist das meist die ehrlichere Planung.</p>" +
           "<label class='switch' style='margin-bottom:14px'>" +
             "<input type='checkbox' class='gMust'> Muss sein — nicht zum Streichen vorschlagen</label>" +
+          // Gegenstück zum "×" im Vorschlags-Blatt (Teil F) — sonst gäbe es
+          // keinen Weg zurück, wenn "kein Sport mehr" doch nicht endgültig war.
+          "<label class='switch' style='margin-bottom:14px'>" +
+            "<input type='checkbox' class='gKeinVorschlag'> Keine Vorschläge für diesen Bereich</label>" +
           "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
           "<div class='chipset gDays' style='margin-bottom:14px'></div>" +
           "<div class='sheet__cols' style='margin-bottom:12px'>" +
@@ -3921,8 +3999,10 @@ function goalsSheet() {
       const from  = row.querySelector(".gFrom");
       const to    = row.querySelector(".gTo");
       const mustIn = row.querySelector(".gMust");
-      const grobIn = row.querySelector(".gGrob");
-      grobIn.checked = !!p.grob;
+      const kvIn = row.querySelector(".gKeinVorschlag");
+      kvIn.checked = !!p.keinVorschlag;
+      const grobW = row.querySelector(".goalrow__grob");
+      const grobHint = row.querySelector(".goalrow__grobhint");
       const artW  = row.querySelector(".goalrow__art");
       const artHint = row.querySelector(".goalrow__arthint");
       const orteW = row.querySelector(".gOrte");
@@ -3935,11 +4015,13 @@ function goalsSheet() {
         tags.innerHTML =
           (p.grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
+          (p.keinVorschlag ? "<span class='tag tag--soft'>keine Vorschläge</span>" : "") +
           (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "") +
           (f ? "<span class='tag'>" + escapeHtml(fmtTageListe(f.tage) + " " +
                 fmtTime(f.von) + "–" + fmtTime(f.bis) + " Uhr") + "</span>" : "") +
-          (an ? "<span class='tag'>nach " +
-                escapeHtml((areaById(an.ref) || {}).name || "") + "</span>" : "");
+          (an ? "<span class='tag'>" + (an.ref
+                ? "nach " + escapeHtml((areaById(an.ref) || {}).name || "")
+                : (an.tageszeit === "morgen" ? "morgens" : "abends")) + "</span>" : "");
       };
       paintTags();
 
@@ -3959,6 +4041,25 @@ function goalsSheet() {
           " min, danach " + A.pause + " min Pause.";
       };
       paintArt();
+
+      // Grob (Stufe 13 Teil F) — wie die Art sofort wirksam, nicht erst
+      // beim Zuklappen/Speichern (row._commit) wie die übrigen Felder unten.
+      const paintGrob = () => {
+        grobW.innerHTML = "";
+        [[false, "Feste Uhrzeit"], [true, "Nur Tageszeit"]].forEach(([val, label]) => {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.setAttribute("aria-pressed", String(!!p.grob === val));
+          c.textContent = label;
+          c.onclick = () => { p.grob = val; paintGrob(); paintTags(); };
+          grobW.appendChild(c);
+        });
+        grobHint.textContent = p.grob
+          ? "Der Vorschlag legt nur einen Tagesabschnitt fest — „Samstagabend, etwa zwei " +
+            "Stunden“ statt 14:00–16:30. Für Freizeit und Zeit mit Menschen oft ehrlicher."
+          : "Der Vorschlag setzt eine feste Uhrzeit, wie ein normaler Termin.";
+      };
+      paintGrob();
 
       // Ort
       ortChips(orteW, () => p.ortId, id => { p.ortId = id; paintTags(); });
@@ -3996,7 +4097,8 @@ function goalsSheet() {
 
       row._commit = () => {
         p.must = mustIn.checked;
-        p.grob = grobIn.checked;
+        p.keinVorschlag = kvIn.checked;
+        // p.grob: siehe paintGrob() oben — sofort gesetzt, kein Feld hier mehr.
         p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
         p.days = [...days].sort((x, y) => x - y);
         const f = parseTime(from.value), t = parseTime(to.value);
@@ -4778,7 +4880,26 @@ function sugSheet(b) {
       "Verschieben kannst du ihn auch einfach im Raster.</p>" +
       "<label class='switch'><input type='checkbox' id='sugWeekly'> " +
       "Fest übernehmen — ab jetzt jede Woche zu dieser Zeit</label>" +
+      // Teil F: "×" schaltet Vorschläge für DIESEN Bereich dauerhaft ab
+      // (area.plan.keinVorschlag) — wer einmal "kein Sport mehr" sagt, soll
+      // das nicht jede Woche neu wegklicken müssen.
+      "<div style='display:flex;align-items:center;gap:8px;margin-top:16px'>" +
+        "<span style='flex:1;font-size:var(--t-sm);color:var(--text-faint)'>Keine " +
+        escapeHtml(area.name) + "-Vorschläge mehr?</span>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='sugAusBereich' " +
+        "aria-label='Keine " + escapeHtml(area.name) + "-Vorschläge mehr'>×</button>" +
+      "</div>" +
       "<div id='sugAlt'></div>";
+
+    s.querySelector("#sugAusBereich").onclick = () => {
+      area.plan.keinVorschlag = true;
+      // Bestehende Vorschläge desselben Bereichs widersprächen sonst der
+      // gerade getroffenen Wahl — wie unlinkTask() beim Streichen (5390 ff.).
+      state.blocks.forEach(x => { if (x.sug && x.areaId === area.id) unlinkTask(x); });
+      state.blocks = state.blocks.filter(x => !(x.sug && x.areaId === area.id));
+      save(); close(); renderAll();
+      toast("Keine " + area.name + "-Vorschläge mehr");
+    };
 
     // Die zwei besten verworfenen Plätze (Stufe 11) — fallen beim Verteilen
     // ohnehin an, statt sie wegzuwerfen. „Trotzdem hierhin" setzt fix, sonst
@@ -4838,6 +4959,13 @@ function blockSheet(draft, dayKey) {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>" + (isNew ? "Neuer Eintrag" : "Eintrag bearbeiten") + "</h2>" +
+      // Begründungszeile (Stufe 13 Nachtrag zu Teil A) — bei einem
+      // angenommenen Vorschlag mit Ort zeigt die Agenda den Ort statt des
+      // Grundes (s. renderAgenda). Ohne diese Zeile wäre der Grund dann
+      // nirgends mehr zu lesen: sugSheet zeigt ihn nur, solange b.sug noch
+      // gilt, und acceptSuggestions() löscht nur .sug, nicht .grund.
+      // Dasselbe Muster wie dort: .agenda__sub.
+      (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
@@ -5453,13 +5581,20 @@ function renderAgenda() {
         let zeit, sub = "";
         if (e.grob) {
           zeit = abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer);
+          if (b.grund) sub = escapeHtml(b.grund);
         } else {
           zeit = fmtTime(b.start);
           const ortId = ortOf(b);
           const ortNaam = ortId ? ortName(ortId) : "";
+          // Ort hat Vorrang vor dem Grund (Stufe 13): er sagt WO, das ist am
+          // Ort-Bildschirm gefragter als das WARUM — der Grund bleibt im
+          // Vorschlags-/Block-Blatt abrufbar. Zwei Unterzeilen wären auf
+          // 320px zu viel (s. Auftrag).
           if (ortNaam) {
             const fahrt = weg(vorherOrt, ortId);
             sub = escapeHtml(ortNaam) + (fahrt > 0 ? " · " + fahrt + " min Weg" : "");
+          } else if (b.grund) {
+            sub = escapeHtml(b.grund);
           }
           vorherOrt = ortId || vorherOrt;
         }
@@ -5479,6 +5614,39 @@ function renderAgenda() {
     if (frei && frei.total >= 15) {
       html += "<div class='agenda__foot'>Danach frei · längster Block " + fmtDur(frei.longest) + "</div>";
     }
+  }
+
+  // Tagesabschluss (Stufe 13 Teil E): ab Feierabend jede heute offene Sache
+  // einmal verorten — abhaken, schieben oder zurück in die Aufgaben. Kein
+  // automatisches Verschieben auf morgen: das wäre der Punkt, an dem andere
+  // Planer bevormundend werden (s. Auftrag) — jede der drei Aktionen ist ein
+  // eigener Klick. Feierabend wie in grundAbzug (3159 ff.) aus dayEnd und der
+  // Nachtruhe abgeleitet, hier absichtlich noch einmal ausgeschrieben statt
+  // geteilt — dieselbe kleine Dopplung trägt der Code schon zweimal (dort
+  // und in slotScore). dayMeta().abschlussWeg blendet für den Rest des Tages
+  // aus, genau wie .frei/.energy/.erststartSpaeter kein eigener Speicher.
+  const feierabendRuhe = restSpans().filter(r => r.end >= 1440).map(r => r.start);
+  const feierabend = Math.min(state.settings.dayEnd * 60, ...(feierabendRuhe.length ? feierabendRuhe : [1440]));
+  const tagMeta = heute ? dayMetaLesen(dayKey) : null;
+  const offenHeute = heute ? eintraege.filter(e => !istErledigt(e.block, dayKey)) : [];
+  if (heute && jetzt >= feierabend && !(tagMeta && tagMeta.abschlussWeg) && offenHeute.length) {
+    html += "<div class='agenda__label'>Tagesabschluss</div>"
+      + "<div class='abschlussliste'>"
+      + offenHeute.map(e => {
+          const b = e.block, a = areaById(b.areaId);
+          const zeit = e.grob ? abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer) : fmtTime(b.start);
+          return "<div class='abschlussrow' style='--h:" + a.hue + "'>"
+            + "<div class='abschlussrow__title'><span class='goal__dot'></span>"
+            + escapeHtml(b.title || a.name)
+            + "<span class='abschlussrow__zeit num'>" + zeit + "</span></div>"
+            + "<div class='abschlussrow__acts'>"
+            + "<button type='button' class='btn btn--sm' data-abschluss='ab' data-id='" + b.id + "'>Abhaken</button>"
+            + "<button type='button' class='btn btn--sm' data-abschluss='schieben' data-id='" + b.id + "'>Schieben</button>"
+            + "<button type='button' class='btn btn--sm' data-abschluss='aufgabe' data-id='" + b.id + "'>Zu Aufgaben</button>"
+            + "</div></div>";
+        }).join("")
+      + "</div>"
+      + "<button type='button' class='btn btn--sm btn--ghost' id='abschlussWeg' style='width:100%'>Für heute ausblenden</button>";
   }
 
   box.innerHTML = html;
@@ -5501,6 +5669,40 @@ function renderAgenda() {
       save();
     };
   });
+
+  // Tagesabschluss — drei Aktionen je Zeile (Stufe 13 Teil E). "Schieben"
+  // nutzt denselben moveSheet() wie das lange Drücken unten (5734 ff.),
+  // statt einen zweiten Tagesauswahl-Dialog zu bauen.
+  box.querySelectorAll("[data-abschluss]").forEach(btn => {
+    btn.onclick = () => {
+      const b = state.blocks.find(x => x.id === btn.dataset.id);
+      if (!b) return;
+      const art = btn.dataset.abschluss;
+      if (art === "ab") {
+        setzeErledigt(b, dayKey, true);
+        save(); renderAll();
+      } else if (art === "schieben") {
+        moveSheet(b.id);
+      } else if (art === "aufgabe") {
+        // Wie unlinkTask() beim Löschen einer Aufgabe (5389 ff.), nur
+        // umgekehrt: der Block geht, die Aufgabe bleibt — und entsteht neu,
+        // wenn es noch keine gab.
+        unlinkTask(b);
+        if (!b.taskId) {
+          state.tasks.unshift({ id: uid(), title: b.title || areaById(b.areaId).name,
+            areaId: b.areaId, done: false, frog: !!b.frog, dauer: dauerVon(b) });
+        }
+        state.blocks = state.blocks.filter(x => x.id !== b.id);
+        save(); renderAll();
+        toastUndo("Zurück in die Aufgaben");
+      }
+    };
+  });
+  const abschlussWegBtn = $("#abschlussWeg");
+  if (abschlussWegBtn) abschlussWegBtn.onclick = () => {
+    dayMeta(dayKey).abschlussWeg = true;
+    save(); renderAgenda();
+  };
 
   // Verschieben aus der Agenda — ohne die Zeile mit einem eigenen Knopf
   // zuzustellen. Langes Drücken spricht dieselbe Sprache wie das Anlegen
@@ -5960,6 +6162,54 @@ function ritualSheet() {
       liste.className = "zieleliste";
       box.appendChild(liste);
 
+      /* Anker-Frage (Stufe 13 Teil B) — der Wenn-Dann-Vorsatz aus der
+         Forschung, nur ohne das Wort dafür. Nur für Bereiche mit Ziel diese
+         Woche: "Wann?" ohne Ziel ist eine Frage ohne Gegenstand. Vier Chips,
+         eine Entscheidung — nie ein Formularfeld (s. Auftrag). Dieselbe
+         Ablage wie der Anker aus Stufe 9 (area.regeln.anker): "Nach der
+         Arbeit" nutzt den bestehenden ref-Zweig, "Morgens"/"Abends" den
+         neuen Tageszeit-Zweig (freeGaps, migrate, placeGrob). Die Wahl liest
+         der Nutzer danach unter jedem Vorschlag wieder (grundFuer/placeGrob). */
+      function ankerZeile(a) {
+        const wrap = document.createElement("div");
+        wrap.className = "zielanker";
+        const lab = document.createElement("span");
+        lab.className = "zielanker__lab";
+        lab.textContent = "Wann?";
+        wrap.appendChild(lab);
+
+        // "Nach der Arbeit" braucht einen Bereich dieses Namens — fehlt er
+        // (umbenannt, gelöscht) oder ist es der Bereich selbst, gibt es die
+        // Option nicht, statt ins Leere zu zeigen.
+        const arbeit = state.areas.find(x => x.id !== a.id &&
+          String(x.name || "").trim().toLowerCase() === "arbeit");
+        const anker = a.regeln && a.regeln.anker;
+        const aktuell = anker && anker.ref ? "arbeit" : anker && anker.tageszeit ? anker.tageszeit : "egal";
+
+        const optionen = [
+          arbeit ? ["arbeit", "Nach der Arbeit"] : null,
+          ["morgen", "Morgens"], ["abend", "Abends"], ["egal", "Egal"]
+        ].filter(Boolean);
+
+        optionen.forEach(([key, label]) => {
+          const c = document.createElement("button");
+          c.type = "button"; c.className = "chip";
+          c.textContent = label;
+          c.setAttribute("aria-pressed", String(aktuell === key));
+          c.onclick = () => {
+            const neu = key === "egal" ? null
+              : key === "arbeit"
+              ? (anker && anker.ref === arbeit.id ? anker : { ref: arbeit.id, min: 30, max: 180, sonst: "aus" })
+              : { tageszeit: key };
+            const fenster = (a.regeln && a.regeln.fenster) || [];
+            a.regeln = (fenster.length || neu) ? { fenster, anker: neu } : null;
+            save(); zeichnen();
+          };
+          wrap.appendChild(c);
+        });
+        return wrap;
+      }
+
       const zeichnen = () => {
         liste.innerHTML = "";
         state.areas.forEach(a => {
@@ -5987,6 +6237,7 @@ function ritualSheet() {
           stepper.append(minus, wert, plus);
           row.append(name, stepper);
           liste.appendChild(row);
+          if (a.plan.goal > 0) liste.appendChild(ankerZeile(a));
         });
         const amp = document.createElement("div");
         amp.style.marginTop = "16px";
@@ -6002,18 +6253,24 @@ function ritualSheet() {
         box.innerHTML = "";
         const lead = document.createElement("p");
         lead.className = "ritual__lead";
-        const offen = state.areas.reduce((n, a) => {
-          if (!(a.plan.goal > 0)) return n;
-          return n + Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true));
-        }, 0);
-        if (hasSuggestions()) {
-          lead.innerHTML = "Der Vorschlag steht im Plan. Schau ihn dir an — was nicht passt, " +
-            "verschiebst du oder wirfst du raus.";
-        } else if (offen >= 15) {
-          lead.innerHTML = "<b>" + fmtDur(offen) + "</b> aus deinen Wochenzielen haben noch " +
-            "keinen Platz. Der Planer sucht ihn — annehmen musst du selbst.";
+        const zieleAreas = state.areas.filter(a => a.plan.goal > 0);
+        const offenJeArea = a => Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true));
+        const offen = zieleAreas.reduce((n, a) => n + offenJeArea(a), 0);
+        // Kennzahl (Stufe 13 Teil D): nicht mehr "wie viel ist offen", sondern
+        // "wie viele Ziele haben schon einen Platz" — nach Masicampo &
+        // Baumeister entlastet das Verorten, nicht das Abhaken. Ein Vorschlag
+        // zählt schon als Platz, er ist ja einer; erst "Verwerfen" nimmt ihn
+        // wieder weg. Dieselbe Toleranz (15 Min) wie bisher bei "offen".
+        const platziert = zieleAreas.filter(a => offenJeArea(a) < 15).length;
+        if (!zieleAreas.length) {
+          lead.innerHTML = "Keine Wochenziele diese Woche — nichts zu verteilen.";
         } else {
-          lead.innerHTML = "Deine Ziele stehen schon im Plan. Nichts mehr zu verteilen.";
+          lead.innerHTML = "<b>" + platziert + " von " + zieleAreas.length + "</b> Zielen hat einen Platz diese Woche.";
+          if (hasSuggestions()) {
+            lead.innerHTML += " Schau den Vorschlag durch — was nicht passt, verschiebst du oder wirfst du raus.";
+          } else if (offen >= 15) {
+            lead.innerHTML += " Der Planer sucht den Rest — annehmen musst du selbst.";
+          }
         }
         box.appendChild(lead);
 
@@ -6055,6 +6312,16 @@ function ritualSheet() {
         z.className = "btn"; z.type = "button"; z.textContent = "Zurück";
         z.onclick = () => { schritt--; malen(); };
         foot.appendChild(z);
+      } else {
+        // Stufe 13 Teil C: Schritt 1 hat kein "Zurück" — ohne einen eigenen
+        // Ausgang bliebe nur der Tipp neben das Blatt, auf 320px kaum
+        // erreichbar. "Später" schließt, ohne den Wochenstart als erledigt
+        // zu markieren — die Karte (renderRitual/ritualFaellig) bietet ihn
+        // beim nächsten Öffnen der App wieder an.
+        const spaeter = document.createElement("button");
+        spaeter.className = "btn btn--ghost"; spaeter.type = "button"; spaeter.textContent = "Später";
+        spaeter.onclick = () => close();
+        foot.appendChild(spaeter);
       }
       const sp = document.createElement("span"); sp.className = "spacer";
       foot.appendChild(sp);
@@ -7285,8 +7552,19 @@ $("#fabAdd").onclick = () => {
    nicht als Vorgabe. Zahlen in Stunden pro Woche. */
 const START_ZIELE = { a3: 3, a4: 2, a5: 6, a6: 3, a7: 2 };
 
+/* Stufe 13 Teil C: "Später" im Erststart schließt, ohne etwas anzulegen —
+   damit bleiben state.blocks/tasks/profile.name leer und der Wächter unten
+   würde den Assistenten beim nächsten Laden sofort wieder aufmachen, unter
+   Umständen mehrfach am selben Tag. Die Notiz sitzt auf state.days[heute]
+   (wie .frei/.energy) statt in einem eigenen Speicher — dieselbe Ablage wie
+   für den Tagesabschluss unten, kein zweiter Mechanismus für dieselbe Idee. */
+function erststartHeuteAbgelehnt() {
+  const m = dayMetaLesen(iso(new Date()));
+  return !!(m && m.erststartSpaeter);
+}
+
 function maybeWelcome() {
-  if (state.blocks.length || state.tasks.length || state.profile.name) return;
+  if (state.blocks.length || state.tasks.length || state.profile.name || erststartHeuteAbgelehnt()) return;
 
   let schritt = 0;
   const ein = {
@@ -7465,6 +7743,15 @@ function maybeWelcome() {
     /* --- Fußzeile ----------------------------------------------------- */
     function malenFoot() {
       foot.innerHTML = "";
+      // Stufe 13 Teil C: an jeder Station sichtbar, nicht nur der ersten —
+      // "alle überspringbar" (Kommentar oben) galt bisher nur für den Inhalt
+      // einer Frage (Weiter übernimmt die Vorgabe), nie als eigener Ausgang.
+      // Schließt ohne anzulegen; die Notiz auf dayMeta() merkt sich den Tag,
+      // damit der Assistent nicht gleich beim nächsten Laden wieder aufspringt.
+      const spaeter = document.createElement("button");
+      spaeter.className = "btn btn--ghost"; spaeter.type = "button"; spaeter.textContent = "Später";
+      spaeter.onclick = () => { dayMeta(iso(new Date())).erststartSpaeter = true; save(); close(); };
+      foot.appendChild(spaeter);
       if (schritt > 0) {
         const z = document.createElement("button");
         z.className = "btn"; z.type = "button"; z.textContent = "Zurück";

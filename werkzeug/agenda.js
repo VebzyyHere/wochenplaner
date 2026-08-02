@@ -13,12 +13,14 @@
    Stil wie audit.js: eine Chromium-Seite, deutsche Ausgabe, Exit 1 bei Fehlern.
 
    Anmerkung zu (a): der Auftrag nennt als untere Grenze ".dayswitch". Das
-   Element sitzt aber laut Markup (~1243) VOR ".main" und damit am oberen
-   Bildschirmrand (siehe Messung unten) — es kann keine Fuß-Kante sein, an
-   der eine Agenda "endet". Die tatsächliche untere Kante der Ansicht ist
-   die fixe Tabbar (".tabbar", unten, Daumenzone). Geprüft wird deshalb
-   Agenda-Unterkante < Tabbar-Oberkante; die Dayswitch-Werte werden zur
-   Kontrolle mit ausgegeben. Siehe Bericht für die Begründung.
+   Element steht laut Markup (~1243) zwar VOR ".main", sitzt seit Stufe 8
+   aber per CSS-order (order:2, siehe .dayswitch/.tabbar) direkt über der
+   Tabbar — am unteren, nicht mehr am oberen Bildschirmrand (siehe Messung
+   unten). Trotzdem bleibt die feste Tabbar (".tabbar", unten, Daumenzone)
+   die geprüfte Fuß-Kante: sie steht immer, .dayswitch nur bei data-tage="1"
+   (sonst display:none, s. CSS). Geprüft wird deshalb Agenda-Unterkante <
+   Tabbar-Oberkante; die Dayswitch-Werte werden zur Kontrolle mit ausgegeben.
+   Siehe Bericht für die Begründung.
 
    Diese strenge Falz (a) gilt für die Standardschrift. Bei vergrößerter
    Systemschrift ist Scrollen die gewollte Folge größerer Schrift — dafür
@@ -118,7 +120,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   ok(rects.agenda.bottom <= rects.tabbar.top,
     `Agenda-Unterkante (${rects.agenda.bottom.toFixed(1)}) liegt über Tabbar-Oberkante (${rects.tabbar.top.toFixed(1)})`);
   console.log(`   Zur Kontrolle: .dayswitch liegt bei top ${rects.dayswitch.top.toFixed(1)}–bottom ${rects.dayswitch.bottom.toFixed(1)} `
-    + '(am oberen Bildschirmrand, nicht als Fußkante der Agenda nutzbar)');
+    + '(seit Stufe 8 unten über der Tabbar, nicht mehr am oberen Bildschirmrand — als Fußkante der Agenda trotzdem ungeeignet, s. Kommentar oben)');
   await p.screenshot({ path: 'ag-falz-hell.png' });
 
   /* ---- b) 44px Trefferflächen ------------------------------------------- */
