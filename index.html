@@ -1927,7 +1927,36 @@ function migrate(s) {
     const m = s.days[b.date];
     return !(m && m.frei);
   });
-  s.version = 8;
+
+  // v9: Regeln, die am Vorhaben hängen statt am Bereich — Fenster (erlaubte
+  // Wochentage + Uhrzeit) und Anker (frühestens/spätestens nach dem letzten
+  // Block eines anderen Bereichs). Geschwister von a.plan, nicht darin: a.plan
+  // wird oben aus einer Whitelist neu aufgebaut, jedes fremde Feld darin würde
+  // bei jedem Laden verschwinden. Wertbasiert statt über s.version, damit ein
+  // fremder oder alter Stand beim nächsten Kontakt genauso sauber ankommt.
+  // task.regeln bekommt hier absichtlich keine Behandlung — migrate() baut
+  // Aufgaben nicht aus einer Whitelist neu auf, also droht dort kein Verlust.
+  s.areas.forEach(a => {
+    if (a.regeln === undefined) a.regeln = null;
+    if (!a.regeln || typeof a.regeln !== "object") return;
+    const fenster = Array.isArray(a.regeln.fenster)
+      ? a.regeln.fenster.filter(f => f && Array.isArray(f.tage) && f.tage.length &&
+          typeof f.von === "number" && typeof f.bis === "number" && f.bis > f.von)
+      : [];
+    const roh = a.regeln.anker;
+    // max ist Pflicht — ohne Obergrenze wäre "mind. 30 Min nach Feierabend"
+    // auch um 23:30 noch formal erfüllt. ref muss auf einen noch vorhandenen
+    // Bereich zeigen — wie plan.ortId oben verwaist eine Referenz, wenn der
+    // Bereich auf einem anderen Gerät gelöscht wurde.
+    const anker = (roh && typeof roh === "object" && roh.ref && typeof roh.max === "number" &&
+                   s.areas.some(x => x.id === roh.ref))
+      ? { ref: roh.ref, min: typeof roh.min === "number" ? roh.min : 0, max: roh.max,
+          sonst: roh.sonst === "fenster" ? "fenster" : "aus" }
+      : null;
+    a.regeln = (fenster.length || anker) ? { fenster, anker } : null;
+  });
+
+  s.version = 9;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -2719,25 +2748,75 @@ function pauseNach(len, area) {
   return grund;
 }
 
+/* Ende des letzten "echten" Blocks eines Bereichs an einem Tag — nicht grob,
+   kein Vorschlag. Grundlage für den Anker unten. Bewusst aus den Blöcken
+   abgeleitet statt an eine feste Block-ID gebunden: die bräche, sobald der
+   Termin verschoben wird oder an einem freien Tag fehlt. */
+function ankerEnde(ref, day) {
+  let e = null;
+  state.blocks.forEach(b => {
+    if (b.areaId !== ref || b.grob || b.sug) return;
+    if (onDay(b, day.key, day.i)) e = Math.max(e === null ? -1 : e, b.end);
+  });
+  return e;
+}
+
+/* Erlaubt ein Fenster diesen Wochentag? Leer oder fehlend heißt: jeder Tag
+   erlaubt — der unveränderte Altzustand ohne regeln. */
+function fensterErlaubtTag(regeln, dayIdx) {
+  const fenster = regeln && Array.isArray(regeln.fenster) ? regeln.fenster : [];
+  return !fenster.length || fenster.some(f => Array.isArray(f.tage) && f.tage.includes(dayIdx));
+}
+
 /* Freie Lücken eines Tages innerhalb des erlaubten Fensters.
    Vergangenes wird ausgelassen — ein Vorschlag für gestern hilft niemandem.
    Schlaf- und Ruhezeit zählen wie ein belegter Block: der Vorschlag geht
-   darum herum, von Hand eintragen darf man dort trotzdem. */
+   darum herum, von Hand eintragen darf man dort trotzdem.
+
+   Ab v9 kann der Bereich zusätzlich area.regeln tragen (Geschwister von
+   plan, siehe migrate): Fenster grenzen Wochentag und Uhrzeit ein, ein
+   Anker bindet die Zeit an das Ende eines anderen Bereichs an diesem Tag.
+   Beides klemmt dieselbe(n) lo/hi-Spanne(n) weiter ein — mit mehreren
+   Fenstern können daraus mehrere Spannen an einem Tag werden. Jeder harte
+   Ausschluss sammelt sich lesbar in .gruende, für die Begründungszeile
+   einer späteren Stufe — hier noch ohne Anzeige. */
 function freeGaps(day, plan, area) {
   const areaId = area && area.id;
   const todayKey = iso(new Date());
   if (day.key < todayKey) return [];
-  if (istFrei(day.key)) return [];
 
-  const lo = Math.max(state.settings.dayStart * 60, plan.from == null ? 0 : plan.from);
-  const hi = Math.min(state.settings.dayEnd * 60, plan.to == null ? 1440 : plan.to);
-  if (hi - lo < 15) return [];
+  const gruende = [];
+  const leer = () => { const g = []; g.gruende = gruende; return g; };
+  if (istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
 
-  let cursor = lo;
-  if (day.key === todayKey) {
-    const now = new Date().getHours() * 60 + new Date().getMinutes();
-    cursor = Math.max(cursor, Math.ceil((now + 10) / 15) * 15);
+  const regeln = area && area.regeln;
+  if (!fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
+
+  const basisLo = Math.max(state.settings.dayStart * 60, plan.from == null ? 0 : plan.from);
+  const basisHi = Math.min(state.settings.dayEnd * 60, plan.to == null ? 1440 : plan.to);
+  const fensterHeute = (regeln && Array.isArray(regeln.fenster))
+    ? regeln.fenster.filter(f => f.tage.includes(day.i)) : [];
+
+  let spans = fensterHeute.length
+    ? fensterHeute.map(f => ({ start: Math.max(basisLo, f.von), end: Math.min(basisHi, f.bis) }))
+    : [{ start: basisLo, end: basisHi }];
+  spans = spans.filter(sp => sp.end - sp.start >= 15);
+
+  if (regeln && regeln.anker && regeln.anker.ref) {
+    const refName = (areaById(regeln.anker.ref) || {}).name || "";
+    const ende = ankerEnde(regeln.anker.ref, day);
+    if (ende === null) {
+      gruende.push("kein " + refName + " an diesem Tag");
+      if (regeln.anker.sonst === "aus") spans = [];
+    } else {
+      gruende.push("mind. " + fmtDur(regeln.anker.min) + " nach " + refName);
+      spans = spans
+        .map(sp => ({ start: Math.max(sp.start, ende + regeln.anker.min),
+                       end: Math.min(sp.end, ende + regeln.anker.max) }))
+        .filter(sp => sp.end - sp.start >= 15);
+    }
   }
+  if (!spans.length) return leer();
 
   // Der Abstand zu einem vorhandenen Block ist der größte von dreien:
   // seine Wegzeit, die Wegzeit dessen, was hier hin soll, und die Mindestpause.
@@ -2760,16 +2839,34 @@ function freeGaps(day, plan, area) {
     .concat(restSpans())
     .sort((a, b) => a.start - b.start);
 
-  const gaps = [];
-  busy.forEach(b => {
-    if (b.start > cursor) gaps.push({ start: cursor, end: b.start });
-    cursor = Math.max(cursor, b.end);
-  });
-  gaps.push({ start: cursor, end: hi });
+  const nowCursor = day.key === todayKey
+    ? Math.ceil((new Date().getHours() * 60 + new Date().getMinutes() + 10) / 15) * 15
+    : null;
 
-  return gaps
-    .map(g => ({ start: Math.max(g.start, lo), end: Math.min(g.end, hi) }))
-    .filter(g => g.end - g.start >= 15);
+  const gaps = [];
+  spans.forEach(sp => {
+    let cursor = nowCursor == null ? sp.start : Math.max(sp.start, nowCursor);
+    busy.forEach(b => {
+      if (cursor >= sp.end) return;
+      if (b.start > cursor) gaps.push({ start: cursor, end: Math.min(b.start, sp.end) });
+      cursor = Math.max(cursor, b.end);
+    });
+    if (cursor < sp.end) gaps.push({ start: cursor, end: sp.end });
+  });
+
+  // Je Fenster für sich geklemmt, jetzt sortiert zusammengeführt — mehrere
+  // Fenster können sonst überlappende oder direkt angrenzende Lücken lassen.
+  gaps.sort((a, b) => a.start - b.start);
+  const merged = [];
+  gaps.forEach(g => {
+    const last = merged[merged.length - 1];
+    if (last && g.start <= last.end) last.end = Math.max(last.end, g.end);
+    else merged.push({ start: g.start, end: g.end });
+  });
+
+  const out = merged.filter(g => g.end - g.start >= 15);
+  out.gruende = gruende;
+  return out;
 }
 
 /* Wie voll ist ein Tag schon — inklusive der Vorschläge, die dieser
@@ -2877,6 +2974,7 @@ function placeGrob(area, open, tage) {
   tage.forEach(day => {
     if (day.key < heuteKey) return;
     if (istFrei(day.key)) return;
+    if (!fensterErlaubtTag(area.regeln, day.i)) return;
     reihenfolge.forEach((teil, rang) => {
       const a = abschnittVon(teil);
       // Ein Abschnitt, der heute schon vorbei ist, hilft niemandem mehr
@@ -3017,6 +3115,21 @@ function growSuggestions(area, rest) {
   for (const day of weekDays()) {
     if (!p.days.includes(day.i)) continue;
     if (day.key < iso(new Date())) continue;
+
+    // area.regeln (Stufe 9) kann die Tagesobergrenze enger ziehen als hi —
+    // Fenster-Ende und Anker-Ende+max. Ohne das wächst ein Vorschlag über
+    // genau die Grenze hinaus, die ihn erst hierher gestellt hat.
+    let hiTag = hi;
+    if (area.regeln) {
+      const fensterHeute = Array.isArray(area.regeln.fenster)
+        ? area.regeln.fenster.filter(f => f.tage.includes(day.i)) : [];
+      if (fensterHeute.length) hiTag = Math.min(hiTag, Math.max(...fensterHeute.map(f => f.bis)));
+      if (area.regeln.anker && area.regeln.anker.ref) {
+        const ende = ankerEnde(area.regeln.anker.ref, day);
+        if (ende !== null) hiTag = Math.min(hiTag, ende + area.regeln.anker.max);
+      }
+    }
+
     const all = state.blocks.filter(b => onDay(b, day.key, day.i))
       .sort((a, b) => a.start - b.start);
 
@@ -3033,7 +3146,7 @@ function growSuggestions(area, rest) {
                                      pauseNach(x.end - x.start, areaById(x.areaId))))
         .concat(restSpans().filter(r => r.end > b.end).map(r => r.start));
 
-      const limit = Math.min(hi, ...hindernisse.filter(v => v >= b.end));
+      const limit = Math.min(hiTag, ...hindernisse.filter(v => v >= b.end));
       const grow = Math.floor(
         Math.min(limit - b.end, artOf(area).max - (b.end - b.start), rest - used) / 15) * 15;
       if (grow >= 15) { b.end += grow; used += grow; }
@@ -3047,10 +3160,13 @@ function buildSuggestions() {
 
   // Erst das, was sein muss — dann der Rest. Bei knappem Platz soll nicht
   // der Serienabend den Lernblock verdraengen, nur weil er groesser war.
+  // Bei Gleichstand geht der engste Bereich zuerst — sonst frisst ein
+  // flexibler Bereich das knappe Fenster eines unflexiblen leer.
   const todo = state.areas
-    .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) }))
+    .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false),
+      kandidatentage: weekDays().filter(d => a.plan.days.includes(d.i) && fensterErlaubtTag(a.regeln, d.i)).length }))
     .filter(x => x.open >= 15)
-    .sort((x, y) => (y.a.plan.must - x.a.plan.must) || (y.open - x.open));
+    .sort((x, y) => (y.a.plan.must - x.a.plan.must) || (y.open - x.open) || (x.kandidatentage - y.kandidatentage));
 
   let placed = 0, missing = 0;
   todo.forEach(({ a, open }) => {
@@ -3284,6 +3400,158 @@ function goalHint(done, sug, open, goal) {
   return "<b>" + fmtDur(goal - done) + "</b> noch offen";
 }
 
+/* Wochentage lesbar zusammenfassen: "Mo–Sa" statt "Mo, Di, Mi, Do, Fr, Sa".
+   idx muss aufsteigend sortiert und lückenlos in sich eindeutig sein. */
+function fmtTageListe(idx) {
+  if (!idx.length) return "";
+  const teile = [];
+  let start = idx[0], prev = idx[0];
+  for (let k = 1; k <= idx.length; k++) {
+    const cur = idx[k];
+    if (cur === prev + 1) { prev = cur; continue; }
+    teile.push(start === prev ? DAY_SHORT[start] : DAY_SHORT[start] + "–" + DAY_SHORT[prev]);
+    start = prev = cur;
+  }
+  return teile.join(", ");
+}
+
+// Anker-Puffer als Chips statt Zahlenfeld — dieselbe Entscheidung wie bei der
+// Art (siehe Kommentar dort): eine überschaubare Auswahl statt geratener Zahlen.
+const ANKER_MIN_OPTS = [0, 15, 30, 45, 60, 90, 120];
+const ANKER_MAX_OPTS = [60, 90, 120, 180, 240, 360, 480];
+
+/* Baut die zwei Regeln-Zeilen (Fenster + Anker) aus Stufe 9 in wrap und
+   liefert eine commit()-Funktion, die den lokalen Zustand nach obj.regeln
+   schreibt — genau wie die Tage-Chips oben erst beim Zuklappen/Speichern,
+   nicht bei jedem Klick. area.regeln und task.regeln haben dieselbe Form
+   (siehe migrate), darum ein gemeinsamer Editor für goalsSheet und
+   taskSheet. selbstId schließt den eigenen Bereich aus der Anker-Auswahl
+   aus — an sich selbst ankern ergibt keinen Sinn. */
+function regelnEditor(wrap, obj, selbstId) {
+  const alt = obj.regeln || null;
+  const fAlt = (alt && alt.fenster && alt.fenster[0]) || null;
+  const aAlt = (alt && alt.anker) || null;
+
+  const tage = new Set(fAlt ? fAlt.tage : []);
+  let von = fAlt ? fAlt.von : state.settings.dayStart * 60;
+  let bis = fAlt ? fAlt.bis : state.settings.dayEnd * 60;
+  let ankerRef = aAlt ? aAlt.ref : null;
+  let ankerMin = aAlt ? aAlt.min : 30;
+  let ankerMax = aAlt ? aAlt.max : 180;
+
+  wrap.innerHTML =
+    "<p class='goalrow__sub'>Nur an bestimmten Tagen/Uhrzeiten möglich? " +
+      "(zusätzlich zum Zeitraum oben)</p>" +
+    "<div class='chipset rTage' style='margin-bottom:8px'></div>" +
+    "<div class='sheet__cols' style='margin-bottom:6px'>" +
+      "<div><label class='label'>Von</label><input class='field rVon' type='time' step='900'></div>" +
+      "<div><label class='label'>Bis</label><input class='field rBis' type='time' step='900'></div>" +
+    "</div>" +
+    "<p class='goalrow__sub' style='margin:0 0 14px' data-hint='f'></p>" +
+    "<p class='goalrow__sub'>Wann? Nach einem anderen Bereich, mit Puffer.</p>" +
+    "<div class='chipset rBereich' style='margin-bottom:8px'></div>" +
+    "<div class='chipset rMin' style='margin-bottom:8px'></div>" +
+    "<div class='chipset rMax'></div>" +
+    "<p class='goalrow__sub' style='margin:6px 0 0' data-hint='a'></p>";
+
+  const tageW = wrap.querySelector(".rTage");
+  const vonIn = wrap.querySelector(".rVon");
+  const bisIn = wrap.querySelector(".rBis");
+  const fHint = wrap.querySelector("[data-hint='f']");
+  const bereichW = wrap.querySelector(".rBereich");
+  const minW = wrap.querySelector(".rMin");
+  const maxW = wrap.querySelector(".rMax");
+  const aHint = wrap.querySelector("[data-hint='a']");
+  vonIn.value = fmtTime(von);
+  bisIn.value = fmtTime(bis);
+
+  const paintFHint = () => {
+    fHint.textContent = tage.size
+      ? fmtTageListe([...tage].sort((x, y) => x - y)) + " " + fmtTime(von) + "–" + fmtTime(bis) + " Uhr"
+      : "Ohne eigene Einschränkung.";
+  };
+  const paintTage = () => {
+    tageW.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.setAttribute("aria-pressed", String(tage.has(i)));
+      c.textContent = DAY_SHORT[i];
+      c.onclick = () => { tage.has(i) ? tage.delete(i) : tage.add(i); paintTage(); paintFHint(); };
+      tageW.appendChild(c);
+    }
+  };
+  paintTage(); paintFHint();
+  vonIn.oninput = () => { von = parseTime(vonIn.value); paintFHint(); };
+  bisIn.oninput = () => { bis = parseTime(bisIn.value); paintFHint(); };
+
+  const paintAHint = () => {
+    aHint.textContent = ankerRef
+      ? "Nach " + ((areaById(ankerRef) || {}).name || "") + " +" + fmtDur(ankerMin) + " bis +" + fmtDur(ankerMax)
+      : "Kein Anker — das Zeitfenster oben gilt unverändert.";
+  };
+  const paintBereich = () => {
+    bereichW.innerHTML = "";
+    const aus = document.createElement("button");
+    aus.type = "button"; aus.className = "chip";
+    aus.setAttribute("aria-pressed", String(ankerRef === null));
+    aus.textContent = "Aus";
+    aus.onclick = () => { ankerRef = null; paintBereich(); paintAHint(); };
+    bereichW.appendChild(aus);
+    state.areas.forEach(ar => {
+      if (selbstId && ar.id === selbstId) return;
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.style.setProperty("--h", ar.hue);
+      c.setAttribute("aria-pressed", String(ankerRef === ar.id));
+      c.innerHTML = "<span class='chip__dot'></span>";
+      c.append(ar.name);
+      c.onclick = () => { ankerRef = ar.id; paintBereich(); paintAHint(); };
+      bereichW.appendChild(c);
+    });
+  };
+  const paintMin = () => {
+    minW.innerHTML = "";
+    ANKER_MIN_OPTS.forEach(m => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip num";
+      c.textContent = "+" + fmtDur(m);
+      c.setAttribute("aria-pressed", String(ankerMin === m));
+      c.onclick = () => {
+        ankerMin = m;
+        if (ankerMax <= ankerMin) ankerMax = ANKER_MAX_OPTS.find(x => x > ankerMin) || ankerMin + 60;
+        paintMin(); paintMax(); paintAHint();
+      };
+      minW.appendChild(c);
+    });
+  };
+  const paintMax = () => {
+    maxW.innerHTML = "";
+    ANKER_MAX_OPTS.forEach(m => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip num";
+      c.textContent = "bis +" + fmtDur(m);
+      c.setAttribute("aria-pressed", String(ankerMax === m));
+      c.disabled = m <= ankerMin;
+      if (c.disabled) c.style.opacity = ".4";
+      c.onclick = () => { ankerMax = m; paintMax(); paintAHint(); };
+      maxW.appendChild(c);
+    });
+  };
+  paintBereich(); paintMin(); paintMax(); paintAHint();
+
+  return {
+    commit() {
+      const fenster = (tage.size && bis > von)
+        ? [{ tage: [...tage].sort((x, y) => x - y), von, bis }] : [];
+      // sonst: "aus" ist der einzige Weg, den diese Stufe anbietet — ein Tag
+      // ohne Bezugsblock fällt weg, statt das Fenster ungebremst zu öffnen.
+      const anker = ankerRef ? { ref: ankerRef, min: ankerMin, max: ankerMax, sonst: "aus" } : null;
+      obj.regeln = (fenster.length || anker) ? { fenster, anker } : null;
+    }
+  };
+}
+
 /* ============================================================ Ziele bearbeiten */
 function goalsSheet() {
   modal((s, close) => {
@@ -3334,6 +3602,7 @@ function goalsSheet() {
           "</div>" +
           "<p class='goalrow__sub'>Wo findet das statt? Daraus rechnet der Planer die Fahrzeit.</p>" +
           "<div class='chipset gOrte'></div>" +
+          "<div class='gRegeln'></div>" +
         "</div>";
 
       const hIn   = row.querySelector(".goalrow__h");
@@ -3348,13 +3617,20 @@ function goalsSheet() {
       const artW  = row.querySelector(".goalrow__art");
       const artHint = row.querySelector(".goalrow__arthint");
       const orteW = row.querySelector(".gOrte");
+      const regeln = regelnEditor(row.querySelector(".gRegeln"), a, a.id);
 
       const tags = row.querySelector(".goalrow__tags");
       const paintTags = () => {
+        const f = a.regeln && a.regeln.fenster && a.regeln.fenster[0];
+        const an = a.regeln && a.regeln.anker;
         tags.innerHTML =
           (p.grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
-          (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "");
+          (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "") +
+          (f ? "<span class='tag'>" + escapeHtml(fmtTageListe(f.tage) + " " +
+                fmtTime(f.von) + "–" + fmtTime(f.bis) + " Uhr") + "</span>" : "") +
+          (an ? "<span class='tag'>nach " +
+                escapeHtml((areaById(an.ref) || {}).name || "") + "</span>" : "");
       };
       paintTags();
 
@@ -3420,6 +3696,7 @@ function goalsSheet() {
         // Blocklängen kommen aus der Art — die beiden Zahlenfelder sind weg.
         const A = ARTEN[p.art] || ARTEN.orga;
         p.min = A.min; p.max = A.max;
+        regeln.commit();
       };
 
       wrap.appendChild(row);
@@ -4537,7 +4814,8 @@ function taskSheet(t) {
       "<div class='chipset' id='tkDauer'></div>" +
       "<div id='tkDauerHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
       "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
-      "Das Wichtigste — zuerst dran</label></div>";
+      "Das Wichtigste — zuerst dran</label></div>" +
+      "<div class='sheet__row' id='tkRegeln' hidden></div>";
 
     const titel = s.querySelector("#tkTitle");
     titel.value = t.title;
@@ -4586,6 +4864,23 @@ function taskSheet(t) {
     frogBox.checked = wichtig;
     frogBox.onchange = () => { wichtig = frogBox.checked; };
 
+    // Wann genau — hinter einem Umschalter wie im Zieldialog, damit die
+    // schnelle Aufgabe schnell bleibt und Regeln nur sieht, wer sie will.
+    const regelnToggle = document.createElement("button");
+    regelnToggle.type = "button"; regelnToggle.className = "btn";
+    regelnToggle.style.width = "100%";
+    regelnToggle.setAttribute("aria-expanded", "false");
+    regelnToggle.textContent = "Wann genau? ⌄";
+    const regelnBody = s.querySelector("#tkRegeln");
+    const regeln = regelnEditor(regelnBody, t, null);
+    regelnToggle.onclick = () => {
+      const open = regelnBody.hidden;
+      regelnBody.hidden = !open;
+      regelnToggle.setAttribute("aria-expanded", String(open));
+      regelnToggle.textContent = open ? "Wann genau? ⌃" : "Wann genau? ⌄";
+    };
+    s.insertBefore(regelnToggle, regelnBody);
+
     const inPlan = document.createElement("button");
     inPlan.className = "btn"; inPlan.type = "button";
     inPlan.style.width = "100%";
@@ -4612,6 +4907,7 @@ function taskSheet(t) {
       if (dauer) t.dauer = dauer; else delete t.dauer;
       if (wichtig && !t.frog) state.tasks.forEach(x => x.frog = false);
       t.frog = wichtig;
+      regeln.commit();
       save();
     }
 
@@ -6790,9 +7086,11 @@ function maybeWelcome() {
       const r = buildSuggestions();
       save();
       renderAll();
+      // Der Knopf "Alle übernehmen" ist seit der dauerhaften Vorschlagsleiste
+      // (Stufe 6) redundant und verdeckt hier eine Agenda-Zeile — die
+      // Meldung bleibt, der Knopf fällt weg.
       if (r && r.placed)
-        toast("Deine Woche steht.",
-          { label: "Alle übernehmen", run: () => { acceptSuggestions(); save(); renderAll(); } });
+        toast("Deine Woche steht.");
       else
         toast("Los geht's — trag ein, was fest ist");
     }
