@@ -855,6 +855,10 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   position: sticky; top: 58px;
 }
 .block__time { font-size: var(--t-xs); opacity: .78; font-variant-numeric: tabular-nums; }
+/* Begründungszeile (Stufe 11) — dieselbe Idee wie .agenda__sub (Ort-/Wegzeit-
+   Zeile), aber über opacity statt fester Farbe: sitzt auf der bereichseigenen
+   --area-bg und muss darauf lesbar bleiben, nicht auf der Seiten-Fläche. */
+.block__grund { font-size: var(--t-xs); opacity: .65; margin-top: 1px; line-height: 1.3; }
 .block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
 .block.is-short .block__time { display: none; }
 .block.is-done { opacity: .55; }
@@ -2784,22 +2788,29 @@ function fensterErlaubtTag(regeln, dayIdx) {
    Beides klemmt dieselbe(n) lo/hi-Spanne(n) weiter ein — mit mehreren
    Fenstern können daraus mehrere Spannen an einem Tag werden. Jeder harte
    Ausschluss sammelt sich lesbar in .gruende, für die Begründungszeile
-   einer späteren Stufe — hier noch ohne Anzeige. */
-function freeGaps(day, plan, area) {
+   (Stufe 11).
+
+   opts (Stufe 11, optional): excludeId lässt einen Block sich nicht selbst
+   im Weg stehen — Grundlage für die Gültigkeitsprüfung eines bestehenden
+   Vorschlags beim Warm Start. ignoreFrei/ignoreFenster/ignoreAnker schalten
+   je einen harten Filter probeweise ab — Grundlage für das Minimal
+   Correction Subset (Teil C): welcher einzelne Filter schafft wieder Platz? */
+function freeGaps(day, plan, area, opts) {
+  opts = opts || {};
   const areaId = area && area.id;
   const todayKey = iso(new Date());
   if (day.key < todayKey) return [];
 
   const gruende = [];
   const leer = () => { const g = []; g.gruende = gruende; return g; };
-  if (istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
+  if (!opts.ignoreFrei && istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
 
   const regeln = area && area.regeln;
-  if (!fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
+  if (!opts.ignoreFenster && !fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
 
   const basisLo = Math.max(state.settings.dayStart * 60, plan.from == null ? 0 : plan.from);
   const basisHi = Math.min(state.settings.dayEnd * 60, plan.to == null ? 1440 : plan.to);
-  const fensterHeute = (regeln && Array.isArray(regeln.fenster))
+  const fensterHeute = (!opts.ignoreFenster && regeln && Array.isArray(regeln.fenster))
     ? regeln.fenster.filter(f => f.tage.includes(day.i)) : [];
 
   let spans = fensterHeute.length
@@ -2807,7 +2818,7 @@ function freeGaps(day, plan, area) {
     : [{ start: basisLo, end: basisHi }];
   spans = spans.filter(sp => sp.end - sp.start >= 15);
 
-  if (regeln && regeln.anker && regeln.anker.ref) {
+  if (!opts.ignoreAnker && regeln && regeln.anker && regeln.anker.ref) {
     const refName = (areaById(regeln.anker.ref) || {}).name || "";
     const ende = ankerEnde(regeln.anker.ref, day);
     if (ende === null) {
@@ -2835,7 +2846,7 @@ function freeGaps(day, plan, area) {
   // Fahrt — zwei Lernblöcke hintereinander sitzen am selben Schreibtisch.
   const zielOrt = area ? (area.plan.ortId || state.settings.heimOrt || null) : null;
   const busy = state.blocks
-    .filter(b => !b.grob && onDay(b, day.key, day.i))
+    .filter(b => !b.grob && b.id !== opts.excludeId && onDay(b, day.key, day.i))
     .map(b => {
       const pause = pauseNach(b.end - b.start, areaById(b.areaId));
       const fahrt = weg(ortOf(b), zielOrt);
@@ -2949,8 +2960,23 @@ function slotScore(start, len, area, day, gap) {
     if (davor && weg(ortOf(davor), zielOrt) > 0) s -= 6;
   }
 
+  // Stabilitätsbonus (Stufe 11): lag hier im letzten Durchlauf schon ein
+  // Vorschlag desselben Bereichs zur selben Tag+Uhrzeit, bleibt der Plan
+  // beim Neuverteilen ruhig, statt bei jeder Kleinigkeit umzuwerfen. Gegen
+  // realtest.js kalibriert auf +14: kleiner als die Tagesbalance (bis zu
+  // -55) und jede echte Verschlechterung, größer als die Mikro-Präferenzen
+  // (Ortswechsel ±8/±16, Tageszeit-Bonus 10) — ein wirklich besserer Platz
+  // gewinnt trotzdem, ein bloß minimal besserer nicht.
+  if (vorherigePlaetze.has(platzKey(area.id, day.i, start))) s += 14;
+
   return s;
 }
+
+/* Stufe 11: Positionen aus dem Durchlauf vor dem aktuellen buildSuggestions()
+   — Grundlage für den Stabilitätsbonus in slotScore. Vor jedem Durchlauf neu
+   befüllt, sonst leer (dann hat der Bonus nirgends eine Wirkung). */
+let vorherigePlaetze = new Set();
+function platzKey(areaId, dayIdx, start) { return areaId + "|" + dayIdx + "|" + start; }
 
 /* Verteilt die offenen Minuten eines Bereichs auf die Woche.
    Jeder Block sucht sich seinen Platz einzeln und nimmt den bestbewerteten. */
@@ -3021,7 +3047,8 @@ function placeGrob(area, open, tage) {
       day: ziel.day.i, date: ziel.day.key, repeat: "none",
       grob: true, teil: ziel.teil, dauer: nimm,
       start: abschnittVon(ziel.teil).von, end: abschnittVon(ziel.teil).von + nimm,
-      frog: false, sug: true
+      frog: false, sug: true,
+      grund: DAY_LONG[ziel.day.i] + " " + abschnittVon(ziel.teil).name + " war noch am freisten"
     });
     ziel.frei -= nimm;
     ziel.schonHier += nimm;
@@ -3030,6 +3057,40 @@ function placeGrob(area, open, tage) {
     placed += nimm;
   }
   return placed;
+}
+
+/* Begründungszeile (Stufe 11) für den gewählten Platz: erst das härteste
+   zutreffende Filter-Label (fällt in freeGaps() ohnehin an), sonst der
+   Term, der in slotScore() am stärksten wiegt — die Tagesbalance (bis zu
+   -55) dominiert dort alles andere, „Tag war am leersten" ist darum meist
+   die ehrliche Antwort auf „warum hier". String-Verkettung, keine neue
+   Bewertung: die Werte selbst kommen unverändert aus freeGaps()/tagesLast(). */
+function grundFuer(area, day, start, gruende, tage) {
+  if (gruende && gruende.length) return gruende[0];
+  const leerster = tage.reduce((min, d) => tagesLast(d) < tagesLast(min) ? d : min, tage[0]);
+  if (leerster.key === day.key) return DAY_LONG[day.i] + " war am leersten";
+  const zielOrt = area.plan.ortId || state.settings.heimOrt || null;
+  if (zielOrt && state.blocks.some(b => onDay(b, day.key, day.i) && ortOf(b) === zielOrt))
+    return "Kein Ortswechsel nötig";
+  if (artOf(area) === ARTEN.kopf && start >= 480 && start <= 780) return "Vormittags, beste Zeit für Kopfarbeit";
+  return "Bester freier Platz diese Woche";
+}
+
+/* Abzugsgrund einer verworfenen Alternative — dieselben Signale wie oben,
+   nur negativ gegen den gewählten Platz gehalten. Für den Knopf „Trotzdem
+   hierhin" im Vorschlags-Sheet (Stufe 11 Teil B). */
+function grundAbzug(area, cand, best) {
+  const vorne = cand.start - cand.gap.start, hinten = cand.gap.end - (cand.start + cand.len);
+  if ((vorne > 0 && vorne < 45) || (hinten > 0 && hinten < 45)) return "zerschneidet die Lücke ungünstig";
+  if (cand.day.key !== best.day.key && tagesLast(cand.day) > tagesLast(best.day))
+    return DAY_LONG[cand.day.i] + " war schon voller";
+  const tagAnfang = Math.max(state.settings.dayStart * 60,
+    ...restSpans().filter(r => r.start <= state.settings.dayStart * 60).map(r => r.end), 0);
+  if (cand.start < tagAnfang + 45) return "zu früh am Tag";
+  const abendRuhe = restSpans().filter(r => r.end >= 1440).map(r => r.start);
+  const tagEnde = Math.min(state.settings.dayEnd * 60, ...(abendRuhe.length ? abendRuhe : [1440]));
+  if (cand.start + cand.len > tagEnde - 45) return "spät am Tag";
+  return "insgesamt schlechter bewertet";
 }
 
 function placeArea(area, open) {
@@ -3065,6 +3126,9 @@ function placeArea(area, open) {
     let schutz = 0;
     while (rest >= minLen && schutz++ < 60) {
       let best = null;
+      // Stufe 11: die besten verworfenen Plätze mitsammeln, statt sie
+      // wegzuwerfen — Grundlage für „Trotzdem hierhin" im Vorschlags-Sheet.
+      const alt = [];
       for (const day of tage) {
         const schon = bereichAmTag(area.id, day);
         if (schon >= grenze) continue;
@@ -3072,7 +3136,8 @@ function placeArea(area, open) {
         // erste Block die Obergrenze in einem Rutsch aus und der Bereich landet
         // doch wieder nur an zwei Tagen.
         const platzHeute = grenze === Infinity ? Infinity : grenze - schon;
-        for (const g of freeGaps(day, p, area)) {
+        const gaps = freeGaps(day, p, area);
+        for (const g of gaps) {
           const room = g.end - g.start;
           const len = Math.floor(Math.min(A.max, rest, room, platzHeute) / 15) * 15;
           if (len < minLen) continue;
@@ -3082,15 +3147,25 @@ function placeArea(area, open) {
           new Set(starts).forEach(st => {
             if (st < g.start || st + len > g.end) return;
             const sc = slotScore(st, len, area, day, g);
-            if (!best || sc > best.sc) best = { sc, day, start: st, len };
+            const cand = { sc, day, start: st, len, gap: g, gruende: gaps.gruende };
+            alt.push(cand);
+            if (!best || sc > best.sc) best = cand;
           });
         }
       }
       if (!best) break;
+      const alternativen = alt
+        .filter(c => !(c.day.key === best.day.key && c.start === best.start))
+        .sort((x, y) => y.sc - x.sc)
+        .slice(0, 2)
+        .map(c => ({ day: c.day.i, date: c.day.key, start: c.start, end: c.start + c.len,
+                      grund: grundAbzug(area, c, best) }));
       state.blocks.push({
         id: uid(), title: area.name, areaId: area.id,
         day: best.day.i, date: best.day.key, repeat: "none",
-        start: best.start, end: best.start + best.len, frog: false, sug: true
+        start: best.start, end: best.start + best.len, frog: false, sug: true,
+        grund: grundFuer(area, best.day, best.start, best.gruende, tage),
+        alternativen
       });
       rest -= best.len;
       placed += best.len;
@@ -3140,7 +3215,9 @@ function growSuggestions(area, rest) {
 
     for (const b of all) {
       if (rest - used < 15) return used;
-      if (!b.sug || b.areaId !== area.id) continue;
+      // fix (Stufe 11): von Hand gezogen oder bearbeitet — der Verteiler
+      // rührt diesen Block nicht mehr an, auch nicht durchs Wachsenlassen.
+      if (!b.sug || b.areaId !== area.id || b.fix) continue;
 
       // Alles, was nach dem Ende dieses Blocks noch im Weg steht — auch wenn es
       // davor beginnt und ihn überlappt. Dazu die Nachtruhe.
@@ -3161,30 +3238,97 @@ function growSuggestions(area, rest) {
 }
 
 function buildSuggestions() {
-  clearSuggestions();
+  // Stufe 11 (Stabilität): wo lag ein Vorschlag vor diesem Durchlauf? Erst
+  // merken, dann erst räumen — der Stabilitätsbonus in slotScore zieht neu
+  // gesetzte Vorschläge zurück an Plätze, die schon einmal galten.
+  const keysVorher = new Set(weekDays().map(d => d.key));
+  vorherigePlaetze = new Set(
+    state.blocks.filter(b => b.sug && !b.grob && keysVorher.has(b.date))
+      .map(b => platzKey(b.areaId, b.day, b.start)));
+
+  // Warm Start: nur ungültig gewordene Vorschläge fallen weg, der Rest
+  // bleibt liegen — buildSuggestions() füllt danach nur die Lücken.
+  clearSuggestions(true);
 
   // Erst das, was sein muss — dann der Rest. Bei knappem Platz soll nicht
   // der Serienabend den Lernblock verdraengen, nur weil er groesser war.
   // Bei Gleichstand geht der engste Bereich zuerst — sonst frisst ein
   // flexibler Bereich das knappe Fenster eines unflexiblen leer.
+  //
+  // open zieht jetzt auch schon liegen gebliebene Vorschläge ab (areaMinutes
+  // mit sug=true) — sonst plant der Warm Start oben drauf, statt nur die
+  // Lücke zu füllen, die das Wegfallen ungültiger Vorschläge gerissen hat.
   const todo = state.areas
-    .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false),
+    .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true),
       kandidatentage: weekDays().filter(d => a.plan.days.includes(d.i) && fensterErlaubtTag(a.regeln, d.i)).length }))
     .filter(x => x.open >= 15)
     .sort((x, y) => (y.a.plan.must - x.a.plan.must) || (y.open - x.open) || (x.kandidatentage - y.kandidatentage));
 
-  let placed = 0, missing = 0;
+  let placed = 0, missing = 0, hinweise = [];
   todo.forEach(({ a, open }) => {
     const got = placeArea(a, open);
     placed += got;
     missing += open - got;
+    // Teil C: passte für diesen Bereich gar nichts, eine Handlungsanweisung
+    // statt nur „kein Platz" — probiert jeden harten Filter einzeln ab.
+    if (!got) { const h = mcsHinweis(a); if (h) hinweise.push(h); }
   });
-  return { placed, missing, areas: todo.length };
+  return { placed, missing, areas: todo.length, hinweise };
 }
 
-function clearSuggestions() {
+/* warm=false (Vorgabe): wirft alle Vorschläge der angezeigten Woche weg —
+   für den ausdrücklichen „Verwerfen"-Knopf.
+   warm=true (Stufe 11): wirft nur die ungültig gewordenen weg. fix und der
+   laufende Tag bleiben davon so oder so unberührt — der Verteiler rührt sie
+   nie automatisch an; Rest wird gegen freeGaps() erneut geprüft. */
+function clearSuggestions(warm) {
   const keys = new Set(weekDays().map(d => d.key));
-  state.blocks = state.blocks.filter(b => !(b.sug && keys.has(b.date)));
+  const heuteKey = iso(new Date());
+  state.blocks = state.blocks.filter(b => {
+    if (!(b.sug && keys.has(b.date))) return true;
+    if (!warm) return false;
+    if (b.fix) return true;
+    if (b.date === heuteKey) return true;   // der laufende Tag wird nie automatisch umgeplant
+    return vorschlagGueltig(b);
+  });
+}
+
+/* Stufe 11 (Warm Start): gilt dieser bestehende Vorschlag nach einer
+   Änderung noch? Dieselben harten Filter wie bei der Platzsuche — nur was
+   sie nicht mehr erfüllt, räumt seinen Platz für den nächsten Durchlauf
+   frei. excludeId (freeGaps-Option) verhindert, dass der Block sich beim
+   Prüfen selbst im Weg steht. */
+function vorschlagGueltig(b) {
+  const area = areaById(b.areaId);
+  if (!area) return false;
+  const day = weekDays().find(d => d.key === b.date);
+  if (!day) return false;
+  if (!area.plan.days.includes(day.i)) return false;
+  if (b.grob) return !istFrei(day.key) && fensterErlaubtTag(area.regeln, day.i);
+  const gaps = freeGaps(day, area.plan, area, { excludeId: b.id });
+  return gaps.some(g => g.start <= b.start && g.end >= b.end);
+}
+
+/* Teil C — naives Minimal Correction Subset: passt für einen Bereich gar
+   nichts, schaltet diese Funktion probeweise je einen harten Filter ab und
+   sucht neu. Der erste, der wieder Platz schafft, wird gemeldet — eine
+   Handlungsanweisung statt einer Sackgasse. */
+function mcsHinweis(area) {
+  const varianten = [];
+  if (area.regeln && area.regeln.fenster && area.regeln.fenster.length)
+    varianten.push(["die Uhrzeit-Grenze", { ignoreFenster: true }]);
+  if (area.regeln && area.regeln.anker)
+    varianten.push(["den Anker nach " + ((areaById(area.regeln.anker.ref) || {}).name || ""), { ignoreAnker: true }]);
+  varianten.push(["freigehaltene Tage", { ignoreFrei: true }]);
+
+  for (const [label, opts] of varianten) {
+    for (const day of weekDays()) {
+      const gaps = freeGaps(day, area.plan, area, opts);
+      if (gaps.length) return area.name + " passt nicht. Ohne " + label + " ginge " +
+        DAY_LONG[day.i] + " " + fmtTime(gaps[0].start) + ".";
+    }
+  }
+  return null;
 }
 
 function acceptSuggestions() {
@@ -3353,7 +3497,7 @@ function renderGoals() {
       const verteilen = () => {
         const r = buildSuggestions();
         save(); renderAll();
-        if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+        if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
         else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
         else toast("Vorschlag steht — schau, ob's dir passt");
       };
@@ -4017,6 +4161,13 @@ function blockEl({ b, col, of }, hourH, dayKey) {
   const tm = document.createElement("div");
   tm.className = "block__time num"; tm.textContent = fmtTime(b.start) + "–" + fmtTime(b.end);
   el.append(t, tm);
+  // Begründungszeile (Stufe 11) — nur Vorschläge haben eine, das reicht als
+  // Erkennungsmerkmal. In kurzen Blöcken (is-short) ist ohnehin kein Platz.
+  if (b.sug && b.grund && h >= 34) {
+    const gr = document.createElement("div");
+    gr.className = "block__grund"; gr.textContent = b.grund;
+    el.appendChild(gr);
+  }
   const rz = document.createElement("div");
   rz.className = "block__resize";
   el.appendChild(rz);
@@ -4126,6 +4277,10 @@ function attachColumnHandlers(col, hourH) {
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", up);
         b.end = +blockNode.dataset.pendEnd || b.end;
+        // fix (Stufe 11): von Hand gezogen — der Verteiler rührt den Block
+        // beim nächsten Durchlauf nicht mehr an (auch nicht durchs Wachsen-
+        // lassen in growSuggestions).
+        b.fix = true;
         save(); renderAll();
       };
       document.addEventListener("pointermove", move);
@@ -4153,6 +4308,9 @@ function attachColumnHandlers(col, hourH) {
         if (moved) {
           const ns = +blockNode.dataset.pendStart;
           b.start = ns; b.end = ns + len;
+          // fix (Stufe 11): von Hand gezogen — der Verteiler rührt den Block
+          // beim nächsten Durchlauf nicht mehr an.
+          b.fix = true;
           save(); renderAll();
         } else {
           editBlock(b.id, col.dataset.date);
@@ -4381,7 +4539,9 @@ function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen) {
     if (dragging) {
       blockNode.classList.remove("is-dragging");
       blockDragAktiv = false;
-      if (commit) { b.start = pendStart; b.end = pendStart + len; save(); }
+      // fix (Stufe 11): von Hand gezogen — der Verteiler rührt den Block
+      // beim nächsten Durchlauf nicht mehr an.
+      if (commit) { b.start = pendStart; b.end = pendStart + len; b.fix = true; save(); }
       renderAll();
     }
   };
@@ -4416,14 +4576,46 @@ function sugSheet(b) {
     s.innerHTML =
       "<h2 class='sheet__title'>Vorschlag</h2>" +
       "<p style='margin:0 0 6px;font-size:var(--t-body)'><b>" + escapeHtml(b.title) + "</b></p>" +
-      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body)'>" +
+      "<p style='margin:0 0 6px;color:var(--text-muted);font-size:var(--t-body)'>" +
       DAY_LONG[b.day] + ", " + fmtTime(b.start) + "–" + fmtTime(b.end) +
       " · " + escapeHtml(area.name) + "</p>" +
+      // Begründungszeile (Stufe 11) — dasselbe Muster wie die Ort-/Wegzeit-
+      // Zeile der Agenda (.agenda__sub).
+      (b.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(b.grund) + "</p>" : "") +
       "<p style='margin:0 0 16px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
       "Nur ein Vorschlag — er zählt erst mit, wenn du ihn übernimmst. " +
       "Verschieben kannst du ihn auch einfach im Raster.</p>" +
       "<label class='switch'><input type='checkbox' id='sugWeekly'> " +
-      "Fest übernehmen — ab jetzt jede Woche zu dieser Zeit</label>";
+      "Fest übernehmen — ab jetzt jede Woche zu dieser Zeit</label>" +
+      "<div id='sugAlt'></div>";
+
+    // Die zwei besten verworfenen Plätze (Stufe 11) — fallen beim Verteilen
+    // ohnehin an, statt sie wegzuwerfen. „Trotzdem hierhin" setzt fix, sonst
+    // würde der nächste Durchlauf die Handwahl gleich wieder verwerfen.
+    if (b.alternativen && b.alternativen.length) {
+      const altWrap = s.querySelector("#sugAlt");
+      altWrap.innerHTML = "<p class='goalrow__sub' style='margin:16px 0 8px'>Andere Plätze, die auch gingen:</p>";
+      b.alternativen.forEach(alt => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:8px";
+        const txt = document.createElement("div");
+        txt.style.flex = "1";
+        txt.innerHTML = "<span style='font-size:var(--t-sm)'>" + DAY_LONG[alt.day] + ", " +
+          fmtTime(alt.start) + "–" + fmtTime(alt.end) + "</span>" +
+          "<div class='agenda__sub'>" + escapeHtml(alt.grund) + "</div>";
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "btn btn--sm"; btn.textContent = "Trotzdem hierhin";
+        btn.onclick = () => {
+          b.day = alt.day; b.date = alt.date; b.start = alt.start; b.end = alt.end;
+          b.fix = true;
+          delete b.alternativen;
+          save(); close(); renderAll();
+          toast("Verschoben");
+        };
+        row.append(txt, btn);
+        altWrap.appendChild(row);
+      });
+    }
 
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
@@ -4706,6 +4898,9 @@ function blockSheet(draft, dayKey) {
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
         // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
         delete b.sug;
+        // fix (Stufe 11): im Editor bearbeitet — der Verteiler rührt den
+        // Block beim nächsten Durchlauf nicht mehr an.
+        b.fix = true;
         if (doneBox) setzeErledigt(b, hakenTag, doneBox.checked);
       }
       save(); close(); renderAll();
@@ -5065,7 +5260,7 @@ function renderAgenda() {
   if (vorschlagBtn) vorschlagBtn.onclick = () => {
     const r = buildSuggestions();
     save(); renderAll();
-    if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+    if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
     else toast("Vorschlag steht — schau, ob's dir passt");
   };
   box.querySelectorAll(".agenda__check").forEach(cb => {
@@ -5303,6 +5498,9 @@ function moveSheet(id) {
           blk.date = day.key;
           blk.start = ziel.st;
           blk.end = ziel.st + laenge;
+          // fix (Stufe 11): von Hand verschoben — der Verteiler rührt den
+          // Block beim nächsten Durchlauf nicht mehr an.
+          blk.fix = true;
           save(); close(); renderAll();
           toast("Auf " + DAY_LONG[day.i] + ", " + fmtTime(blk.start) + " geschoben");
         };
@@ -5597,7 +5795,7 @@ function ritualSheet() {
           b.onclick = () => {
             const r = buildSuggestions();
             save(); renderAll(); zeichnen();
-            if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+            if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
           };
           box.appendChild(b);
         }
