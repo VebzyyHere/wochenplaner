@@ -48,8 +48,8 @@
   --border:     oklch(0.90 0.006 var(--h-ink));
   --border-strong: oklch(0.82 0.008 var(--h-ink));
   --text:       oklch(0.24 0.015 var(--h-ink));
-  --text-muted: oklch(0.55 0.012 var(--h-ink));
-  --text-faint: oklch(0.68 0.010 var(--h-ink));
+  --text-muted: oklch(0.44 0.012 var(--h-ink));
+  --text-faint: oklch(0.53 0.010 var(--h-ink));
 
   --ink:        oklch(0.30 0.030 var(--h-ink));
   --ink-hover:  oklch(0.24 0.030 var(--h-ink));
@@ -59,6 +59,9 @@
   --danger:  oklch(0.55 0.190 25);
   --success: oklch(0.55 0.140 150);
   --warn:    oklch(0.66 0.150 75);
+
+  --on-ink:    var(--surface);
+  --on-danger: var(--surface);
 
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px;
   --s-6:24px; --s-8:32px; --s-12:48px;
@@ -81,8 +84,8 @@ html[data-theme="dark"] {
   --border:     oklch(0.315 0.016 var(--h-ink));
   --border-strong: oklch(0.40 0.018 var(--h-ink));
   --text:       oklch(0.955 0.006 var(--h-ink));
-  --text-muted: oklch(0.735 0.012 var(--h-ink));
-  --text-faint: oklch(0.60 0.012 var(--h-ink));
+  --text-muted: oklch(0.80 0.012 var(--h-ink));
+  --text-faint: oklch(0.68 0.012 var(--h-ink));
 
   --ink:        oklch(0.90 0.010 var(--h-ink));
   --ink-hover:  oklch(0.96 0.010 var(--h-ink));
@@ -93,6 +96,9 @@ html[data-theme="dark"] {
   --success: oklch(0.72 0.140 150);
   --warn:    oklch(0.78 0.150 75);
 
+  --on-ink:    oklch(0.18 0.014 var(--h-ink));
+  --on-danger: oklch(0.18 0.014 var(--h-ink));
+
   --shadow-1: 0 1px 2px oklch(0 0 0 / 0.35);
   --shadow-2: 0 6px 20px oklch(0 0 0 / 0.45), 0 1px 3px oklch(0 0 0 / 0.3);
   --shadow-3: 0 16px 48px oklch(0 0 0 / 0.6);
@@ -102,7 +108,7 @@ html[data-theme="dark"] {
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
 .block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
   --area-edge:   oklch(0.870 0.070 var(--h));
@@ -111,7 +117,7 @@ html[data-theme="dark"] {
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
 html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow) {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
   --area-edge:   oklch(0.430 0.080 var(--h));
@@ -168,9 +174,8 @@ button { cursor: pointer; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn--primary {
   background: var(--ink); border-color: var(--ink);
-  color: var(--surface); font-weight: 600;
+  color: var(--on-ink); font-weight: 600;
 }
-html[data-theme="dark"] .btn--primary { color: oklch(0.18 0.014 var(--h-ink)); }
 .btn--primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
 .btn--ghost { background: transparent; border-color: transparent; }
 .btn--ghost:hover { background: var(--surface-2); }
@@ -188,9 +193,8 @@ html[data-theme="dark"] .btn--primary { color: oklch(0.18 0.014 var(--h-ink)); }
 }
 .chip:active { transform: scale(0.97); }
 .chip[aria-pressed="true"] {
-  background: var(--ink); border-color: var(--ink); color: var(--surface);
+  background: var(--ink); border-color: var(--ink); color: var(--on-ink);
 }
-html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var(--h-ink)); }
 .chip__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
 
 .label {
@@ -286,6 +290,77 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 }
 .hint b { color: var(--text); font-weight: 600; }
 
+/* ============================================================
+   Agenda — der neue Kopf der „Heute"-Karte (Stufe 4)
+
+   Keine Karten in der Karte: Zeilen trennt eine Haarlinie, Farbe ist ein
+   3px-Strich links (--area-line), keine Fläche, kein Rahmen, kein
+   Schatten. Zwei Schriftgrößen pro Zeile, nicht drei — die einzige große
+   ist der laufende Eintrag, alles andere bleibt Fließtext.
+   ============================================================ */
+.agenda { display: flex; flex-direction: column; }
+.agenda__label {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-muted); margin: 14px 0 6px;
+}
+.agenda__label:first-child { margin-top: 0; }
+.agenda__frog {
+  display: block; width: 100%; min-height: 44px; padding: 4px 0 10px;
+  border: none; border-bottom: 1px solid var(--border); background: transparent;
+  font-size: 15px; font-weight: 600; color: var(--text); text-align: left;
+  cursor: pointer;
+}
+.agenda__hero {
+  margin-top: 10px; padding: 8px 0 10px 10px;
+  border-left: 3px solid var(--area-line); border-bottom: 1px solid var(--border);
+}
+.agenda__hero-status {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; color: var(--text-muted); margin-bottom: 3px;
+}
+.agenda__hero-title { font-size: 26px; font-weight: 600; line-height: 1.25; }
+.agenda__list { display: flex; flex-direction: column; }
+.agenda__row {
+  display: flex; align-items: flex-start; gap: 10px; min-height: 44px;
+  padding: 6px 0 6px 10px; border-left: 3px solid var(--area-line);
+  border-top: 1px solid var(--border); cursor: pointer;
+}
+.agenda__row--grob { border-left-style: dotted; }
+.agenda__row.is-on .agenda__title { opacity: .55; text-decoration: line-through; }
+.agenda__check {
+  appearance: none; width: 18px; height: 18px; margin-top: 3px; flex: none;
+  border: 1.5px solid var(--border-strong); border-radius: 5px; background: var(--surface);
+  cursor: pointer; position: relative;
+}
+.agenda__check:checked { background: var(--ink); border-color: var(--ink); }
+.agenda__check:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1.5px;
+  width: 4px; height: 9px; border: solid var(--on-ink);
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.agenda__body { flex: 1; min-width: 0; }
+.agenda__line { display: flex; align-items: baseline; gap: 8px; }
+.agenda__title { font-size: 14px; font-weight: 500; min-width: 0; }
+.agenda__time { margin-left: auto; font-size: 13px; color: var(--text-muted); flex: none; }
+.agenda__sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.agenda__foot {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text-muted);
+}
+/* Ladezustand, solange Sync.boot() den echten Stand noch nicht gezogen hat —
+   dieselbe Schraffur wie die Nachtruhe im Raster (.rest, ~785), nur als
+   eigenständige Fläche statt als Overlay. */
+.agenda__loading {
+  height: 200px; border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  background-image: repeating-linear-gradient(
+    -45deg, transparent 0 5px, oklch(0.5 0.02 var(--h-ink) / 0.055) 5px 10px);
+}
+html[data-theme="dark"] .agenda__loading {
+  background-image: repeating-linear-gradient(
+    -45deg, transparent 0 5px, oklch(0 0 0 / 0.16) 5px 10px);
+}
+
 /* ============================================================ Wochenstart */
 .ritual { border-color: var(--border-strong); }
 .ritual__head {
@@ -324,7 +399,7 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 }
 .hakenrow {
   display: flex; align-items: center; gap: 10px; min-height: 44px;
-  padding: 4px 8px; border-radius: var(--r-2); cursor: pointer;
+  padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer;
 }
 .hakenrow:hover { background: var(--surface-2); }
 .hakenrow.is-on .hakenrow__txt { opacity: .55; text-decoration: line-through; }
@@ -428,7 +503,7 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
   height: 8px; border-radius: 4px; background: var(--surface-3);
   overflow: hidden; display: flex;
 }
-.goal__fill { background: var(--area-line); opacity: .58; transition: width .25s; }
+.goal__fill { background: var(--area-line); opacity: .58; }
 .goal__fill--ist { opacity: 1; }
 .goal__fill--sug { opacity: .24; }
 .goal__rest { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
@@ -492,7 +567,10 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
   color: var(--text-muted); margin-bottom: var(--s-2); }
 .ampel__bar { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-3);
   overflow: hidden; position: relative; }
-.ampel__fill { height: 100%; border-radius: 99px; transition: width .25s; }
+.ampel__fill {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  border-radius: 99px; transform-origin: left; transition: transform .25s;
+}
 .ampel__mark { position: absolute; top: -2px; bottom: -2px; width: 1px;
   background: var(--text-faint); opacity: .55; }
 .goalrow__sub { font-size: 12px; color: var(--text-faint); margin: 0 0 var(--s-2); }
@@ -540,14 +618,16 @@ html[data-theme="dark"] .chip[aria-pressed="true"] { color: oklch(0.18 0.014 var
 .task__check:checked { background: var(--ink); border-color: var(--ink); }
 .task__check:checked::after {
   content: ""; position: absolute; left: 5px; top: 1.5px;
-  width: 4px; height: 9px; border: solid var(--surface);
+  width: 4px; height: 9px; border: solid var(--on-ink);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
-html[data-theme="dark"] .task__check:checked::after { border-color: oklch(0.18 0.014 var(--h-ink)); }
 .task__body { flex: 1; min-width: 0; cursor: pointer; }
 .task__title { font-size: 14.5px; word-break: break-word; line-height: 1.35; }
 .task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
-.task__star { font-size: 12px; margin-right: 4px; }
+.task__star {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text); margin-right: 5px; vertical-align: middle;
+}
 .task__meta {
   display: flex; align-items: center; gap: 5px; margin-top: 2px;
   font-size: 11.5px; color: var(--text-muted);
@@ -664,8 +744,7 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
   width: 32px; height: 32px; line-height: 32px; margin: 2px auto 0;
   border-radius: 50%;
 }
-.dayhead.is-today .dayhead__num { background: var(--ink); color: var(--surface); }
-html[data-theme="dark"] .dayhead.is-today .dayhead__num { color: oklch(0.18 0.014 var(--h-ink)); }
+.dayhead.is-today .dayhead__num { background: var(--ink); color: var(--on-ink); }
 .dayhead.is-today .dayhead__name { color: var(--text); }
 .dayhead__energy {
   display: none; align-items: flex-end; gap: 2px; height: 11px; margin-top: 4px;
@@ -737,9 +816,15 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-done::before {
   content: "✓"; position: absolute; right: 5px; bottom: 3px; font-size: 11px; font-weight: 700;
 }
+/* Tagesschwerpunkt: kein Emoji, keine breitere Kante (verschlimmert den
+   side-tab-Befund nur) - stattdessen ein gezeichneter Punkt oben rechts
+   plus fetter Titel. ::after ist frei, .is-done belegt bereits ::before. */
 .block.is-frog::after {
-  content: "⭐"; position: absolute; right: 4px; top: 3px; font-size: 11px;
+  content: ""; position: absolute; top: 5px; right: 5px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--area-text);
 }
+.block.is-frog .block__title { font-weight: 700; }
 .block__resize {
   position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
   cursor: ns-resize; touch-action: none;
@@ -847,6 +932,7 @@ html[data-theme="dark"] .rest {
   position: sticky; bottom: calc(var(--s-5) * -1);
   margin-bottom: calc(var(--s-5) * -1);
   padding: var(--s-3) 0 var(--s-5);
+  padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom));
   background: var(--surface);
   box-shadow: 0 -10px 14px -10px oklch(0.2 0.02 var(--h-ink) / 0.18);
 }
@@ -874,7 +960,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   pointer-events: none; width: min(92vw, 420px);
 }
 .toast {
-  background: var(--ink); color: var(--surface);
+  background: var(--ink); color: var(--on-ink);
   padding: 10px var(--s-4); border-radius: 999px; font-size: 13.5px; font-weight: 500;
   box-shadow: var(--shadow-2); animation: pop .2s cubic-bezier(.2,.9,.3,1);
   display: flex; align-items: center; gap: var(--s-3); max-width: 100%;
@@ -888,7 +974,6 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 .toast__act:hover { opacity: .75; }
 .toasts .toast { pointer-events: none; }
 .toasts .toast:has(.toast__act) { pointer-events: auto; }
-html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 .banner {
   display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
   padding: 10px var(--s-4); font-size: 13px;
@@ -940,10 +1025,9 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     background: var(--ink); border: none; box-shadow: var(--shadow-2);
   }
   .fab svg {
-    width: 26px; height: 26px; fill: none; stroke: var(--surface);
+    width: 26px; height: 26px; fill: none; stroke: var(--on-ink);
     stroke-width: 2.2; stroke-linecap: round;
   }
-  html[data-theme="dark"] .fab svg { stroke: oklch(0.18 0.014 var(--h-ink)); }
   .fab:active { transform: scale(0.94); }
 
   /* ---- Eine Ansicht zur Zeit -------------------------------------------
@@ -985,8 +1069,12 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   }
 
   /* Eine Regel statt zweier gleich starker: die spätere gewann, und der
-     Tagwechsler stand über den Wochenzielen. */
-  body[data-mview="plan"][data-tage="1"] .dayswitch { display: grid; }
+     Tagwechsler stand über den Wochenzielen.
+     „Heute" hängt genauso an selectedDayIdx wie „Plan" — ohne diese Zeile
+     liess sich „Diesen Tag freihalten" nur an einem Tag bedienen, den man
+     dort gar nicht auswählen konnte. */
+  body[data-mview="plan"][data-tage="1"] .dayswitch,
+  body[data-mview="heute"][data-tage="1"] .dayswitch { display: grid; }
   .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
   .block__title { top: 0; }
   .brand { display: none; }
@@ -1098,6 +1186,8 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
   .task { padding: var(--s-3) var(--s-2); }
   .task__check { width: 24px; height: 24px; position: relative; }
   .task__check::before { content: ""; position: absolute; inset: -11px; border-radius: 8px; }
+  .agenda__check { width: 24px; height: 24px; }
+  .agenda__check::before { content: ""; position: absolute; inset: -10px; border-radius: 8px; }
   .task__del, .task__more { min-width: 44px; min-height: 44px; }
   /* Auf einem Touchgerät gibt es kein Hover — ein Knopf, der erst beim
      Zeigen erscheint, existiert dort nicht. */
@@ -1158,6 +1248,7 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
 
       <!-- Tagesform -->
       <section class="card" data-card="heute">
+        <div class="agenda" id="agenda"></div>
         <div class="card__head">
           <h2 class="card__title">Tagesform</h2>
           <span id="energyDay" style="font-size:12px;color:var(--text-faint)"></span>
@@ -1222,7 +1313,11 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
        Jede Ansicht bekommt so den ganzen Bildschirm, statt dass sich
        Raster und Karten 28 zu 72 teilen. -->
   <nav class="tabbar" id="tabbar" aria-label="Ansicht wählen">
-    <button type="button" data-view="plan" aria-current="true">
+    <button type="button" data-view="heute" aria-current="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      Heute
+    </button>
+    <button type="button" data-view="plan">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
       Plan
     </button>
@@ -1233,10 +1328,6 @@ html[data-theme="dark"] .toast { color: oklch(0.18 0.014 var(--h-ink)); }
     <button type="button" data-view="aufgaben">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
       Aufgaben
-    </button>
-    <button type="button" data-view="heute">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15h3v5H4zM10.5 9h3v11h-3zM17 12h3v8h-3z"/></svg>
-      Tagesform
     </button>
   </nav>
 
@@ -1540,7 +1631,8 @@ function migrate(s) {
       must: p.must === undefined ? true : !!p.must,
       pad:  clamp(+p.pad || 0, 0, 180),
       art:  ARTEN[p.art] ? p.art : null,
-      ortId: p.ortId || null
+      ortId: p.ortId || null,
+      grob: p.grob === undefined ? undefined : !!p.grob
     };
     if (a.plan.max < a.plan.min) a.plan.max = a.plan.min;
     if (!a.plan.art) a.plan.art = artRaten(a);
@@ -1661,6 +1753,10 @@ function migrate(s) {
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
 let selectedDayIdx = (new Date().getDay() + 6) % 7;   // für Mobile
+// Wird erst wahr, wenn Sync.boot() (ganz unten) durch ist — vorher zeigt
+// die Agenda eine Schraffur statt eines Standes, der gleich stillschweigend
+// gegen den abgeglichenen ausgetauscht werden könnte.
+let syncSettled = false;
 /* Zwei Fragen, die bisher eine waren:
 
    MOBILE_Q — bekommt der Bildschirm die Tableiste unten und eine Ansicht
@@ -1697,8 +1793,8 @@ function recHash(r) {
 }
 
 function snapshot(s) {
-  const snap = { blocks: {}, tasks: {}, areas: {}, days: {} };
-  ["blocks", "tasks", "areas"].forEach(c =>
+  const snap = { blocks: {}, tasks: {}, areas: {}, orte: {}, days: {} };
+  ["blocks", "tasks", "areas", "orte"].forEach(c =>
     (s[c] || []).forEach(r => { snap[c][r.id] = recHash(r); }));
   Object.keys(s.days || {}).forEach(k => { snap.days[k] = recHash(s.days[k]); });
   snap.settings = JSON.stringify(s.settings);
@@ -1712,7 +1808,7 @@ let prevSavedJson = null;     // Stand vor der letzten Änderung — für „Rü
 function stampChanges() {
   const now = Date.now();
 
-  ["blocks", "tasks", "areas"].forEach(c => {
+  ["blocks", "tasks", "areas", "orte"].forEach(c => {
     const prev = lastSnap[c] || {};
     const seen = new Set();
     state[c].forEach(r => {
@@ -1763,6 +1859,12 @@ const areaById = id => state.areas.find(a => a.id === id) || state.areas[0];
 function dayMeta(dateIso) {
   if (!state.days[dateIso]) state.days[dateIso] = { energy: null };
   return state.days[dateIso];
+}
+/* Reine Lesefassung: legt anders als dayMeta() nichts an. Für Stellen, die
+   nur nachsehen wollen (z. B. eine Übersicht, die beim Vorblättern nicht
+   sieben leere days-Einträge erzeugen und per Sync hochschieben soll). */
+function dayMetaLesen(dateIso) {
+  return state.days[dateIso] || null;
 }
 
 /* Ein freigehaltener Tag: der Verteiler schlägt hier nichts vor. Was von
@@ -1851,7 +1953,7 @@ function confirmSheet(title, text, confirmLabel, onYes) {
     const yes = document.createElement("button");
     yes.className = "btn btn--primary"; yes.textContent = confirmLabel;
     yes.style.background = "var(--danger)"; yes.style.borderColor = "var(--danger)";
-    yes.style.color = "#fff";
+    yes.style.color = "var(--on-danger)";
     yes.onclick = () => { close(); onYes(); };
     foot.append(cancel, yes);
     s.appendChild(foot);
@@ -1926,7 +2028,9 @@ function renderDaySwitch() {
     b.title = DAY_LONG[i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ". · " + wieVoll;
     b.setAttribute("aria-label", b.title);
 
-    b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderEnergy(); };
+    // Seit Stufe 3 steht der Tagwechsler auch in „Heute" — dessen Agenda
+    // hängt genauso an selectedDayIdx wie das Raster.
+    b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); };
     wrap.appendChild(b);
   }
 }
@@ -1956,6 +2060,52 @@ function grobeFor(dayKey, dayIdx) {
   const rang = { vm: 0, nm: 1, ab: 2 };
   return state.blocks.filter(b => b.grob && onDay(b, dayKey, dayIdx))
     .sort((a, b) => (rang[a.teil] - rang[b.teil]) || (b.dauer - a.dauer));
+}
+
+/* ============================================================
+   Agenda — exakte und grobe Blöcke eines Tages zu EINER Liste gemischt
+   (Stufe 4). Grobe reihen sich über den Beginn ihres Abschnitts ein, tragen
+   aber keine eigene Uhrzeit — das entscheidet renderAgenda() bei der
+   Darstellung, hier geht es nur um die Reihenfolge. Vorschläge (b.sug)
+   zählen nicht mit: die Agenda zeigt, was gilt, nicht, was der Verteiler
+   anbietet. */
+function tagesAgenda(dayKey, dayIdx) {
+  const exakt = blocksFor(addDays(mondayOf(anchor), dayIdx), dayIdx)
+    .filter(b => !b.sug)
+    .map(b => ({ block: b, grob: false, sortMin: b.start }));
+  const grobe = grobeFor(dayKey, dayIdx)
+    .filter(b => !b.sug)
+    .map(b => ({ block: b, grob: true, sortMin: abschnittVon(b.teil).von }));
+  return [...exakt, ...grobe].sort((a, b) => a.sortMin - b.sortMin);
+}
+
+/* Freie Zeit nach dem letzten (oder gerade laufenden) Eintrag — für die
+   Fußzeile der Agenda. Einfacher als freeGaps() (2299): keine
+   bereichsabhängigen Wegzeiten, nur Blöcke mit Uhrzeit und die Nachtruhe
+   zählen als belegt. */
+function freieZeitDanach(dayKey, dayIdx) {
+  const { dayStart, dayEnd } = state.settings;
+  let start = dayStart * 60;
+  if (dayKey === iso(new Date())) {
+    start = Math.max(start, new Date().getHours() * 60 + new Date().getMinutes());
+  }
+  const ende = dayEnd * 60;
+  if (ende <= start) return null;
+
+  const busy = state.blocks.filter(b => !b.grob && !b.sug && onDay(b, dayKey, dayIdx))
+    .map(b => ({ start: b.start, end: b.end }))
+    .concat(restSpans())
+    .filter(s => s.end > start && s.start < ende)
+    .sort((a, b) => a.start - b.start);
+
+  let cursor = start, total = 0, longest = 0;
+  busy.forEach(s => {
+    const a = Math.max(s.start, start), e = Math.min(s.end, ende);
+    if (a > cursor) { const len = a - cursor; total += len; longest = Math.max(longest, len); }
+    cursor = Math.max(cursor, e);
+  });
+  if (ende > cursor) { const len = ende - cursor; total += len; longest = Math.max(longest, len); }
+  return { total, longest };
 }
 
 /* Überlappungen nebeneinander legen */
@@ -2214,7 +2364,7 @@ function wochenKapazitaet() {
 
   let fest = 0;
   tage.forEach(day => state.blocks.forEach(b => {
-    if (!b.sug && onDay(b, day.key, day.i)) fest += b.end - b.start;
+    if (!b.sug && onDay(b, day.key, day.i)) fest += dauerVon(b);
   }));
 
   // Offene Wochenziele plus die Pausen, die dazugehören
@@ -2237,7 +2387,7 @@ function wochenKapazitaet() {
    die Zahlen kommen aus der Beobachtung, dass Pläne reißen, weil man sich zu
    viel vornimmt, nicht weil man schlecht sortiert. */
 function ampelFarbe(q) {
-  return q <= 0.60 ? "var(--ok, #3ba776)" : q <= 0.70 ? "var(--warn, #d1a13a)" : "var(--danger)";
+  return q <= 0.60 ? "var(--success)" : q <= 0.70 ? "var(--warn)" : "var(--danger)";
 }
 function ampelZeichnen(el) {
   if (!el) return;
@@ -2245,8 +2395,8 @@ function ampelZeichnen(el) {
   const pct = Math.round(k.quote * 100);
   el.innerHTML =
     "<div class='ampel'><span>Woche zu <b style='color:var(--text)'>" + pct + " %</b> verplant</span>" +
-    "<span class='ampel__bar'><span class='ampel__fill' style='width:" +
-      Math.min(100, pct) + "%;background:" + ampelFarbe(k.quote) + "'></span>" +
+    "<span class='ampel__bar'><span class='ampel__fill' style='transform:scaleX(" +
+      (Math.min(100, pct) / 100) + ");background:" + ampelFarbe(k.quote) + "'></span>" +
       "<span class='ampel__mark' style='left:" + Math.round(VERPLANT_GRENZE * 100) + "%'></span>" +
     "</span><span style='color:var(--text-faint)'>" + fmtDur(Math.round(k.bedarf)) + " von " +
       fmtDur(Math.round(k.wach)) + "</span></div>" +
@@ -2331,11 +2481,11 @@ function freeGaps(day, plan, area) {
    Durchlauf bereits gesetzt hat. */
 function tagesLast(day) {
   return state.blocks.reduce((s, b) =>
-    s + (onDay(b, day.key, day.i) ? b.end - b.start : 0), 0);
+    s + (onDay(b, day.key, day.i) ? dauerVon(b) : 0), 0);
 }
 function bereichAmTag(areaId, day) {
   return state.blocks.reduce((s, b) =>
-    s + (b.areaId === areaId && onDay(b, day.key, day.i) ? b.end - b.start : 0), 0);
+    s + (b.areaId === areaId && onDay(b, day.key, day.i) ? dauerVon(b) : 0), 0);
 }
 
 /* Bewertet einen möglichen Platz. Je höher, desto besser.
@@ -3813,7 +3963,7 @@ function taskEl(t) {
   ti.className = "task__title";
   if (t.frog) {
     const st = document.createElement("span");
-    st.className = "task__star"; st.textContent = "⭐";
+    st.className = "task__star";
     st.title = "Das Wichtigste";
     ti.appendChild(st);
   }
@@ -3865,7 +4015,7 @@ function taskSheet(t) {
       "<div class='chipset' id='tkDauer'></div>" +
       "<div id='tkDauerHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
       "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
-      "⭐ Das Wichtigste — zuerst dran</label></div>";
+      "Das Wichtigste — zuerst dran</label></div>";
 
     const titel = s.querySelector("#tkTitle");
     titel.value = t.title;
@@ -3992,6 +4142,120 @@ const ENERGY = {
 
 function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
 
+/* ============================================================
+   Agenda (Stufe 4) — erstes Kind der Karte data-card="heute" (Markup
+   ~1173). Läuft VOR renderEnergy(), das direkt danach dieselbe Karte
+   weiterschreibt (#energyDay, #energyHint, #dayFrei, #dayFreiLab) — beide
+   fassen nur ihre eigenen Knoten an, keiner ersetzt die Karte.
+
+   Ladezustand: solange Sync.boot() (ganz unten) noch nicht durch ist, zeigt
+   die Karte die Schraffur statt eines Standes, der gleich stillschweigend
+   getauscht werden könnte — auf einem Zweitgerät sähe das sonst aus wie
+   Datenverlust. */
+function renderAgenda() {
+  const box = $("#agenda");
+  if (!box) return;
+
+  if (!syncSettled) {
+    box.innerHTML = "<div class='agenda__loading' aria-hidden='true'></div>";
+    return;
+  }
+
+  const dayKey = currentDayIso();
+  const dayIdx = selectedDayIdx;
+  const heute = dayKey === iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+
+  const wichtig = state.tasks.find(t => t.frog && !t.done);
+  let html = "<div class='agenda__label'>Heute zählt</div>"
+    + "<button type='button' class='agenda__frog' id='agendaFrog'>"
+    + (wichtig ? escapeHtml(wichtig.title) : "—  antippen") + "</button>";
+
+  const eintraege = tagesAgenda(dayKey, dayIdx);
+  const laufend = heute
+    ? eintraege.find(e => !e.grob && e.block.start <= jetzt && jetzt < e.block.end)
+    : null;
+  const danach = eintraege.filter(e => {
+    if (e === laufend) return false;
+    if (!heute) return true;
+    return e.grob ? abschnittVon(e.block.teil).bis > jetzt : e.block.start > jetzt;
+  });
+
+  if (!laufend && !danach.length) {
+    html += "<div class='empty'><b>" + (eintraege.length ? "Nichts mehr offen" : "Noch nichts geplant") + "</b>"
+      + (eintraege.length ? "Für den Rest des Tages steht nichts mehr an." : "Für diesen Tag steht noch nichts im Plan.")
+      + "</div><button type='button' class='btn btn--primary btn--sm' id='agendaVorschlag'>Vorschlagen</button>";
+  } else {
+    if (laufend) {
+      const a = areaById(laufend.block.areaId);
+      const rest = laufend.block.end - jetzt;
+      html += "<div class='agenda__hero' style='--h:" + a.hue + "'>"
+        + "<div class='agenda__hero-status'><span>" + escapeHtml(a.name) + "</span><span class='tag'>läuft</span></div>"
+        + "<div class='agenda__hero-title'>" + escapeHtml(laufend.block.title || a.name) + " · noch " + fmtDur(rest) + "</div>"
+        + "</div>";
+    }
+
+    if (danach.length) {
+      html += "<div class='agenda__label'>Danach</div><div class='agenda__list'>";
+      // Woher kommt man? Ohne laufenden Eintrag wird der Heimatort
+      // angenommen — sonst gäbe es beim ersten Eintrag nie eine Wegzeit.
+      let vorherOrt = laufend ? ortOf(laufend.block) : (state.settings.heimOrt || null);
+      danach.forEach(e => {
+        const b = e.block, a = areaById(b.areaId);
+        const fertig = istErledigt(b, dayKey);
+        let zeit, sub = "";
+        if (e.grob) {
+          zeit = abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer);
+        } else {
+          zeit = fmtTime(b.start);
+          const ortId = ortOf(b);
+          const ortNaam = ortId ? ortName(ortId) : "";
+          if (ortNaam) {
+            const fahrt = weg(vorherOrt, ortId);
+            sub = escapeHtml(ortNaam) + (fahrt > 0 ? " · " + fahrt + " min Weg" : "");
+          }
+          vorherOrt = ortId || vorherOrt;
+        }
+        html += "<label class='agenda__row" + (e.grob ? " agenda__row--grob" : "") + (fertig ? " is-on" : "")
+          + "' style='--h:" + a.hue + "'>"
+          + "<input type='checkbox' class='agenda__check' data-id='" + b.id + "'" + (fertig ? " checked" : "") + ">"
+          + "<span class='agenda__body'><span class='agenda__line'>"
+          + "<span class='agenda__title'>" + escapeHtml(b.title || a.name) + "</span>"
+          + "<span class='agenda__time num'>" + zeit + "</span></span>"
+          + (sub ? "<span class='agenda__sub'>" + sub + "</span>" : "")
+          + "</span></label>";
+      });
+      html += "</div>";
+    }
+
+    const frei = freieZeitDanach(dayKey, dayIdx);
+    if (frei && frei.total >= 15) {
+      html += "<div class='agenda__foot'>Danach frei · längster Block " + fmtDur(frei.longest) + "</div>";
+    }
+  }
+
+  box.innerHTML = html;
+
+  $("#agendaFrog").onclick = () => { if (wichtig) taskSheet(wichtig); else setView("aufgaben"); };
+  const vorschlagBtn = $("#agendaVorschlag");
+  if (vorschlagBtn) vorschlagBtn.onclick = () => {
+    const r = buildSuggestions();
+    save(); renderAll();
+    if (!r.placed) toast("Kein Platz gefunden — Zeitfenster erweitern?");
+    else toast("Vorschlag steht — schau, ob's dir passt");
+  };
+  box.querySelectorAll(".agenda__check").forEach(cb => {
+    cb.onchange = () => {
+      const b = state.blocks.find(x => x.id === cb.dataset.id);
+      if (!b) return;
+      setzeErledigt(b, dayKey, cb.checked);
+      const lab = cb.closest(".agenda__row");
+      if (lab) lab.classList.toggle("is-on", cb.checked);
+      save();
+    };
+  });
+}
+
 function renderEnergy() {
   const key = currentDayIso();
   const meta = state.days[key] || {};
@@ -4003,7 +4267,7 @@ function renderEnergy() {
   $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
   const wichtig = state.tasks.find(t => t.frog && !t.done);
   let html = ENERGY[lvl || "none"].text;
-  if (wichtig) html += "<br><br>⭐ <b>Das Wichtigste:</b> " + escapeHtml(wichtig.title);
+  if (wichtig) html += "<br><br><b>Das Wichtigste:</b> " + escapeHtml(wichtig.title);
   $("#energyHint").innerHTML = html;
   renderEnergyAction();
 
@@ -5219,7 +5483,7 @@ function mergeStates(mine, theirs) {
     out.tombs[id] = Math.max(out.tombs[id] || 0, theirs.tombs[id] || 0);
   });
 
-  ["blocks", "tasks", "areas"].forEach(c => {
+  ["blocks", "tasks", "areas", "orte"].forEach(c => {
     const byId = new Map();
     (out[c] || []).forEach(r => byId.set(r.id, r));
     (theirs[c] || []).forEach(r => {
@@ -5227,6 +5491,13 @@ function mergeStates(mine, theirs) {
       if (!m || (r.at || 0) > (m.at || 0)) byId.set(r.id, r);
     });
     out[c] = [...byId.values()].filter(r => (out.tombs[r.id] || 0) <= (r.at || 0));
+  });
+
+  // Wegzeiten: kein Zeitstempel pro Schlüssel, darum feldweise das Maximum —
+  // eine längere Fahrzeit ist die sicherere Annahme als eine kürzere.
+  out.wege = Object.assign({}, out.wege);
+  Object.keys(theirs.wege || {}).forEach(k => {
+    out.wege[k] = Math.max(out.wege[k] || 0, theirs.wege[k] || 0);
   });
 
   // Abgehaktes und erledigte Wochenstarts: der jüngere Eintrag gewinnt.
@@ -5932,6 +6203,7 @@ function renderAll() {
   renderGrid();
   renderTasks();
   renderGoals();
+  renderAgenda();
   renderEnergy();
   renderRitual();
 }
@@ -5958,13 +6230,17 @@ $("#syncBadge").onclick = () => {
 
 applyTheme();
 document.body.dataset.tage = einTag ? "1" : "7";
-setView("plan");
+setView("heute");
 renderAll();
 paintSyncBadge();
 
 Sync.boot()
   .catch(() => {})
   .then(() => {
+    // Erst jetzt ist der Stand endgültig — die Agenda tauscht ihre
+    // Schraffur gegen den echten Inhalt (siehe renderAgenda, ~4139).
+    syncSettled = true;
+    renderAgenda();
     maybeWelcome();
     maybeBackupNag();
   });
@@ -5981,7 +6257,10 @@ setInterval(() => {
     if (!openModal) renderAll();
     return;
   }
-  if (!openModal) renderGrid();
+  // Die Agenda hängt an "jetzt" wie die Jetzt-Linie im Raster — läuft
+  // sie nicht mit, bleibt "noch 40 Min" stehen und ein vorbeigegangener
+  // Eintrag rutscht nie von "läuft" nach "danach".
+  if (!openModal) { renderGrid(); renderAgenda(); }
 }, 60000);
 // Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {

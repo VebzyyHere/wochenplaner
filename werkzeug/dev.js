@@ -12,6 +12,9 @@ const LIST = ['iPhone SE','iPhone 13','iPhone 14 Pro Max','iPad (gen 7)','iPad P
     await p.waitForTimeout(450);
     const go = p.locator('button:has-text("Los geht\'s")');
     if (await go.count()) { await go.click({ timeout: 5000 }).catch(()=>{}); await p.waitForTimeout(200); }
+    // Seit Stufe 3 ist "heute" die Startansicht, nicht mehr "plan" — ohne das
+    // hier ist .gridwrap am Handy unsichtbar (display:none) und raster misst 0.
+    await p.evaluate(() => setView('plan'));
     const m = await p.evaluate(() => {
       const small = [];
       document.querySelectorAll('button, .chip, .task__check').forEach(el => {

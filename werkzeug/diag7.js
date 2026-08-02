@@ -9,6 +9,9 @@ const LIST = ['iPhone SE','iPhone 12','iPhone 13','iPhone 14 Pro Max','Pixel 7',
     const p = await ctx.newPage();
     await p.goto('file://' + path.resolve(__dirname, '..', 'index.html')); await p.waitForTimeout(400);
     await p.evaluate(() => closeModal());
+    // Seit Stufe 3 ist "heute" die Startansicht, nicht mehr "plan" — ohne das
+    // hier ist .gridwrap am Handy unsichtbar (display:none) und raster misst 0.
+    await p.evaluate(() => setView('plan'));
     await p.evaluate(() => { const mon=mondayOf(anchor);
       for(let x=0;x<5;x++) state.blocks.push({id:uid(),title:"Arbeit",areaId:"a1",day:x,
         date:iso(addDays(mon,x)),repeat:"weekly",since:iso(addDays(mon,x)),start:9*60,end:17*60,frog:false,grob:false});
