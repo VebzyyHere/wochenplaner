@@ -1937,6 +1937,20 @@ function migrate(s) {
     return !(m && m.frei);
   });
 
+  // Stufe 12: Aufgabe ↔ Block können auseinanderlaufen — derselbe Fehler
+  // wie bei einer verwaisten areaId oben, nur zwischen zwei Sammlungen
+  // statt zwischen Eintrag und Bereich. Ein Gerät löscht den Block (auch
+  // der Filter unmittelbar darüber kann das gerade getan haben), das
+  // andere trägt noch task.geplant darauf — oder umgekehrt. Wertbasiert
+  // geprüft wie bei den Regeln oben, keine neue s.version nötig: beide
+  // Richtungen nur entkoppeln, nie das jeweils andere mitreißen.
+  {
+    const blockIds = new Set(s.blocks.map(b => b.id));
+    const taskIds = new Set(s.tasks.map(t => t.id));
+    s.tasks.forEach(t => { if (t.geplant && !blockIds.has(t.geplant)) delete t.geplant; });
+    s.blocks.forEach(b => { if (b.taskId && !taskIds.has(b.taskId)) delete b.taskId; });
+  }
+
   // v9: Regeln, die am Vorhaben hängen statt am Bereich — Fenster (erlaubte
   // Wochentage + Uhrzeit) und Anker (frühestens/spätestens nach dem letzten
   // Block eines anderen Bereichs). Geschwister von a.plan, nicht darin: a.plan
@@ -2507,6 +2521,13 @@ function istErledigt(b, dayKey) {
 }
 function setzeErledigt(b, dayKey, on) {
   state.erledigt[hakenKey(b, dayKey)] = { on: !!on, at: Date.now() };
+  // Stufe 12: gehört der Block zu einer Aufgabe, hakt das dieselbe Aufgabe
+  // mit ab — die Aufgabenliste zeigt sie dann als erledigt statt als
+  // Duplikat, das man dort noch einmal von Hand abhaken müsste.
+  if (b.taskId) {
+    const t = state.tasks.find(x => x.id === b.taskId);
+    if (t) t.done = !!on;
+  }
 }
 
 /* Wie viel von einem Bereich in dieser Woche wirklich stattgefunden hat. */
@@ -2708,6 +2729,18 @@ function wochenKapazitaet() {
     offen += rest;
     const A = artOf(a);
     pausen += Math.ceil(rest / A.max) * A.pause;
+  });
+
+  // Stufe 12: Aufgaben mit Dauer, die noch keinen Platz haben, brauchen
+  // genauso Zeit in der Woche wie ein offenes Wochenziel — sonst zeigt die
+  // Ampel grün, obwohl schon zwei Stunden Aufgaben unverplant in der Liste
+  // stehen. Schon verplante Aufgaben zählen bereits über "fest" mit (ihr
+  // Block trägt die echte areaId), hier also nur die noch offenen.
+  state.tasks.forEach(t => {
+    if (t.done || t.geplant || !t.dauer) return;
+    offen += t.dauer;
+    const A = artOf(areaById(t.areaId));
+    pausen += Math.ceil(t.dauer / A.max) * A.pause;
   });
 
   const bedarf = fest + offen + pausen;
@@ -3093,6 +3126,98 @@ function grundAbzug(area, cand, best) {
   return "insgesamt schlechter bewertet";
 }
 
+/* ============================================================
+   Stufe 12: Aufgaben werden verplant
+
+   Der Verteiler kennt nur "Vorhaben" — bisher ausschließlich Bereiche. Eine
+   Aufgabe bekommt hier ein Pseudo-Vorhaben, das sich denselben Bausteinen
+   unterschieben lässt wie ein echter Bereich (freeGaps, slotScore,
+   grundFuer/grundAbzug).
+
+   Die Falle: placeArea() schreibt areaId: area.id auf den erzeugten Block.
+   Ein Pseudo-Vorhaben mit einer erfundenen ID ("task:"+t.id) würde also
+   einen Block mit einer areaId erzeugen, die kein Bereich ist — migrate()
+   repariert genau das bedingungslos (verwaiste areaId → Bereich
+   "Sonstiges", notfalls neu angelegt) und schickt den erfundenen Bereich
+   per Sync auf jedes Gerät. Deshalb trägt das Pseudo-Vorhaben die ECHTE
+   areaId der Aufgabe; die Zugehörigkeit zur Aufgabe steckt separat in
+   .taskId (nie als areaId benutzt) — und als Nebeneffekt zählt verplante
+   Aufgabenzeit dadurch ganz von selbst richtig aufs Wochenziel des Bereichs. */
+function taskVorhaben(t) {
+  const a = areaById(t.areaId);
+  return {
+    id: t.areaId,
+    kennung: "task:" + t.id,
+    name: t.title,
+    hue: a.hue,
+    plan: { ...a.plan, goal: 0, grob: false },
+    regeln: t.regeln || a.regeln,
+    taskId: t.id
+  };
+}
+
+/* Löst die Verbindung zwischen Block und Aufgabe, ohne die Aufgabe
+   mitzureißen: ein verworfener Vorschlag, ein gelöschter Eintrag oder ein
+   beim Warm Start ungültig gewordener Platz nehmen der Aufgabe nur ihren
+   Platz, nicht sich selbst — sie taucht danach wieder als offen auf. */
+function unlinkTask(b) {
+  if (!b.taskId) return;
+  const t = state.tasks.find(x => x.id === b.taskId);
+  if (t && t.geplant === b.id) delete t.geplant;
+}
+
+/* Eine Aufgabe wird als GENAU EIN Block verplant. placeArea() teilt ein
+   Bereichsziel bei Bedarf auf mehrere Tage auf (zielLen, maxTage) — für ein
+   Wochenziel richtig, für eine einzelne Aufgabe falsch: aus "Bericht
+   schreiben, 90 min" würden sonst zwei halbe Sitzungen an zwei Tagen werden.
+   Darum keine placeArea()-Wiederverwendung, sondern derselbe Bauplan wie
+   dort (freeGaps + slotScore, dieselben Begründungsfunktionen), nur ohne
+   dessen Aufteil-Schleife. */
+function placeTask(t) {
+  const v = taskVorhaben(t);
+  const tage = weekDays().filter(day => v.plan.days.includes(day.i));
+  const len = t.dauer;
+  if (!tage.length || !len) return false;
+
+  let best = null;
+  const alt = [];
+  for (const day of tage) {
+    const gaps = freeGaps(day, v.plan, v);
+    for (const g of gaps) {
+      const room = g.end - g.start;
+      if (room < len) continue;
+      const starts = [g.start, g.start + 45,
+                      g.start + Math.floor((room - len) / 2 / 15) * 15, g.end - len];
+      new Set(starts).forEach(st => {
+        if (st < g.start || st + len > g.end) return;
+        const sc = slotScore(st, len, v, day, g);
+        const cand = { sc, day, start: st, len, gap: g, gruende: gaps.gruende };
+        alt.push(cand);
+        if (!best || sc > best.sc) best = cand;
+      });
+    }
+  }
+  if (!best) return false;
+
+  const alternativen = alt
+    .filter(c => !(c.day.key === best.day.key && c.start === best.start))
+    .sort((x, y) => y.sc - x.sc)
+    .slice(0, 2)
+    .map(c => ({ day: c.day.i, date: c.day.key, start: c.start, end: c.start + c.len,
+                  grund: grundAbzug(v, c, best) }));
+
+  const id = uid();
+  state.blocks.push({
+    id, title: t.title, areaId: v.id, taskId: t.id,
+    day: best.day.i, date: best.day.key, repeat: "none",
+    start: best.start, end: best.start + best.len, frog: !!t.frog, sug: true,
+    grund: grundFuer(v, best.day, best.start, best.gruende, tage),
+    alternativen
+  });
+  t.geplant = id;
+  return true;
+}
+
 function placeArea(area, open) {
   const p = area.plan;
   const tage = weekDays().filter(day => p.days.includes(day.i));
@@ -3273,6 +3398,23 @@ function buildSuggestions() {
     // statt nur „kein Platz" — probiert jeden harten Filter einzeln ab.
     if (!got) { const h = mcsHinweis(a); if (h) hinweise.push(h); }
   });
+
+  // Stufe 12: Aufgaben mit Dauer, die noch keinen Platz haben — Das
+  // Wichtigste zuerst, wie schon der Schalter im Aufgabenblatt verspricht
+  // ("Das Wichtigste — zuerst dran"). Erledigte und schon verplante Aufgaben
+  // (t.geplant zeigt auf einen noch gültigen Block) bleiben unangetastet;
+  // ohne Dauer ist eine Aufgabe nicht verteilbar — das bleibt so und ist
+  // nur an der fehlenden Dauer-Anzeige zu erkennen, kein Fehler.
+  state.tasks
+    .filter(t => !t.done && !t.geplant && t.dauer)
+    .sort((x, y) => y.frog - x.frog)
+    .forEach(t => {
+      const got = placeTask(t);
+      placed += got ? t.dauer : 0;
+      missing += got ? 0 : t.dauer;
+      if (!got) { const h = mcsHinweis(taskVorhaben(t)); if (h) hinweise.push(h); }
+    });
+
   return { placed, missing, areas: todo.length, hinweise };
 }
 
@@ -3286,10 +3428,16 @@ function clearSuggestions(warm) {
   const heuteKey = iso(new Date());
   state.blocks = state.blocks.filter(b => {
     if (!(b.sug && keys.has(b.date))) return true;
-    if (!warm) return false;
+    if (!warm) { unlinkTask(b); return false; }
     if (b.fix) return true;
     if (b.date === heuteKey) return true;   // der laufende Tag wird nie automatisch umgeplant
-    return vorschlagGueltig(b);
+    if (vorschlagGueltig(b)) return true;
+    // Stufe 12: fällt ein Aufgaben-Vorschlag hier raus, verliert die
+    // Aufgabe nur ihren Platz — sonst bliebe t.geplant auf einen Block
+    // zeigen, den der nächste buildSuggestions()-Durchlauf schon vergessen
+    // hat, und die Aufgabe bekäme nie wieder einen neuen Vorschlag.
+    unlinkTask(b);
+    return false;
   });
 }
 
@@ -3299,7 +3447,15 @@ function clearSuggestions(warm) {
    frei. excludeId (freeGaps-Option) verhindert, dass der Block sich beim
    Prüfen selbst im Weg steht. */
 function vorschlagGueltig(b) {
-  const area = areaById(b.areaId);
+  // Stufe 12: ein Aufgaben-Vorschlag prüft gegen sein eigenes Pseudo-
+  // Vorhaben (task.regeln, falls gesetzt), nicht blind gegen den Bereich —
+  // sonst würde beim Warm Start eine aufgabeneigene Zeitregel ignoriert.
+  // Zeigt b.taskId ins Leere (Aufgabe zwischenzeitlich gelöscht), war das
+  // Löschen selbst schon dafür zuständig, den Verweis zu kappen — taucht
+  // er trotzdem noch auf, ist der Vorschlag ungültig.
+  const t = b.taskId ? state.tasks.find(x => x.id === b.taskId) : null;
+  if (b.taskId && !t) return false;
+  const area = t ? taskVorhaben(t) : areaById(b.areaId);
   if (!area) return false;
   const day = weekDays().find(d => d.key === b.date);
   if (!day) return false;
@@ -4220,6 +4376,7 @@ function blockEl({ b, col, of }, hourH, dayKey) {
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
+      unlinkTask(b);
       state.blocks = state.blocks.filter(x => x.id !== b.id);
       save(); renderAll();
       if (b.sug) toast("Vorschlag verworfen"); else toastUndo("Eintrag gelöscht");
@@ -4237,6 +4394,8 @@ function acceptOne(id, fest) {
   toast(fest ? "Übernommen — steht ab jetzt jede Woche" : "Übernommen");
 }
 function dropOne(id) {
+  const b = state.blocks.find(x => x.id === id);
+  if (b) unlinkTask(b);
   state.blocks = state.blocks.filter(x => x.id !== id);
   save(); renderAll(); toast("Vorschlag verworfen");
 }
@@ -4251,6 +4410,26 @@ function snap(min) { return Math.round(min / SNAP) * SNAP; }
 // Drags ist Wischen über Blöcken erlaubt — nur während eines laufenden
 // Drags nicht.
 let blockDragAktiv = false;
+
+/* Stufe 12: statt eine Aufgabe stur auf die Fingerposition bzw. "jetzt +
+   1 h" zu legen, die nächstgelegene Stelle nehmen, die wirklich frei ist —
+   dasselbe Muster wie beim Verschieben (moveSheet): alle passenden Lücken
+   des Tages sammeln, die dem Wunschzeitpunkt nächste nehmen. Ohne Treffer
+   (Tag schon voll) null zurückgeben — der Aufrufer entscheidet dann selbst
+   über einen groben Rückfall, statt dass hier stillschweigend eine Stelle
+   erfunden wird, die gar nicht frei ist. */
+function naechsteStelle(day, laenge, wunsch, area) {
+  const passende = freeGaps(day, { from: null, to: null, days: [day.i] }, area)
+    .filter(g => g.end - g.start >= laenge);
+  if (!passende.length) return null;
+  let ziel = null;
+  passende.forEach(g => {
+    const st = clamp(wunsch, g.start, g.end - laenge);
+    const d = Math.abs(st - wunsch);
+    if (!ziel || d < ziel.d) ziel = { st, d };
+  });
+  return ziel.st;
+}
 
 function attachColumnHandlers(col, hourH) {
   const { dayStart, dayEnd } = state.settings;
@@ -4391,12 +4570,20 @@ function attachColumnHandlers(col, hourH) {
     // Startzeit klemmen, nicht die Endzeit — sonst entsteht beim Fallenlassen
     // ganz unten ein Block „22:00–22:00" ohne Dauer.
     const laenge = t.dauer || 60;
-    const s = Math.min(minAt(e.clientY), state.settings.dayEnd * 60 - 30);
+    const wunsch = Math.min(minAt(e.clientY), state.settings.dayEnd * 60 - 30);
+    // Stufe 12: nicht stur auf die Fingerposition — die nächstgelegene
+    // wirklich freie Stelle desselben Tages nehmen (naechsteStelle). Passt
+    // nirgends etwas hinein, bleibt die Fingerposition als grober Rückfall.
+    const day = { i: +col.dataset.day, key: col.dataset.date };
+    const gefunden = naechsteStelle(day, laenge, wunsch, taskVorhaben(t));
+    const s = gefunden == null ? wunsch : gefunden;
+    const id = uid();
     state.blocks.push({
-      id: uid(), title: t.title, areaId: t.areaId || state.areas[0].id,
-      day: +col.dataset.day, date: col.dataset.date, repeat: "none",
+      id, title: t.title, areaId: t.areaId || state.areas[0].id, taskId: t.id,
+      day: day.i, date: day.key, repeat: "none",
       start: s, end: Math.min(s + laenge, state.settings.dayEnd * 60), frog: !!t.frog
     });
+    t.geplant = id;
     save(); renderAll();
     toast("Eingeplant: " + t.title);
   });
@@ -4831,6 +5018,7 @@ function blockSheet(draft, dayKey) {
       del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
       del.onclick = () => {
         const weg = () => {
+          unlinkTask(draft);
           state.blocks = state.blocks.filter(x => x.id !== draft.id);
           save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
         };
@@ -4874,15 +5062,29 @@ function blockSheet(draft, dayKey) {
         : { grob: false, teil: undefined, dauer: undefined, start: st, end: en };
 
       if (isNew) {
-        list.forEach(d => state.blocks.push(Object.assign({
-          id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
-          day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
-          since: iso(addDays(mon, d)), ortId: draft.ortId || null,
-          // Die Stern-Markierung kam aus dem Entwurf und wurde hier
-          // stillschweigend wieder auf false gesetzt — je nach Weg blieb sie
-          // erhalten oder nicht.
-          frog: !!draft.frog
-        }, grobFelder())));
+        // Stufe 12: kommt der Entwurf aus dem Aufgabenblatt ("In den
+        // Wochenplan legen"), trägt er draft.taskId — der neue Block
+        // bekommt die Verbindung, die Aufgabe zeigt danach "eingeplant"
+        // statt eines Duplikats in der Liste.
+        let letzteId = null;
+        list.forEach(d => {
+          const nb = Object.assign({
+            id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
+            day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
+            since: iso(addDays(mon, d)), ortId: draft.ortId || null,
+            // Die Stern-Markierung kam aus dem Entwurf und wurde hier
+            // stillschweigend wieder auf false gesetzt — je nach Weg blieb sie
+            // erhalten oder nicht.
+            frog: !!draft.frog
+          }, grobFelder());
+          if (draft.taskId) nb.taskId = draft.taskId;
+          letzteId = nb.id;
+          state.blocks.push(nb);
+        });
+        if (draft.taskId) {
+          const tk = state.tasks.find(x => x.id === draft.taskId);
+          if (tk) tk.geplant = letzteId;
+        }
       } else {
         const b = state.blocks.find(x => x.id === draft.id);
         b.title = title.value.trim() || "Ohne Titel";
@@ -4972,8 +5174,14 @@ function taskEl(t) {
   const meta = document.createElement("div");
   meta.className = "task__meta";
   meta.style.setProperty("--h", a.hue);
+  // Stufe 12: eine verplante Aufgabe zeigt Tag+Uhrzeit ihres Blocks statt
+  // der bloßen Dauer — sonst stünde dieselbe Aufgabe doppelt da: einmal
+  // hier in der Liste, einmal als Block im Raster.
+  const geplantBlock = t.geplant ? state.blocks.find(x => x.id === t.geplant) : null;
   meta.innerHTML = "<span class='chip__dot'></span>" + escapeHtml(a.name)
-    + (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "");
+    + (geplantBlock
+        ? "<span class='task__dur num'>eingeplant " + DAY_SHORT[geplantBlock.day] + " " + fmtTime(geplantBlock.start) + "</span>"
+        : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : ""));
 
   body.append(ti, meta);
 
@@ -5089,13 +5297,20 @@ function taskSheet(t) {
       uebernehmen();
       const d = addDays(mondayOf(anchor), selectedDayIdx);
       const laenge = dauer || 60;
-      const start = clamp(snap(new Date().getHours() * 60 + 60),
+      const wunsch = clamp(snap(new Date().getHours() * 60 + 60),
         state.settings.dayStart * 60, state.settings.dayEnd * 60 - laenge);
+      // Stufe 12: nicht stur "jetzt + 1 h" — die nächstgelegene wirklich
+      // freie Stelle des Tages nehmen (naechsteStelle), wie beim
+      // Verschieben. Passt nirgends etwas hinein, bleibt "jetzt + 1 h" als
+      // grober Rückfall.
+      const day = { i: selectedDayIdx, key: iso(d) };
+      const gefunden = naechsteStelle(day, laenge, wunsch, taskVorhaben(t));
+      const start = gefunden == null ? wunsch : gefunden;
       close();
       blockSheet({
         id: null, title: titel.value.trim() || t.title, areaId,
         day: selectedDayIdx, date: iso(d), repeat: "none",
-        start, end: start + laenge, frog: wichtig
+        start, end: start + laenge, frog: wichtig, taskId: t.id
       }, iso(d));
     };
     s.appendChild(inPlan);
@@ -5116,6 +5331,10 @@ function taskSheet(t) {
     const del = document.createElement("button");
     del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
     del.onclick = () => {
+      // Stufe 12: der Block bleibt stehen, verliert nur die Verbindung —
+      // sonst würde eine gelöschte Aufgabe stillschweigend einen Termin
+      // mitreißen, den man vielleicht längst wahrgenommen hat.
+      state.blocks.forEach(b => { if (b.taskId === t.id) delete b.taskId; });
       state.tasks = state.tasks.filter(x => x.id !== t.id);
       save(); close(); renderTasks(); renderEnergy(); toastUndo("Aufgabe gelöscht");
     };
@@ -5427,6 +5646,7 @@ function relieveSheet() {
         const del = document.createElement("button");
         del.className = "btn btn--sm btn--danger"; del.type = "button"; del.textContent = "Streichen";
         del.onclick = () => {
+          unlinkTask(blk);
           state.blocks = state.blocks.filter(x => x.id !== blk.id);
           save(); renderAll(); paint();
           toastUndo("Gestrichen");
@@ -5549,6 +5769,7 @@ $("#dayFrei").onchange = () => {
   if (an) {
     // Ein Vorschlag an einem freien Tag hat seine Erlaubnis verloren
     const vorher = state.blocks.length;
+    state.blocks.forEach(b => { if (b.sug && onDay(b, key, selectedDayIdx)) unlinkTask(b); });
     state.blocks = state.blocks.filter(b => !(b.sug && onDay(b, key, selectedDayIdx)));
     toast(state.blocks.length < vorher
       ? "Tag freigehalten — Vorschläge hier zurückgenommen" : "Tag freigehalten");
