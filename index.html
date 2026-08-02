@@ -1014,8 +1014,32 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
    ============================================================ */
 .tabbar { display: none; }
 .fab { display: none; }
+.sugbar { display: none; }
 
 @media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
+  /* ---- Unterer Bedienbereich --------------------------------------------
+     Tabbar, FAB, Toasts und Vorschlagsleiste konkurrieren hier unten um
+     denselben Platz. Statt jede Fläche mit einer eigenen, von Hand
+     geschätzten Zahl zu positionieren (das führte zuletzt zu einem
+     Notbehelf: ein Toast-Wert, der eigentlich die "Heute"-Karte freihalten
+     sollte, nicht die Tabbar — bei einem leeren Tag schwebte er dadurch
+     mitten im Bild), zieht jede schwebende Fläche ihren bottom-Wert aus
+     zwei Variablen:
+       --fussleiste  Höhe der Tabbar inkl. unterer Sicherheitszone.
+       --fuss-oben   dasselbe, zusätzlich die Vorschlagsleiste, wenn sie
+                     steht (body[data-sugbar="1"], gesetzt von renderSugBar). */
+  body {
+    --fussleiste: calc(62px + env(safe-area-inset-bottom));
+    --fuss-oben: var(--fussleiste);
+  }
+  body[data-sugbar="1"] {
+    /* 61px = Höhe der Vorschlagsleiste: 44px hohe Knöpfe + 16px senkrechtes
+       Padding (var(--s-2) oben und unten) + 1px Haarlinie. Muss mit den
+       Werten unten bei .sugbar übereinstimmen, sonst schiebt sich der FAB
+       wieder unter die Leiste. */
+    --fuss-oben: calc(var(--fussleiste) + 61px);
+  }
+
   .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
     flex: none; gap: 2px; padding: 2px 6px 0;
@@ -1040,7 +1064,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   body[data-mview="plan"] .fab {
     display: grid; place-items: center; position: fixed;
     right: 16px; z-index: 40;
-    bottom: calc(62px + env(safe-area-inset-bottom));
+    bottom: var(--fuss-oben);
     width: 54px; height: 54px; border-radius: 50%;
     background: var(--ink); border: none; box-shadow: var(--shadow-2);
   }
@@ -1049,6 +1073,25 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     stroke-width: 2.2; stroke-linecap: round;
   }
   .fab:active { transform: scale(0.94); }
+
+  /* Vorschlagsleiste: keine Karte — kein Schatten, kein Radius, kein
+     farbiger Rand. Eine Haarlinie nach oben genügt, die Fläche bleibt
+     ruhig. "Übernehmen" ist der einzige betonte Knopf, wie überall sonst
+     auch — der Akzent gehört der Primäraktion, nicht der Dekoration. */
+  body[data-sugbar="1"] .sugbar {
+    display: flex; align-items: center; gap: var(--s-3);
+    position: fixed; left: 0; right: 0; z-index: 41;
+    bottom: var(--fussleiste); min-height: 61px;
+    padding: var(--s-2) var(--s-4);
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .sugbar__text { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .sugbar__accept { min-height: 44px; padding: 0 var(--s-4); }
+  .sugbar__close {
+    flex: none; min-width: 44px; min-height: 44px;
+    color: var(--text-faint); font-size: 20px; line-height: 1;
+  }
 
   /* ---- Eine Ansicht zur Zeit -------------------------------------------
      Der Plan und die Karten teilen sich nicht den Bildschirm, sie ersetzen
@@ -1122,13 +1165,12 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .loose__hint { font-size: 10.5px; line-height: 1.35; }
 
   /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter.
-     Seit die Agenda den unteren Bereich der „Heute"-Karte fuellt, reicht
-     66px nicht mehr — der Toast legt sich ueber ihre Fusszeile, die
-     Ueberschrift „Tagesform" und sogar die letzten Danach-Zeilen. 250px
-     raeumt eine realistische „Heute"-Karte (Hero + zwei Danach-Zeilen)
-     komplett frei und liegt damit auch klar ueber Tabbar und Fab (62px +
-     54px hoch). */
-  .toasts { bottom: calc(250px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
+     Bezieht sich jetzt auf --fuss-oben (Tabbar, plus Vorschlagsleiste, wenn
+     sie steht) statt auf einen von Hand geschaetzten Wert — der raetselte
+     bisher an der Hoehe der „Heute"-Karte herum und liess den Toast bei
+     einem leeren Tag mitten im Bild schweben. Dazu die Fab-Hoehe (54px)
+     und ein kleiner Abstand, damit er auch den Knopf klar ueberragt. */
+  .toasts { bottom: calc(var(--fuss-oben) + 54px + var(--s-2)); width: min(94vw, 420px); }
 
   /* ---- Dialogfuss ------------------------------------------------------
      Drei Knoepfe nebeneinander passen auf 320 px nicht. Loeschen rutscht in
@@ -1159,8 +1201,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   /* Sieben Spalten auf 844 Pixeln heisst rund hundert Pixel je Tag. Zwei
      fingergerechte Haken passen da nicht neben einen Titel, ohne ihn zu
      verdecken — und ein Vorschlag, den man nicht lesen kann, ist keiner.
-     Das Querformat ist die Übersicht: annehmen geht im Hochformat, über
-     „Alle übernehmen" oder durch Antippen des Vorschlags. */
+     Das Querformat ist die Übersicht: annehmen/verwerfen geht hier über
+     die Vorschlagsleiste (.sugbar, bleibt auch im Querformat sichtbar)
+     oder in "Ziele" über „Alle übernehmen". */
   body[data-tage="7"] .block__sug { display: none; }
   .topbar { padding: 2px var(--s-2); }
   .weeknav__label { font-size: 12.5px; }
@@ -1333,6 +1376,11 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     </div>
 
   </div>
+
+  <!-- Vorschlagsleiste: steht über der Tabbar, solange hasSuggestions()
+       zutrifft — sichtbar in "Plan" und "Heute" (renderSugBar, ~2846),
+       damit man Vorschläge nicht erst in "Ziele" annehmen muss. -->
+  <div class="sugbar" id="sugBar"></div>
 
   <!-- Nur am Handy: Umschalter unten, in der Daumenzone.
        Jede Ansicht bekommt so den ganzen Bildschirm, statt dass sich
@@ -2841,6 +2889,44 @@ function acceptSuggestions() {
   let n = 0;
   state.blocks.forEach(b => { if (b.sug && keys.has(b.date)) { delete b.sug; n++; } });
   return n;
+}
+
+/* Vorschlagsleiste ueber der Tabbar: dieselben drei Funktionen wie in
+   "Ziele" (hasSuggestions/acceptSuggestions/clearSuggestions), nur auch
+   in "Plan" und "Heute" sichtbar platziert — vorher musste man dafuer
+   extra nach "Ziele" wechseln. Der data-sugbar-Flag am body treibt sowohl
+   die Sichtbarkeit der Leiste als auch die Fussbereich-Stapelung in CSS
+   (--fuss-oben, s. Responsive-Media-Query). */
+function renderSugBar() {
+  const bar = $("#sugBar");
+  const aktiv = hasSuggestions() && (mview === "plan" || mview === "heute");
+  document.body.dataset.sugbar = aktiv ? "1" : "0";
+  bar.innerHTML = "";
+  if (!aktiv) return;
+
+  const keys = new Set(weekDays().map(d => d.key));
+  const n = state.blocks.filter(b => b.sug && keys.has(b.date)).length;
+
+  const text = document.createElement("span");
+  text.className = "sugbar__text";
+  text.textContent = n + (n === 1 ? " Vorschlag" : " Vorschläge");
+
+  const ok = document.createElement("button");
+  ok.type = "button"; ok.className = "btn btn--primary sugbar__accept";
+  ok.textContent = "Übernehmen";
+  ok.onclick = () => {
+    const got = acceptSuggestions();
+    save(); renderAll();
+    toast(got + (got === 1 ? " Vorschlag übernommen" : " Vorschläge übernommen"));
+  };
+
+  const close = document.createElement("button");
+  close.type = "button"; close.className = "btn btn--icon btn--ghost sugbar__close";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Vorschläge verwerfen");
+  close.onclick = () => { clearSuggestions(); save(); renderAll(); toast("Vorschläge verworfen"); };
+
+  bar.append(text, ok, close);
 }
 
 /* ============================================================ Ziele-Anzeige */
@@ -6061,6 +6147,7 @@ function setView(v) {
     b.setAttribute("aria-current", String(on));
   });
   if (v === "plan") renderGrid();
+  renderSugBar();
 }
 
 document.querySelectorAll("#tabbar button").forEach(b => {
@@ -6353,6 +6440,7 @@ function renderAll() {
   renderAgenda();
   renderEnergy();
   renderRitual();
+  renderSugBar();
 }
 
 if (!Store.available) {
