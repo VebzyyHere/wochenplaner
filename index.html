@@ -74,6 +74,21 @@
   --shadow-3: 0 16px 48px oklch(0.2 0.02 var(--h-ink) / 0.22);
 
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Schrift-Tokens — rem gegen die 100%-Basis, damit die Oberfläche mit der
+     Systemschriftgröße mitwächst. Feste Skala (~1.13), kein Fluid Type: bei
+     Spalten sehr unterschiedlicher Breite macht viewport-abhängige Schrift die
+     Typografie beliebig. Einzige Ausnahme --t-display, s. dort. Halbschritte
+     (11,5/12,5/13,5/14,5px) gibt es nicht mehr — sie sind in den Nachbarn
+     aufgegangen. */
+  --t-xs:   0.6875rem;  /* ~11px  — kleinste Beschriftungen/Metadaten */
+  --t-sm:   0.8125rem;  /* ~13px  — Hinweistexte, Chips, Zusatzinfo */
+  --t-body: 0.9375rem;  /* ~15px  — Fließtext, Basisgröße der App */
+  --t-h2:   1.0625rem;  /* ~17px  — Zwischenüberschriften, größere Ziffern */
+  --t-h1:   1.1875rem;  /* ~19px  — Dialogtitel */
+  /* Genau eine Stelle: der laufende/nächste Agenda-Eintrag — die größte
+     Schrift gehört auf die Antwort, nicht auf ein Datum. */
+  --t-display: clamp(1.5rem, 1.3rem + 1vw, 1.75rem);
 }
 
 html[data-theme="dark"] {
@@ -137,7 +152,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: var(--t-body);
   line-height: 1.45;
   color: var(--text);
   background: var(--bg);
@@ -166,7 +181,7 @@ button { cursor: pointer; }
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  font-size: 14px; font-weight: 500;
+  font-size: var(--t-body); font-weight: 500;
   transition: background .15s, border-color .15s, transform .1s;
 }
 .btn:active { transform: scale(0.98); }
@@ -188,13 +203,13 @@ button { cursor: pointer; }
 .btn--danger { color: var(--danger); border-color: transparent; background: transparent; }
 .btn--danger:hover { background: oklch(0.55 0.19 25 / 0.12); }
 .btn--icon { min-width: 38px; padding: 0 var(--s-2); }
-.btn--sm { min-height: 32px; font-size: 13px; padding: 0 var(--s-2); }
+.btn--sm { min-height: 32px; font-size: var(--t-sm); padding: 0 var(--s-2); }
 
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 34px; padding: 0 12px;
   border: 1px solid var(--border-strong); border-radius: 999px;
-  background: var(--surface); font-size: 13px; font-weight: 500;
+  background: var(--surface); font-size: var(--t-sm); font-weight: 500;
   transition: background .15s, border-color .15s, transform .1s;
 }
 .chip:active { transform: scale(0.97); }
@@ -204,7 +219,7 @@ button { cursor: pointer; }
 .chip__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
 
 .label {
-  display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  display: block; font-size: var(--t-sm); font-weight: 600; letter-spacing: .04em;
   text-transform: uppercase; color: var(--text-faint); margin-bottom: var(--s-2);
 }
 .field {
@@ -218,6 +233,9 @@ button { cursor: pointer; }
 /* overflow: hidden verhindert, dass die ganze Seite am Telefon gummiartig
    mitfedert — gescrollt wird im Raster, nicht am Dokument. */
 .app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+/* Rückfall für setAppInert(), falls der Browser kein natives inert kennt —
+   aria-hidden allein hält die Maus nicht ab. */
+.app.is-inert-fallback { pointer-events: none; }
 
 /* Langes Drücken legt einen Eintrag an. Ohne diese drei Zeilen kommt an
    derselben Stelle die Textauswahl von iOS dazwischen und übernimmt die
@@ -237,17 +255,17 @@ button { cursor: pointer; }
   flex: none;
 }
 .brand { display: flex; align-items: baseline; gap: var(--s-2); margin-right: auto; min-width: 0; }
-.brand__name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand__name { font-size: var(--t-h2); font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
 .brand__who {
-  font-size: 13px; color: var(--text-muted); white-space: nowrap;
+  font-size: var(--t-sm); color: var(--text-muted); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
 .weeknav { display: flex; align-items: center; gap: var(--s-1); }
 .weeknav__label {
-  min-width: 148px; text-align: center; font-size: 14px; font-weight: 600;
+  min-width: 148px; text-align: center; font-size: var(--t-body); font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.weeknav__label small { display: block; font-weight: 500; color: var(--text-muted); font-size: 12px; }
+.weeknav__label small { display: block; font-weight: 500; color: var(--text-muted); font-size: var(--t-sm); }
 
 .main { display: flex; flex: 1; min-height: 0; }
 
@@ -267,7 +285,7 @@ button { cursor: pointer; }
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s-2); margin-bottom: var(--s-3);
 }
-.card__title { font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--text-muted); }
+.card__title { font-size: var(--t-sm); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--text-muted); }
 
 /* ============================================================ Tagesform (Signature) */
 .energy { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
@@ -275,7 +293,7 @@ button { cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: var(--s-3) var(--s-1); min-height: 74px;
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  background: var(--surface); font-size: 12px; font-weight: 600;
+  background: var(--surface); font-size: var(--t-sm); font-weight: 600;
   transition: background .15s, border-color .15s, transform .1s;
 }
 .energy__opt:active { transform: scale(0.97); }
@@ -292,7 +310,7 @@ button { cursor: pointer; }
   margin-top: var(--s-3); padding: var(--s-3);
   border-radius: var(--radius-sm); background: var(--surface);
   border: 1px dashed var(--border-strong);
-  font-size: 13px; color: var(--text-muted); line-height: 1.5;
+  font-size: var(--t-sm); color: var(--text-muted); line-height: 1.5;
 }
 .hint b { color: var(--text); font-weight: 600; }
 
@@ -306,14 +324,14 @@ button { cursor: pointer; }
    ============================================================ */
 .agenda { display: flex; flex-direction: column; }
 .agenda__label {
-  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  font-size: var(--t-sm); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
   color: var(--text-muted); margin: 14px 0 6px;
 }
 .agenda__label:first-child { margin-top: 0; }
 .agenda__frog {
   display: block; width: 100%; min-height: 44px; padding: 4px 0 10px;
   border: none; border-bottom: 1px solid var(--border); background: transparent;
-  font-size: 15px; font-weight: 600; color: var(--text); text-align: left;
+  font-size: var(--t-body); font-weight: 600; color: var(--text); text-align: left;
   cursor: pointer;
 }
 .agenda__hero {
@@ -322,10 +340,10 @@ button { cursor: pointer; }
 }
 .agenda__hero-status {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 12.5px; color: var(--text-muted); margin-bottom: 3px;
+  font-size: var(--t-sm); color: var(--text-muted); margin-bottom: 3px;
 }
-.agenda__hero-title { font-size: 26px; font-weight: 600; line-height: 1.25; }
-.agenda__hero-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+.agenda__hero-title { font-size: var(--t-display); font-weight: 600; line-height: 1.25; }
+.agenda__hero-sub { font-size: var(--t-sm); color: var(--text-muted); margin-top: 3px; }
 .agenda__list { display: flex; flex-direction: column; }
 .agenda__row {
   display: flex; align-items: flex-start; gap: 10px; min-height: 44px;
@@ -347,12 +365,12 @@ button { cursor: pointer; }
 }
 .agenda__body { flex: 1; min-width: 0; }
 .agenda__line { display: flex; align-items: baseline; gap: 8px; }
-.agenda__title { font-size: 14px; font-weight: 500; min-width: 0; }
-.agenda__time { margin-left: auto; font-size: 13px; color: var(--text-muted); flex: none; }
-.agenda__sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.agenda__title { font-size: var(--t-body); font-weight: 500; min-width: 0; }
+.agenda__time { margin-left: auto; font-size: var(--t-sm); color: var(--text-muted); flex: none; }
+.agenda__sub { font-size: var(--t-sm); color: var(--text-faint); margin-top: 2px; }
 .agenda__foot {
   margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-  font-size: 12.5px; color: var(--text-muted);
+  font-size: var(--t-sm); color: var(--text-muted);
 }
 /* Ladezustand, solange Sync.boot() den echten Stand noch nicht gezogen hat —
    dieselbe Schraffur wie die Nachtruhe im Raster (.rest, ~785), nur als
@@ -371,24 +389,24 @@ html[data-theme="dark"] .agenda__loading {
 /* ============================================================ Wochenstart */
 .ritual { border-color: var(--border-strong); }
 .ritual__head {
-  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  font-size: var(--t-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px;
 }
-.ritual__txt { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+.ritual__txt { margin: 0; font-size: var(--t-sm); line-height: 1.55; color: var(--text-muted); }
 .ritual__txt b { color: var(--text); }
 .ritual__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
 .ritual__lead {
-  margin: 0 0 16px; font-size: 13.5px; line-height: 1.6; color: var(--text-muted);
+  margin: 0 0 16px; font-size: var(--t-sm); line-height: 1.6; color: var(--text-muted);
 }
 .ritual__lead b { color: var(--text); font-weight: 600; }
 
 .steps { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
 .steps__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-3); }
 .steps__dot.is-on { background: var(--ink); }
-.steps__lab { font-size: 11.5px; color: var(--text-faint); margin-left: 6px; }
+.steps__lab { font-size: var(--t-xs); color: var(--text-faint); margin-left: 6px; }
 .ritual__summe {
   margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border);
-  font-size: 13px; color: var(--text-muted);
+  font-size: var(--t-sm); color: var(--text-muted);
 }
 .ritual__summe b { color: var(--text); font-weight: 600; }
 
@@ -398,10 +416,10 @@ html[data-theme="dark"] .agenda__loading {
   display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
   padding-bottom: 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border);
 }
-.hakenkopf__sum { font-size: 13px; color: var(--text-muted); flex: 1; min-width: 120px; }
+.hakenkopf__sum { font-size: var(--t-sm); color: var(--text-muted); flex: 1; min-width: 120px; }
 .hakenkopf__sum b { color: var(--text); font-weight: 600; }
 .hakenliste__tag {
-  font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
   color: var(--text-faint); margin: 12px 0 4px;
 }
 .hakenrow {
@@ -412,11 +430,11 @@ html[data-theme="dark"] .agenda__loading {
 .hakenrow.is-on .hakenrow__txt { opacity: .55; text-decoration: line-through; }
 .hakenrow input { width: 20px; height: 20px; flex: none; accent-color: var(--area-line); }
 .hakenrow__txt {
-  display: flex; align-items: center; gap: 7px; font-size: 13.5px;
+  display: flex; align-items: center; gap: 7px; font-size: var(--t-sm);
   min-width: 0; flex: 1;
 }
 .hakenrow__txt > span:first-child { flex: none; }
-.hakenrow__zeit { margin-left: auto; font-size: 11.5px; color: var(--text-faint); flex: none; }
+.hakenrow__zeit { margin-left: auto; font-size: var(--t-xs); color: var(--text-faint); flex: none; }
 
 .zieleliste { display: flex; flex-direction: column; gap: 2px; }
 .zielrow {
@@ -424,10 +442,10 @@ html[data-theme="dark"] .agenda__loading {
   padding: 4px 0; opacity: .55;
 }
 .zielrow.is-on { opacity: 1; }
-.zielrow__name { display: flex; align-items: center; gap: 7px; font-size: 13.5px; flex: 1; min-width: 0; }
-.zielrow__ist { color: var(--text-faint); font-size: 11.5px; }
+.zielrow__name { display: flex; align-items: center; gap: 7px; font-size: var(--t-sm); flex: 1; min-width: 0; }
+.zielrow__ist { color: var(--text-faint); font-size: var(--t-xs); }
 .stepper { display: flex; align-items: center; gap: 6px; flex: none; }
-.stepper__val { min-width: 42px; text-align: center; font-size: 13px; font-weight: 600; }
+.stepper__val { min-width: 42px; text-align: center; font-size: var(--t-sm); font-weight: 600; }
 
 /* Freihalten sitzt unter der Tagesform, weil beides dieselbe Frage ist:
    was verträgt dieser Tag? */
@@ -437,7 +455,7 @@ html[data-theme="dark"] .agenda__loading {
 .syncbadge {
   border: 1px solid var(--border); background: var(--surface);
   color: var(--text-muted); border-radius: 999px;
-  padding: 0 10px; min-height: 28px; font-size: 12px; font-weight: 600;
+  padding: 0 10px; min-height: 28px; font-size: var(--t-sm); font-weight: 600;
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
 }
 .syncbadge::before {
@@ -447,6 +465,7 @@ html[data-theme="dark"] .agenda__loading {
 .syncbadge:hover { background: var(--surface-2); color: var(--text); }
 .syncbadge.is-ok::before   { background: var(--success); }
 .syncbadge.is-warn::before { background: var(--warn); }
+.syncbadge.is-danger::before { background: var(--danger); }
 .syncbadge.is-work::before { background: var(--focus); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 .syncbadge__ico { display: none; width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -470,38 +489,38 @@ html[data-theme="dark"] .agenda__loading {
 .setmenu__item:hover { background: var(--surface-2); }
 .setmenu__item:active { background: var(--surface-3); }
 .setmenu__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.setmenu__name { font-size: 15px; font-weight: 600; }
+.setmenu__name { font-size: var(--t-body); font-weight: 600; }
 .setmenu__kurz {
-  font-size: 12.5px; color: var(--text-faint);
+  font-size: var(--t-sm); color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.setmenu__pfeil { flex: none; font-size: 20px; color: var(--text-faint); line-height: 1; }
+.setmenu__pfeil { flex: none; font-size: var(--t-h1); color: var(--text-faint); line-height: 1; }
 .setback {
   display: flex; align-items: center; gap: 6px;
   background: none; border: none; padding: 4px 0; margin: 0 0 var(--s-4);
-  font-size: 15px; font-weight: 600; color: var(--text-muted);
+  font-size: var(--t-body); font-weight: 600; color: var(--text-muted);
   min-height: 40px;
 }
 .setback:hover { color: var(--text); }
-.setback span { font-size: 20px; line-height: 1; }
+.setback span { font-size: var(--t-h1); line-height: 1; }
 .sheet__row[hidden], .setmenu[hidden], .setback[hidden] { display: none; }
 
 /* Konto in den Einstellungen */
 .acct { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s-3); }
 .acct__row { display: flex; align-items: center; gap: var(--s-3); }
 .acct__txt { flex: 1; min-width: 0; }
-.acct__what { font-size: 14px; font-weight: 600; }
-.acct__sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.acct__what { font-size: var(--t-body); font-weight: 600; }
+.acct__sub { font-size: var(--t-sm); color: var(--text-faint); margin-top: 2px; }
 
 /* ============================================================ Wochenziele */
 .goals { display: flex; flex-direction: column; gap: var(--s-4); }
 .goal__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); margin-bottom: 6px; }
 .goal__name {
-  font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px;
+  font-size: var(--t-sm); font-weight: 600; display: flex; align-items: center; gap: 7px;
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .goal__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
-.goal__num { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
+.goal__num { font-size: var(--t-xs); color: var(--text-faint); font-variant-numeric: tabular-nums; flex: none; }
 /* Drei Stufen im selben Balken: abgehakt, geplant, vorgeschlagen.
    Unterschieden über die Deckkraft, nicht über eine Schraffur — in acht
    Pixeln Höhe ist eine Schraffur kein Muster mehr, nur ein Farbton, und
@@ -513,7 +532,7 @@ html[data-theme="dark"] .agenda__loading {
 .goal__fill { background: var(--area-line); opacity: .58; }
 .goal__fill--ist { opacity: 1; }
 .goal__fill--sug { opacity: .24; }
-.goal__rest { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+.goal__rest { font-size: var(--t-xs); color: var(--text-muted); margin-top: 5px; }
 .goal__rest b { color: var(--text); font-weight: 600; }
 .goals__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
 .goals__foot .btn { flex: 1 1 auto; }
@@ -526,12 +545,12 @@ html[data-theme="dark"] .agenda__loading {
 }
 .goalrow__head { display: flex; align-items: center; gap: var(--s-2); }
 .goalrow__name {
-  flex: 1; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px;
+  flex: 1; font-size: var(--t-body); font-weight: 600; display: flex; align-items: center; gap: 7px;
   min-width: 0; overflow: hidden; white-space: nowrap;
 }
 .goalrow__tags { display: inline-flex; gap: 5px; overflow: hidden; }
 .goals__which {
-  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
   background: var(--surface-3); border-radius: var(--radius-sm);
   padding: 6px 10px; margin-bottom: 2px;
 }
@@ -542,20 +561,20 @@ html[data-theme="dark"] .agenda__loading {
   padding: var(--s-3); background: var(--surface);
 }
 .reliefrow__txt { flex: 1; min-width: 0; }
-.reliefrow__title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
-.reliefrow__time { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.reliefrow__title { font-size: var(--t-body); font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.reliefrow__time { font-size: var(--t-sm); color: var(--text-faint); margin-top: 2px; }
 .reliefrow .goal__dot { background: var(--area-dot); }
 .tag {
-  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  font-size: var(--t-xs); font-weight: 600; letter-spacing: .02em;
   padding: 2px 7px; border-radius: 999px; white-space: nowrap;
   background: var(--surface-3); color: var(--text-muted);
 }
 .tag--soft { background: transparent; border: 1px dashed var(--border-strong); }
 .goalrow__h { width: 78px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
-.goalrow__unit { font-size: 12.5px; color: var(--text-faint); flex: none; }
+.goalrow__unit { font-size: var(--t-sm); color: var(--text-faint); flex: none; }
 .goalrow__more {
   border: none; background: transparent; color: var(--text-faint);
-  width: 30px; min-height: 30px; border-radius: var(--radius-sm); flex: none; font-size: 12px;
+  width: 30px; min-height: 30px; border-radius: var(--radius-sm); flex: none; font-size: var(--t-sm);
 }
 .goalrow__more:hover { background: var(--surface-2); color: var(--text); }
 .goalrow__body {
@@ -564,13 +583,13 @@ html[data-theme="dark"] .agenda__loading {
 }
 .goalrow__body[hidden] { display: none; }
 .goalrow__art { display: flex; gap: 6px; margin-top: var(--s-2); flex-wrap: wrap; }
-.goalrow__art .chip { font-size: 12px; padding: 5px 10px; min-height: 32px; }
+.goalrow__art .chip { font-size: var(--t-sm); padding: 5px 10px; min-height: 32px; }
 @media (pointer: coarse) { .goalrow__art .chip { min-height: 44px; padding: 5px 12px; } }
-.goalrow__arthint { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
+.goalrow__arthint { font-size: var(--t-xs); color: var(--text-faint); margin-top: 6px; }
 .wegrow { display: flex; align-items: center; gap: var(--s-2); margin-bottom: 6px; }
-.wegrow__txt { flex: 1; font-size: 13px; min-width: 0; }
+.wegrow__txt { flex: 1; font-size: var(--t-sm); min-width: 0; }
 .wegrow__min { width: 74px; flex: none; text-align: right; }
-.ampel { display: flex; align-items: center; gap: 8px; font-size: 12px;
+.ampel { display: flex; align-items: center; gap: 8px; font-size: var(--t-sm);
   color: var(--text-muted); margin-bottom: var(--s-2); }
 .ampel__bar { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-3);
   overflow: hidden; position: relative; }
@@ -580,7 +599,7 @@ html[data-theme="dark"] .agenda__loading {
 }
 .ampel__mark { position: absolute; top: -2px; bottom: -2px; width: 1px;
   background: var(--text-faint); opacity: .55; }
-.goalrow__sub { font-size: 12px; color: var(--text-faint); margin: 0 0 var(--s-2); }
+.goalrow__sub { font-size: var(--t-sm); color: var(--text-faint); margin: 0 0 var(--s-2); }
 
 /* Vorschlagsblöcke im Raster */
 .block.is-sug {
@@ -600,7 +619,7 @@ html[data-theme="dark"] .agenda__loading {
 .block__sug button {
   width: 19px; height: 19px; padding: 0; border-radius: 5px;
   border: 1px solid var(--area-edge); background: var(--surface);
-  color: var(--area-text); font-size: 11px; line-height: 1;
+  color: var(--area-text); font-size: var(--t-xs); line-height: 1;
   display: grid; place-items: center; box-shadow: var(--shadow-1);
 }
 .block__sug button:hover { background: var(--area-bg-2); }
@@ -629,7 +648,7 @@ html[data-theme="dark"] .agenda__loading {
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task__body { flex: 1; min-width: 0; cursor: pointer; }
-.task__title { font-size: 14.5px; word-break: break-word; line-height: 1.35; }
+.task__title { font-size: var(--t-body); word-break: break-word; line-height: 1.35; }
 .task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
 .task__star {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -637,7 +656,7 @@ html[data-theme="dark"] .agenda__loading {
 }
 .task__meta {
   display: flex; align-items: center; gap: 5px; margin-top: 2px;
-  font-size: 11.5px; color: var(--text-muted);
+  font-size: var(--t-xs); color: var(--text-muted);
 }
 .task__dur {
   margin-left: 4px; padding-left: 7px; border-left: 1px solid var(--border);
@@ -645,7 +664,7 @@ html[data-theme="dark"] .agenda__loading {
 }
 .task__more {
   flex: none; border: 0; background: transparent; color: var(--text-muted);
-  font-size: 17px; letter-spacing: 1px; line-height: 1;
+  font-size: var(--t-h2); letter-spacing: 1px; line-height: 1;
   padding: 4px 8px; border-radius: 8px; align-self: center;
   transition: background .15s, color .15s;
 }
@@ -655,15 +674,20 @@ html[data-theme="dark"] .agenda__loading {
 
 .empty {
   text-align: center; padding: var(--s-5) var(--s-3);
-  color: var(--text-faint); font-size: 13px; line-height: 1.6;
+  color: var(--text-faint); font-size: var(--t-sm); line-height: 1.6;
 }
-.empty b { display: block; color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
+.empty b { display: block; color: var(--text-muted); font-size: var(--t-body); margin-bottom: 4px; }
 
 /* ============================================================ Wochenraster */
 /* min-height:0 ist hier nicht optional — ohne das wächst das Raster über
    den Bildschirm hinaus und schiebt das Band unter den Rand. */
 .planwrap { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .gridwrap { flex: 1; min-width: 0; overflow: auto; position: relative; background: var(--bg); }
+/* Leerzustand des Rasters — als Grid-Kind über die volle Breite gelegt
+   (grid-column/-row per JS, s. renderGrid) statt separat positioniert, damit
+   er unter dem Tageskopf bleibt statt ihn zu verdecken. pointer-events:none
+   lässt Ziehen/Antippen der leeren Fläche darunter unangetastet. */
+.grid > .empty { pointer-events: none; padding-top: var(--s-6); }
 
 /* ============================================================
    Band für grob geplante Zeit
@@ -679,7 +703,7 @@ html[data-theme="dark"] .agenda__loading {
   overscroll-behavior: contain;
 }
 .loose__lab {
-  grid-column: 1; font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
+  grid-column: 1; font-size: var(--t-xs); font-weight: 600; letter-spacing: .04em;
   text-transform: uppercase; color: var(--text-faint);
   padding: 4px var(--s-2) 0 0; text-align: right; align-self: start;
 }
@@ -691,7 +715,7 @@ html[data-theme="dark"] .agenda__loading {
   border: 1px dashed var(--area-line); border-radius: 999px;
   background: var(--area-bg); color: var(--area-text);
   padding: 5px 10px; min-height: 30px; text-align: left;
-  font-size: 11.5px; font-weight: 600; line-height: 1.2;
+  font-size: var(--t-xs); font-weight: 600; line-height: 1.2;
   overflow: hidden;
 }
 html[data-theme="dark"] .loosechip {
@@ -705,7 +729,7 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 .loosechip.is-done { opacity: .5; text-decoration: line-through; }
 .loosechip__d { flex: none; opacity: .75; font-variant-numeric: tabular-nums; font-weight: 500; }
 .loose__hint {
-  grid-column: 1 / -1; font-size: 11.5px; color: var(--text-faint);
+  grid-column: 1 / -1; font-size: var(--t-xs); color: var(--text-faint);
   padding: 2px var(--s-3) 4px calc(var(--gutter, 56px) + 3px);
 }
 
@@ -736,7 +760,7 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 .dayhead--gutter { border-left: 0; }
 .dayhead.is-frei { background: var(--surface-2); }
 .dayhead__frei {
-  display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  display: block; font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--success); margin-top: 2px;
 }
 /* Ein freier Tag ist nicht leer — er ist geschützt. Darum eine ruhige
@@ -745,9 +769,9 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 html[data-theme="dark"] .daycol.is-frei { background: oklch(0.72 0.14 150 / .07); }
 .dayswitch__btn.is-frei { background: oklch(0.62 0.14 150 / .10); }
 html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 150 / .13); }
-.dayhead__name { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.dayhead__name { font-size: var(--t-xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
 .dayhead__num {
-  font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--t-h1); font-weight: 700; font-variant-numeric: tabular-nums;
   width: 32px; height: 32px; line-height: 32px; margin: 2px auto 0;
   border-radius: 50%;
 }
@@ -766,7 +790,7 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
 .timecol { grid-column: 1; position: relative; background: var(--bg); }
 .timecol__mark {
   position: absolute; right: var(--s-2); transform: translateY(-50%);
-  font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-faint);
+  font-size: var(--t-xs); font-variant-numeric: tabular-nums; color: var(--text-faint);
 }
 .daycol {
   position: relative; border-left: 1px solid var(--border);
@@ -805,7 +829,7 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
 html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-dragging { opacity: .75; box-shadow: var(--shadow-2); z-index: 30; cursor: grabbing; }
 .block__title {
-  font-size: 12.5px; font-weight: 600; line-height: 1.25;
+  font-size: var(--t-sm); font-weight: 600; line-height: 1.25;
   /* Nur an Wortgrenzen umbrechen. „Vorlesu ng Statisti k" war unlesbar -
      lieber ein zu langes Wort abschneiden als es mittendrin zerhacken.
      Auf iOS und Safari trennt hyphens zusaetzlich sauber nach Silben. */
@@ -815,7 +839,7 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
      sonst verschwindet sie dahinter */
   position: sticky; top: 58px;
 }
-.block__time { font-size: 11px; opacity: .78; font-variant-numeric: tabular-nums; }
+.block__time { font-size: var(--t-xs); opacity: .78; font-variant-numeric: tabular-nums; }
 .block.is-short { padding: 1px 6px; display: flex; align-items: center; gap: 6px; }
 .block.is-short .block__time { display: none; }
 .block.is-done { opacity: .55; }
@@ -829,7 +853,7 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   border: none; background: none; cursor: pointer;
 }
 .block__done::after {
-  content: "✓"; position: absolute; inset: 0; font-size: 11px; font-weight: 700;
+  content: "✓"; position: absolute; inset: 0; font-size: var(--t-xs); font-weight: 700;
   line-height: 1; color: var(--area-text); opacity: 0;
 }
 .block__done:checked::after { opacity: 1; }
@@ -856,7 +880,7 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   background: var(--area-bg);
   opacity: .8; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; font-weight: 600; color: var(--area-text);
+  font-size: var(--t-xs); font-weight: 600; color: var(--area-text);
   font-variant-numeric: tabular-nums;
 }
 .daycol.is-droptarget { background: var(--surface-3); }
@@ -896,10 +920,10 @@ html[data-theme="dark"] .rest {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
 }
 .dayswitch__btn span {
-  font-size: 10px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+  font-size: var(--t-xs); font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
   color: var(--text-muted); line-height: 1.1;
 }
-.dayswitch__btn b { font-size: 16px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.dayswitch__btn b { font-size: var(--t-h2); font-variant-numeric: tabular-nums; line-height: 1.15; }
 .dayswitch__btn[aria-pressed="true"] { background: var(--surface-3); border-color: var(--border-strong); }
 /* Wie voll ist dieser Tag?
 
@@ -940,7 +964,7 @@ html[data-theme="dark"] .rest {
 }
 @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98) } }
 .sheet--wide { max-width: 560px; }
-.sheet__title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
+.sheet__title { font-size: var(--t-h1); font-weight: 700; letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
 .sheet__row { margin-bottom: var(--s-4); }
 .sheet__cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
 /* Der Fussbereich klebt am unteren Rand des Dialogs. Ohne das rutscht der
@@ -959,7 +983,7 @@ html[data-theme="dark"] .rest {
 html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 0 / 0.55); }
 .sheet__foot .spacer { flex: 1; }
 .chipset { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.switch { display: flex; align-items: center; gap: var(--s-2); font-size: 14px; cursor: pointer; }
+.switch { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-body); cursor: pointer; }
 .switch input { width: 18px; height: 18px; accent-color: var(--ink); }
 
 /* ============================================================ Areas editor */
@@ -981,14 +1005,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 }
 .toast {
   background: var(--ink); color: var(--on-ink);
-  padding: 10px var(--s-4); border-radius: 999px; font-size: 13.5px; font-weight: 500;
+  padding: 10px var(--s-4); border-radius: 999px; font-size: var(--t-sm); font-weight: 500;
   box-shadow: var(--shadow-2); animation: pop .2s cubic-bezier(.2,.9,.3,1);
   display: flex; align-items: center; gap: var(--s-3); max-width: 100%;
 }
 .toast__act {
   pointer-events: auto; flex: none;
   background: transparent; border: none; padding: 2px 2px; margin: -2px 0;
-  color: inherit; font-size: 13.5px; font-weight: 700;
+  color: inherit; font-size: var(--t-sm); font-weight: 700;
   text-decoration: underline; text-underline-offset: 3px;
 }
 .toast__act:hover { opacity: .75; }
@@ -996,7 +1020,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 .toasts .toast:has(.toast__act) { pointer-events: auto; }
 .banner {
   display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
-  padding: 10px var(--s-4); font-size: 13px;
+  padding: 10px var(--s-4); font-size: var(--t-sm);
   background: oklch(0.66 0.15 75 / 0.16);
   border-bottom: 1px solid oklch(0.66 0.15 75 / 0.45);
   color: var(--text);
@@ -1050,7 +1074,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 2px; min-height: 50px; padding: 4px 2px 5px;
     border: none; background: transparent; border-radius: var(--radius-sm);
-    font-size: 11px; font-weight: 600; color: var(--text-faint);
+    font-size: var(--t-xs); font-weight: 600; color: var(--text-faint);
     -webkit-tap-highlight-color: transparent;
   }
   .tabbar svg {
@@ -1086,11 +1110,11 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     border-top: 1px solid var(--border);
     background: var(--surface);
   }
-  .sugbar__text { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .sugbar__text { flex: 1; min-width: 0; font-size: var(--t-sm); font-weight: 600; color: var(--text); }
   .sugbar__accept { min-height: 44px; padding: 0 var(--s-4); }
   .sugbar__close {
     flex: none; min-width: 44px; min-height: 44px;
-    color: var(--text-faint); font-size: 20px; line-height: 1;
+    color: var(--text-faint); font-size: var(--t-h1); line-height: 1;
   }
 
   /* ---- Eine Ansicht zur Zeit -------------------------------------------
@@ -1145,10 +1169,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   /* Datum und Woche in eine Zeile: die zweite Zeile kostete zwölf Pixel
      Rasterhöhe und stand doppelt im Tagwechsler darunter. */
   .weeknav__label {
-    min-width: 0; font-size: 13px; line-height: 1.2;
+    min-width: 0; font-size: var(--t-sm); line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .weeknav__label small { display: inline; font-size: 12px; }
+  .weeknav__label small { display: inline; font-size: var(--t-sm); }
   .weeknav__label small::before { content: " · "; }
   /* Unter 360 Pixeln bricht das Datum mitten durch. Die Tage stehen
      ohnehin im Wechsler darunter — dann lieber nur die Kalenderwoche. */
@@ -1162,7 +1186,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   /* Das Band nimmt hoechstens ein Viertel der Hoehe. Vorher durfte es ein
      Drittel — auf einem 568er Display blieben dem Tag viereinhalb Stunden. */
   .loose { max-height: 25dvh; padding: 4px 0; }
-  .loose__hint { font-size: 10.5px; line-height: 1.35; }
+  .loose__hint { font-size: var(--t-xs); line-height: 1.35; }
 
   /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter.
      Bezieht sich jetzt auf --fuss-oben (Tabbar, plus Vorschlagsleiste, wenn
@@ -1189,14 +1213,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .grid { --hourh: 46px; }
   .dayswitch { padding: 2px; }
   .dayswitch__btn { min-height: 40px; padding: 2px; }
-  .dayswitch__btn b { font-size: 14px; }
+  .dayswitch__btn b { font-size: var(--t-body); }
   /* Bei 390 Pixeln Höhe ist jeder Erklärsatz eine Stunde Plan */
   .loose { max-height: 30dvh; }
   .loose__hint { display: none; }
   .dayhead { padding: 2px 2px 3px; }
-  .dayhead__name { font-size: 9.5px; }
-  .dayhead__num { font-size: 15px; width: 24px; height: 24px; line-height: 24px; margin-top: 0; }
-  .dayhead__frei { font-size: 8.5px; }
+  .dayhead__name { font-size: var(--t-xs); }
+  .dayhead__num { font-size: var(--t-body); width: 24px; height: 24px; line-height: 24px; margin-top: 0; }
+  .dayhead__frei { font-size: var(--t-xs); }
   .dayhead__energy { display: none; }
   /* Sieben Spalten auf 844 Pixeln heisst rund hundert Pixel je Tag. Zwei
      fingergerechte Haken passen da nicht neben einen Titel, ohne ihn zu
@@ -1206,7 +1230,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      oder in "Ziele" über „Alle übernehmen". */
   body[data-tage="7"] .block__sug { display: none; }
   .topbar { padding: 2px var(--s-2); }
-  .weeknav__label { font-size: 12.5px; }
+  .weeknav__label { font-size: var(--t-sm); }
 }
 
 /* ============================================================
@@ -1218,11 +1242,11 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .panel { width: 250px; padding: var(--s-3); gap: var(--s-4); }
   .grid { --colmin: 0; --gutter: 44px; }
   .dayhead { padding: 6px 2px 8px; }
-  .dayhead__num { font-size: 17px; width: 28px; height: 28px; line-height: 28px; }
-  .dayhead__name { font-size: 10.5px; }
+  .dayhead__num { font-size: var(--t-h2); width: 28px; height: 28px; line-height: 28px; }
+  .dayhead__name { font-size: var(--t-xs); }
   .block { left: 2px; right: 2px; }
-  .block__title { font-size: 11.5px; }
-  .block__time { font-size: 10px; }
+  .block__title { font-size: var(--t-xs); }
+  .block__time { font-size: var(--t-xs); }
   .card { padding: var(--s-3); }
 }
 
@@ -1272,12 +1296,12 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   /* Annehmen und Verwerfen sind der Kern der Schleife — die dürfen nicht
      die kleinsten Knöpfe im Bild sein. */
   .block__sug { gap: 6px; right: 4px; top: 4px; }
-  .block__sug button { width: 34px; height: 34px; font-size: 14px; position: relative; }
+  .block__sug button { width: 34px; height: 34px; font-size: var(--t-body); position: relative; }
   .block__sug button::before { content: ""; position: absolute; inset: -5px; }
   .block__resize { height: 14px; }
   .goalrow__more { min-width: 44px; min-height: 44px; }
   .loosechip { min-height: 44px; }
-  .toast__act { padding: 12px 6px; margin: -12px 0; }
+  .toast__act { padding: 13px 6px; margin: -13px 0; }
   #inSwap { min-height: 44px; }
 }
 
@@ -1287,6 +1311,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 </style>
 </head>
 <body>
+<a href="#main" class="sr">Zum Inhalt</a>
 <div id="banner"></div>
 
 <div class="app">
@@ -1310,7 +1335,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
   <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
 
-  <div class="main">
+  <div class="main" id="main" tabindex="-1">
 
     <aside class="panel">
 
@@ -1319,7 +1344,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
         <div class="agenda" id="agenda"></div>
         <div class="card__head">
           <h2 class="card__title">Tagesform</h2>
-          <span id="energyDay" style="font-size:12px;color:var(--text-faint)"></span>
+          <span id="energyDay" style="font-size:var(--t-sm);color:var(--text-faint)"></span>
         </div>
         <div class="energy" role="group" aria-label="Wie viel Energie hast du heute?">
           <button class="energy__opt" data-lvl="low" aria-pressed="false">
@@ -1994,8 +2019,30 @@ function toastUndo(msg) {
 let openModal = null;
 // Vom oberen Blatt beiseitegelegt statt entfernt — siehe modalPush() unten.
 let stashedModal = null;
+// Wer den Dialog geöffnet hat — bekommt beim Schließen den Fokus zurück.
+let modalOpener = null;
+
+// .app während des Dialogs abschalten. inert ist in fast allen aktuellen
+// Browsern da; ohne das (alter WebKit) bleibt wenigstens aria-hidden plus
+// eine CSS-Sperre gegen Maus/Touch dahinter.
+function setAppInert(on) {
+  const app = $(".app");
+  if (!app) return;
+  if ("inert" in app) {
+    app.inert = on;
+  } else if (on) {
+    app.setAttribute("aria-hidden", "true");
+    app.classList.add("is-inert-fallback");
+  } else {
+    app.removeAttribute("aria-hidden");
+    app.classList.remove("is-inert-fallback");
+  }
+}
+
 function modal(builder, opts = {}) {
   closeModal();
+  modalOpener = document.activeElement && document.activeElement !== document.body
+    ? document.activeElement : null;
   const scrim = document.createElement("div");
   scrim.className = "scrim";
   const sheet = document.createElement("div");
@@ -2004,20 +2051,49 @@ function modal(builder, opts = {}) {
   sheet.setAttribute("aria-modal", "true");
   scrim.appendChild(sheet);
   builder(sheet, closeModal);
+  const titleEl = sheet.querySelector("h2.sheet__title");
+  if (titleEl) {
+    if (!titleEl.id) titleEl.id = "modalTitle";
+    sheet.setAttribute("aria-labelledby", titleEl.id);
+  }
   scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeModal(); });
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
+  setAppInert(true);
+  // Auf dem Handy deckt die aufspringende Tastatur sonst rund 40% von
+  // 568px Höhe zu — Autofokus nur, wo ein Zeiger fein genug ist, um ihn
+  // absichtlich ins Feld gesetzt zu haben.
   const focusable = sheet.querySelector("input, select, textarea, button");
-  if (focusable) setTimeout(() => focusable.focus(), 40);
+  if (focusable && window.matchMedia("(pointer: fine)").matches) setTimeout(() => focusable.focus(), 40);
   return sheet;
 }
+// Tab läuft nicht hinter den Scrim — gilt für modal() wie für modalPush(),
+// da beide denselben openModal-Knoten belegen.
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab" || !openModal) return;
+  const sheetEl = openModal.querySelector(".sheet");
+  if (!sheetEl) return;
+  const items = Array.prototype.filter.call(
+    sheetEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    el => !el.disabled && el.offsetParent !== null
+  );
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 // closeModal() heisst an rund 30 Stellen „alles zu" — das bleibt so, auch
 // wenn gerade ein Blatt beiseitegelegt ist. Sonst würde z.B. Escape
 // während einer beiseitegelegten Verschieben-Ansicht nur das obere Blatt
 // schließen und die andere unsichtbar im Speicher hängen lassen.
 function closeModal() {
   if (stashedModal) { stashedModal.remove(); stashedModal = null; }
-  if (openModal) { openModal.remove(); openModal = null; }
+  if (openModal) {
+    openModal.remove(); openModal = null;
+    setAppInert(false);
+    if (modalOpener && modalOpener.isConnected) modalOpener.focus();
+    modalOpener = null;
+  }
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
@@ -2043,6 +2119,13 @@ function modalPush(builder, opts = {}) {
     if (stashedModal) { openModal = stashedModal; stashedModal = null; $("#modalRoot").appendChild(openModal); }
   };
   builder(sheet, closeThis);
+  // Wie modal(): ohne aria-labelledby hat auch das aufgesetzte Blatt keinen
+  // zugaenglichen Namen fuer AT.
+  const titleEl = sheet.querySelector("h2.sheet__title");
+  if (titleEl) {
+    if (!titleEl.id) titleEl.id = "modalTitle";
+    sheet.setAttribute("aria-labelledby", titleEl.id);
+  }
   scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeThis(); });
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
@@ -2054,7 +2137,7 @@ function modalPush(builder, opts = {}) {
 function confirmSheet(title, text, confirmLabel, onYes, opts = {}) {
   const open = opts.push ? modalPush : modal;
   open((s, close) => {
-    s.innerHTML = "<h2 class='sheet__title'></h2><p style='margin:0;color:var(--text-muted);font-size:14px;line-height:1.55'></p>";
+    s.innerHTML = "<h2 class='sheet__title'></h2><p style='margin:0;color:var(--text-muted);font-size:var(--t-body);line-height:1.55'></p>";
     s.querySelector("h2").textContent = title;
     s.querySelector("p").textContent = text;
     const foot = document.createElement("div");
@@ -3060,12 +3143,12 @@ function renderGoals() {
       modal((sh, close) => {
         sh.innerHTML =
           "<h2 class='sheet__title'>Das wird eng</h2>" +
-          "<p style='margin:0 0 14px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+          "<p style='margin:0 0 14px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
           "Deine Ziele und Termine summieren sich mit den nötigen Pausen auf <b>" +
           fmtDur(Math.round(k.bedarf)) + "</b>. In dieser Woche stehen dir " +
           fmtDur(Math.round(k.wach)) + " wache Stunden zur Verfügung — realistisch verplanbar " +
           "sind davon etwa <b>" + fmtDur(Math.round(k.grenze)) + "</b>.</p>" +
-          "<p style='margin:0 0 14px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+          "<p style='margin:0 0 14px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
           "Ein Plan ohne Luft hält nicht: Es kommt immer etwas dazwischen, und dann " +
           "kippt der ganze Tag statt nur ein Block. Nimm lieber " +
           fmtDur(Math.round(k.bedarf - k.grenze)) + " aus den Wochenzielen heraus.</p>" +
@@ -3107,7 +3190,7 @@ function goalsSheet() {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Wochenziele</h2>" +
-      "<p style='margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+      "<p style='margin:0 0 16px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
       "Für alles, was keine feste Uhrzeit hat. Trag Stunden pro Woche ein — der Planer " +
       "rechnet mit, was noch fehlt, und kann den Rest auf die Woche verteilen. " +
       "0 lassen heißt: kein Ziel. Die <b>Art</b> sagt ihm, wie lang die Blöcke sein " +
@@ -3382,6 +3465,7 @@ function renderGrid() {
   grid.appendChild(tc);
 
   // Tagesspalten
+  let hatEintraege = false;
   dayIdxs.forEach(i => {
     const d = addDays(mon, i);
     const col = document.createElement("div");
@@ -3427,15 +3511,32 @@ function renderGrid() {
       }
     }
 
-    layout(blocksFor(d, i)).forEach(p => col.appendChild(blockEl(p, hourH, iso(d))));
+    const eintraege = layout(blocksFor(d, i));
+    if (eintraege.length) hatEintraege = true;
+    eintraege.forEach(p => col.appendChild(blockEl(p, hourH, iso(d))));
 
     attachColumnHandlers(col, hourH);
     grid.appendChild(col);
   });
 
+  if (!hatEintraege) {
+    // Als Grid-Kind statt als Geschwister von #grid: liegt so exakt über den
+    // (leeren) Tagesspalten, ohne deren eigene Zeile/Höhe zu verändern, und
+    // bleibt oben stehen statt in der bodyH-hohen Zeile zu verschwinden.
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.style.gridColumn = "1 / -1";
+    empty.style.gridRow = einTag ? "1" : "2";
+    empty.style.alignSelf = "start";
+    empty.innerHTML = "<b>Noch nichts geplant</b>Tippe auf eine freie Stelle im Raster, um einen ersten Eintrag anzulegen.";
+    grid.appendChild(empty);
+  }
+
   // keepScroll === 0 ist falsy — wer ganz oben stand, wurde vom Minutentakt
-  // sonst jede Minute zurück zur aktuellen Uhrzeit gerissen.
-  wrap.scrollTop = keepScroll > 0 ? keepScroll : startScroll(hourH);
+  // sonst jede Minute zurück zur aktuellen Uhrzeit gerissen. Ohne Eintrag
+  // gibt es kein „jetzt", das einen Sprung lohnt — der Leerzustand oben
+  // bliebe sonst außerhalb des ersten Blicks.
+  wrap.scrollTop = keepScroll > 0 ? keepScroll : (hatEintraege ? startScroll(hourH) : 0);
 }
 
 /* Wohin das Raster beim ersten Zeichnen springt.
@@ -3796,11 +3897,11 @@ function sugSheet(b) {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Vorschlag</h2>" +
-      "<p style='margin:0 0 6px;font-size:15px'><b>" + escapeHtml(b.title) + "</b></p>" +
-      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
+      "<p style='margin:0 0 6px;font-size:var(--t-body)'><b>" + escapeHtml(b.title) + "</b></p>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body)'>" +
       DAY_LONG[b.day] + ", " + fmtTime(b.start) + "–" + fmtTime(b.end) +
       " · " + escapeHtml(area.name) + "</p>" +
-      "<p style='margin:0 0 16px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+      "<p style='margin:0 0 16px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
       "Nur ein Vorschlag — er zählt erst mit, wenn du ihn übernimmst. " +
       "Verschieben kannst du ihn auch einfach im Raster.</p>" +
       "<label class='switch'><input type='checkbox' id='sugWeekly'> " +
@@ -3840,10 +3941,10 @@ function blockSheet(draft, dayKey) {
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
-        "<div id='bOrtHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>" +
+        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
-        "<div id='bGenauHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "<div id='bGenauHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
       "</div>" +
       "<div class='sheet__row sheet__cols' id='bZeitRow'>" +
         "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
@@ -3857,12 +3958,12 @@ function blockSheet(draft, dayKey) {
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
         "<label class='switch'><input type='checkbox' id='bRepeat'> Jede Woche wiederholen</label>" +
         "<div class='chipset' id='bDays' style='margin-top:12px'></div>" +
-        "<div id='bDaysHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div>" +
+        "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
       "</div>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
         "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
-        "<div id='bDoneHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "<div id='bDoneHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
       "</div>");
 
     const title = s.querySelector("#bTitle");
@@ -4198,7 +4299,7 @@ function taskSheet(t) {
       "<div class='chipset' id='tkAreas'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
       "<div class='chipset' id='tkDauer'></div>" +
-      "<div id='tkDauerHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
+      "<div id='tkDauerHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
       "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
       "Das Wichtigste — zuerst dran</label></div>";
 
@@ -4559,7 +4660,7 @@ function relieveSheet() {
     const tag = DAY_LONG[selectedDayIdx] + (heute ? "" : ", " + d.getDate() + "." + (d.getMonth() + 1) + ".");
     s.innerHTML =
       "<h2 class='sheet__title'>Was kann " + (heute ? "heute" : "am " + tag) + " weg?</h2>" +
-      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
       "Wenig Energie am " + tag + ". Das hier ist nicht als Pflicht markiert — " +
       "du kannst es streichen oder auf einen anderen Tag schieben. " +
       "Was du stehen lässt, bleibt einfach im Plan.</p>" +
@@ -4624,11 +4725,11 @@ function moveSheet(id) {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Verschieben</h2>" +
-      "<p style='margin:0 0 6px;font-size:15px'><b>" + escapeHtml(blk.title) + "</b></p>" +
-      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px'>" +
+      "<p style='margin:0 0 6px;font-size:var(--t-body)'><b>" + escapeHtml(blk.title) + "</b></p>" +
+      "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body)'>" +
       "Dauer " + fmtDur(blk.end - blk.start) + " · auf welchen Tag?</p>" +
       "<div class='chipset' id='mvDays'></div>" +
-      "<div id='mvHint' style='font-size:13px;color:var(--text-faint);margin-top:14px;min-height:18px'></div>";
+      "<div id='mvHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:14px;min-height:18px'></div>";
 
     const wrap = s.querySelector("#mvDays");
     const hint = s.querySelector("#mvHint");
@@ -5028,13 +5129,13 @@ $("#settingsBtn").onclick = () => {
       "<h2 class='sheet__title'>Einstellungen</h2>" +
       "<div class='sheet__row' data-page='person'><label class='label' for='sName'>Wer plant hier?</label>" +
       "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
-      "<div style='font-size:12px;color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
+      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
       "<div class='sheet__row' data-page='zeit'><span class='label'>Wochenstart</span>" +
-        "<div style='font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px'>" +
+        "<div style='font-size:var(--t-sm);color:var(--text-muted);line-height:1.55;margin-bottom:12px'>" +
         "Rückblick, Ziele, Verteilung — in drei Schritten. Wird am Wochenanfang von selbst " +
         "angeboten; hier kannst du ihn jederzeit aufrufen.</div>" +
         "<button class='btn btn--sm' type='button' id='sRitual'>Wochenstart öffnen</button>" +
-        "<div id='sRitualHint' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div>" +
+        "<div id='sRitualHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
       "</div>" +
       "<div class='sheet__row sheet__cols' data-page='zeit'>" +
         "<div><label class='label' for='sFrom'>Tag beginnt</label><input class='field' id='sFrom' type='number' min='0' max='12' step='1'></div>" +
@@ -5049,7 +5150,7 @@ $("#settingsBtn").onclick = () => {
           "</div>" +
           "<label class='label' for='sSleepWind'>Ruhezeit davor und danach (Minuten)</label>" +
           "<input class='field' id='sSleepWind' type='number' min='0' max='180' step='15' style='max-width:140px'>" +
-          "<div id='sSleepHint' style='font-size:12px;color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+          "<div id='sSleepHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
         "</div>" +
       "</div>" +
       "<div class='sheet__row' id='sAcctRow' data-page='konto'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
@@ -5066,13 +5167,13 @@ $("#settingsBtn").onclick = () => {
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
       "<button class='btn btn--sm' id='sImport' type='button'>Sicherung laden</button>" +
       "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
-      "</div><div id='sStore' style='font-size:12px;color:var(--text-faint);margin-top:8px'></div></div>" +
+      "</div><div id='sStore' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
       "<div class='sheet__row' data-page='app'><span class='label'>Auf den Startbildschirm</span>" +
-      "<p style='margin:0 0 12px;font-size:14px;color:var(--text-muted);line-height:1.6'>" +
+      "<p style='margin:0 0 12px;font-size:var(--t-body);color:var(--text-muted);line-height:1.6'>" +
       "Dann startet der Planer ohne Browserleiste, mit eigenem Symbol — und er geht auch " +
       "auf, wenn du gerade kein Netz hast.</p>" +
-      "<ol id='sAppSchritte' style='margin:0;padding-left:20px;font-size:14px;line-height:1.75;color:var(--text-muted)'></ol>" +
-      "<div id='sAppStand' style='font-size:12px;color:var(--text-faint);margin-top:12px;line-height:1.5'></div></div>";
+      "<ol id='sAppSchritte' style='margin:0;padding-left:20px;font-size:var(--t-body);line-height:1.75;color:var(--text-muted)'></ol>" +
+      "<div id='sAppStand' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:12px;line-height:1.5'></div></div>";
 
     {
       const ol = s.querySelector("#sAppSchritte");
@@ -5175,7 +5276,7 @@ $("#settingsBtn").onclick = () => {
       orteWrap.innerHTML = "";
       const liste = state.orte || [];
       if (!liste.length) {
-        orteWrap.innerHTML = "<div style='font-size:12.5px;color:var(--text-faint);line-height:1.6'>" +
+        orteWrap.innerHTML = "<div style='font-size:var(--t-sm);color:var(--text-faint);line-height:1.6'>" +
           "Noch keine Orte. Wenn du welche anlegst, plant der Planer die Fahrt dazwischen " +
           "ein — und lässt sie weg, wenn zwei Blöcke am selben Ort liegen.</div>";
       }
@@ -5231,7 +5332,7 @@ $("#settingsBtn").onclick = () => {
           inp.value = v; save();
         };
         const min = document.createElement("span");
-        min.style.cssText = "font-size:12.5px;color:var(--text-faint);flex:none";
+        min.style.cssText = "font-size:var(--t-sm);color:var(--text-faint);flex:none";
         min.textContent = "min";
         row.append(txt, inp, min);
         wegeWrap.appendChild(row);
@@ -5526,7 +5627,7 @@ function signInSheet(mode) {
     const paint = () => {
       s.innerHTML =
         "<h2 class='sheet__title'>" + (neu ? "Konto anlegen" : "Auf allen Geräten") + "</h2>" +
-        "<p style='margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+        "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
         (neu
           ? "Damit steht dein Plan auf Handy, Tablet und Rechner gleich — und er ist gesichert, falls diesem Gerät etwas passiert. Was du bisher hier eingetragen hast, wird übernommen."
           : "Melde dich an, dann siehst du auf jedem Gerät denselben Plan.") +
@@ -5537,9 +5638,9 @@ function signInSheet(mode) {
         "<input class='field' id='inPass' type='password' autocomplete='" +
           (neu ? "new-password" : "current-password") + "' placeholder='" +
           (neu ? "mindestens sechs Zeichen" : "") + "'></div>" +
-        "<div id='inMsg' style='font-size:13px;color:var(--text-muted);min-height:18px;line-height:1.5'></div>" +
+        "<div id='inMsg' style='font-size:var(--t-sm);color:var(--text-muted);min-height:18px;line-height:1.5'></div>" +
         "<button type='button' id='inSwap' style='background:none;border:none;padding:6px 0;margin-top:4px;" +
-        "font-size:13px;color:var(--text-muted);text-decoration:underline;text-underline-offset:3px'>" +
+        "font-size:var(--t-sm);color:var(--text-muted);text-decoration:underline;text-underline-offset:3px'>" +
         (neu ? "Ich habe schon ein Konto" : "Neu hier? Konto anlegen") + "</button>";
 
       const mail = s.querySelector("#inEmail");
@@ -5668,11 +5769,11 @@ function importData() {
         modal((s, close) => {
           s.innerHTML =
             "<h2 class='sheet__title'>Sicherung laden</h2>" +
-            "<p style='margin:0 0 10px;color:var(--text-muted);font-size:14px;line-height:1.6'>" +
+            "<p style='margin:0 0 10px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
             "Die Datei enthält <b>" + (data.blocks || []).length + " Einträge</b> und <b>" +
             (data.tasks || []).length + " Aufgaben</b>. Aktuell hier: " +
             state.blocks.length + " Einträge, " + state.tasks.length + " Aufgaben.</p>" +
-            "<p style='margin:0 0 4px;color:var(--text-faint);font-size:13px;line-height:1.6'>" +
+            "<p style='margin:0 0 4px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
             "<b>Zusammenführen</b> behält beides und nimmt bei Unterschieden das Neuere. " +
             "<b>Ersetzen</b> wirft den jetzigen Plan weg — auch auf deinen anderen Geräten.</p>";
           const foot = document.createElement("div");
@@ -6021,7 +6122,7 @@ function paintSyncBadge() {
     syncing:   { t: "…",        cls: "is-work", title: "Wird abgeglichen" },
     ok:        { t: "Synchron", cls: "is-ok",   title: "Auf allen Geräten aktuell" },
     offline:   { t: "Offline",  cls: "is-warn", title: "Keine Verbindung — wird nachgeholt" },
-    error:     { t: "Problem",  cls: "is-warn", title: "Abgleich klemmt — hier klicken" },
+    error:     { t: "Problem",  cls: "is-danger", title: "Abgleich klemmt — hier klicken" },
     off:       { t: "", cls: "", title: "" }
   };
   const m = map[s] || map.signedout;
@@ -6221,7 +6322,7 @@ function maybeWelcome() {
       box.innerHTML =
         "<p class='ritual__lead'>Nichts ist vorgegeben — du trägst ein, was zu dir passt. " +
         "Drei kurze Fragen, dann steht eine erste Woche, die du nur noch anpassen musst.</p>" +
-        "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:14px;line-height:1.75'>" +
+        "<ul style='margin:0 0 20px;padding-left:20px;color:var(--text-muted);font-size:var(--t-body);line-height:1.75'>" +
         "<li><b style='color:var(--text)'>Feste Termine</b> trägst du mit Uhrzeit ein.</li>" +
         "<li><b style='color:var(--text)'>Alles andere</b> als Wochenziel in Stunden — z.B. 10 h Lernen. " +
         "Wann genau, schlägt der Planer vor.</li>" +
@@ -6247,7 +6348,7 @@ function maybeWelcome() {
           "<div><label class='label' for='wBett'>Ins Bett</label>" +
           "<input class='field' id='wBett' type='time' step='900'></div>" +
         "</div>" +
-        "<div id='wSchlafHint' style='font-size:13px;color:var(--text-faint);margin-top:12px;line-height:1.55'></div>";
+        "<div id='wSchlafHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:12px;line-height:1.55'></div>";
       const auf = box.querySelector("#wAuf"), bett = box.querySelector("#wBett");
       const hint = box.querySelector("#wSchlafHint");
       auf.value = ein.auf; bett.value = ein.bett;

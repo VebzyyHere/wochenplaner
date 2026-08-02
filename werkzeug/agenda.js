@@ -19,6 +19,11 @@
    die fixe Tabbar (".tabbar", unten, Daumenzone). Geprüft wird deshalb
    Agenda-Unterkante < Tabbar-Oberkante; die Dayswitch-Werte werden zur
    Kontrolle mit ausgegeben. Siehe Bericht für die Begründung.
+
+   Diese strenge Falz (a) gilt für die Standardschrift. Bei vergrößerter
+   Systemschrift ist Scrollen die gewollte Folge größerer Schrift — dafür
+   prüft schrift.js (Stufe 7) einen schwächeren, gestaffelten Vertrag statt
+   dieser Falz. Siehe dort für die Begründung.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
