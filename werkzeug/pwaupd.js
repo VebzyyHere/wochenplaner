@@ -8,10 +8,15 @@ const fs = require('fs');
   await p.evaluate(() => closeModal());
   console.log('1) Erste Installation, kein Hinweis:', await p.evaluate(() => !!document.querySelector('.toast')));
 
-  // Neue Fassung veröffentlichen
+  // Neue Fassung veröffentlichen. Version dynamisch aus sw.js lesen statt
+  // fest zu verdrahten ("wp-v1.12" -> "wp-v1.13") - nach dem naechsten
+  // Versionssprung traf der feste String nicht mehr, das Replace war ein
+  // No-op und der Test pruefte den Update-Weg gar nicht mehr, ohne das zu
+  // melden (hinweis blieb still null).
   const sw = require('path').resolve(__dirname, '..', 'sw.js');
   const alt = fs.readFileSync(sw, 'utf8');
-  fs.writeFileSync(sw, alt.replace('wp-v1.12', 'wp-v1.13'));
+  const aktuelleVersion = alt.match(/const V = "([^"]+)"/)[1];
+  fs.writeFileSync(sw, alt.replace(aktuelleVersion, aktuelleVersion + '-test'));
   const html = require('path').resolve(__dirname, '..', 'index.html');
   const h = fs.readFileSync(html, 'utf8');
   fs.writeFileSync(html, h.replace('<title>Wochenplaner</title>', '<title>Wochenplaner NEU</title>'));
