@@ -5069,9 +5069,14 @@ function blockSheet(draft, dayKey) {
         // Stufe 12: kommt der Entwurf aus dem Aufgabenblatt ("In den
         // Wochenplan legen"), trägt er draft.taskId — der neue Block
         // bekommt die Verbindung, die Aufgabe zeigt danach "eingeplant"
-        // statt eines Duplikats in der Liste.
+        // statt eines Duplikats in der Liste. Derselbe Editor erlaubt aber
+        // auch mehrere Tage auf einmal (list.length > 1) — eine Aufgabe ist
+        // laut placeTask() aber GENAU EIN Block. Deshalb bekommt nur der
+        // letzte erzeugte Block taskId, nicht jeder: sonst würden mehrere
+        // Blöcke sich dieselbe Aufgabe teilen, während task.geplant ohnehin
+        // nur auf einen zeigen kann.
         let letzteId = null;
-        list.forEach(d => {
+        list.forEach((d, i) => {
           const nb = Object.assign({
             id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
             day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
@@ -5081,7 +5086,7 @@ function blockSheet(draft, dayKey) {
             // erhalten oder nicht.
             frog: !!draft.frog
           }, grobFelder());
-          if (draft.taskId) nb.taskId = draft.taskId;
+          if (draft.taskId && i === list.length - 1) nb.taskId = draft.taskId;
           letzteId = nb.id;
           state.blocks.push(nb);
         });
