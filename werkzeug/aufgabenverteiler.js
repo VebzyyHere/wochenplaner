@@ -25,6 +25,11 @@
       bleibt stehen, verliert nur block.taskId.
    h) wochenKapazitaet() zaehlt offene Aufgabenminuten mit; setzeErledigt()
       hakt die verknuepfte Aufgabe mit ab.
+   i) growSuggestions() (uebrige Bereichsminuten an einen bestehenden
+      Vorschlag anhaengen) laesst einen Aufgaben-Block in Ruhe, obwohl der
+      dieselbe areaId traegt wie der echte Bereich — sonst waechst eine
+      30-Minuten-Aufgabe beim naechsten Verteilen stillschweigend auf die
+      Laenge, die dem Bereich noch offenstand.
 
    Stil wie stabil.js/erklaer.js: eine Chromium-Seite, deutsche Ausgabe,
    Exit 1 bei Fehlern.
@@ -279,6 +284,29 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(h.offenMit === h.offenOhne + 120, 'h) wochenKapazitaet() zaehlt die offene Aufgabendauer mit (' + h.offenOhne + ' -> ' + h.offenMit + ')');
   ok(h.taskAn === true, 'h) Block mit taskId abhaken setzt task.done');
   ok(h.taskAus === false, 'h) Block wieder loeschen setzt task.done zurueck');
+
+  // -------------------------------------------------------------
+  // i) growSuggestions() laesst Aufgaben-Bloecke in Ruhe
+  // -------------------------------------------------------------
+  const i = await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    anchor = addDays(mondayOf(new Date()), 7);
+    const day = weekDays()[1];
+    // Ein 30-Minuten-Aufgaben-Vorschlag, alleine an diesem Tag im Bereich
+    // a3 — genau die Lage, in der growSuggestions() vorher zugriff, weil
+    // areaId === area.id auch fuer Aufgaben-Bloecke gilt.
+    state.blocks = [{ id: 'tiBlock', title: 'x', areaId: 'a3', taskId: 'tI', day: day.i, date: day.key,
+      repeat: 'none', start: 600, end: 630, sug: true, frog: false }];
+    state.tasks = [{ id: 'tI', title: 'Kurze Aufgabe', areaId: 'a3', done: false, frog: false, dauer: 30, geplant: 'tiBlock' }];
+    const area = state.areas.find(x => x.id === 'a3');
+    const used = growSuggestions(area, 60);   // 60 min "uebrig" aus einem Bereichsziel
+    const nachher = state.blocks.find(x => x.id === 'tiBlock');
+    return { used, dauerVorher: 30, dauerNachher: nachher.end - nachher.start };
+  });
+  console.log('\n=== i) growSuggestions() laesst Aufgaben-Bloecke in Ruhe ===');
+  console.log(JSON.stringify(i, null, 1));
+  ok(i.dauerNachher === i.dauerVorher, 'i) der Aufgaben-Block waechst nicht mit (' + i.dauerVorher + ' -> ' + i.dauerNachher + ')');
+  ok(i.used === 0, 'i) growSuggestions() findet ohne den Aufgaben-Block nichts zu verlaengern (' + i.used + ')');
 
   console.log('\nKonsolenfehler:', konsolenfehler.length ? konsolenfehler : 'keine');
   console.log('\nFehler:', fehler.length ? fehler : 'keine');

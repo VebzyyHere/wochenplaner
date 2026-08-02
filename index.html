@@ -3342,7 +3342,11 @@ function growSuggestions(area, rest) {
       if (rest - used < 15) return used;
       // fix (Stufe 11): von Hand gezogen oder bearbeitet — der Verteiler
       // rührt diesen Block nicht mehr an, auch nicht durchs Wachsenlassen.
-      if (!b.sug || b.areaId !== area.id || b.fix) continue;
+      // taskId (Stufe 12): gehört der Block zu einer Aufgabe, teilt er zwar
+      // die areaId mit dem echten Bereich (siehe taskVorhaben), ist aber
+      // kein offener Bereichs-Vorschlag — seine Länge ist die Dauer der
+      // Aufgabe, nicht Verhandlungsmasse für übrig gebliebene Bereichszeit.
+      if (!b.sug || b.areaId !== area.id || b.fix || b.taskId) continue;
 
       // Alles, was nach dem Ende dieses Blocks noch im Weg steht — auch wenn es
       // davor beginnt und ihn überlappt. Dazu die Nachtruhe.
