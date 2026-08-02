@@ -1667,7 +1667,12 @@ const ARTEN = {
     label: "Körper", kurz: "Körper",
     hint: "Sport, Bewegung, alles Körperliche",
     min: 45, max: 90, pause: 15,
-    zeit: (start) => -Math.abs(start - 16 * 60) / 60 * 1.2
+    // War 1.2 — Schwung über den ganzen Tag nur rund 11 Punkte, gegen die
+    // Tagesbalance in slotScore (bis zu -140.8) chancenlos. Auf das Maß von
+    // Erholung angehoben, damit „nach Feierabend" gegen einen mittelvollen
+    // Tag wirklich zählt. Ganz gleichziehen würde die Balance aushebeln, die
+    // sonst den ersten Wochentag alles fressen lässt (siehe slotScore).
+    zeit: (start) => -Math.abs(start - 16 * 60) / 60 * 3
   },
   erholung: {
     label: "Erholung", kurz: "Erholung",
