@@ -71,7 +71,12 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
     const dayKey = iso(addDays(mondayOf(anchor), selectedDayIdx));
     const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
     const laufStart = cap(jetzt - 15), laufEnd = cap(laufStart + 60);
-    const danachStart = cap(laufEnd + 30), danachEnd = cap(danachStart + 60);
+    // Fix an eine plausible Gym-Uhrzeit (17 Uhr) statt stur an laufEnd+30 —
+    // läuft das Skript spät in der Nacht, würde sonst "Fitnessstudio" um
+    // 2 oder 3 Uhr morgens erscheinen und die Sichtprüfung wertlos machen.
+    // Fällt 17 Uhr vor "jetzt" (Skript läuft abends), bleibt laufEnd+30 der
+    // Boden, damit der Eintrag weiter chronologisch nach dem laufenden liegt.
+    const danachStart = cap(Math.max(17 * 60, laufEnd + 30)), danachEnd = cap(danachStart + 60);
 
     state.blocks = [
       { id: uid(), title: 'Vorlesung Statistik II', areaId: 'a2',

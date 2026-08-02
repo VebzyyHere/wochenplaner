@@ -169,7 +169,6 @@ button { cursor: pointer; }
   font-size: 14px; font-weight: 500;
   transition: background .15s, border-color .15s, transform .1s;
 }
-.btn:hover { background: var(--surface-2); }
 .btn:active { transform: scale(0.98); }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn--primary {
@@ -178,7 +177,14 @@ button { cursor: pointer; }
 }
 .btn--primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
 .btn--ghost { background: transparent; border-color: transparent; }
-.btn--ghost:hover { background: var(--surface-2); }
+/* Ohne echtes Zeigegerät bleibt :hover nach dem Antippen hängen (z. B.
+   #nextWeek zeigt dann dauerhaft die Hover-Fläche) — deshalb nur auf
+   Geräten mit echtem Hover aktiv. .btn:hover trifft auch auf .btn--ghost
+   zu (gleiche Kaskade), muss also mitwandern. */
+@media (hover: hover) {
+  .btn:hover { background: var(--surface-2); }
+  .btn--ghost:hover { background: var(--surface-2); }
+}
 .btn--danger { color: var(--danger); border-color: transparent; background: transparent; }
 .btn--danger:hover { background: oklch(0.55 0.19 25 / 0.12); }
 .btn--icon { min-width: 38px; padding: 0 var(--s-2); }
@@ -319,6 +325,7 @@ button { cursor: pointer; }
   font-size: 12.5px; color: var(--text-muted); margin-bottom: 3px;
 }
 .agenda__hero-title { font-size: 26px; font-weight: 600; line-height: 1.25; }
+.agenda__hero-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
 .agenda__list { display: flex; flex-direction: column; }
 .agenda__row {
   display: flex; align-items: flex-start; gap: 10px; min-height: 44px;
@@ -328,14 +335,14 @@ button { cursor: pointer; }
 .agenda__row--grob { border-left-style: dotted; }
 .agenda__row.is-on .agenda__title { opacity: .55; text-decoration: line-through; }
 .agenda__check {
-  appearance: none; width: 18px; height: 18px; margin-top: 3px; flex: none;
-  border: 1.5px solid var(--border-strong); border-radius: 5px; background: var(--surface);
+  appearance: none; width: 16px; height: 16px; margin-top: 4px; flex: none;
+  border: 1px solid var(--border); border-radius: 4px; background: var(--surface);
   cursor: pointer; position: relative;
 }
 .agenda__check:checked { background: var(--ink); border-color: var(--ink); }
 .agenda__check:checked::after {
-  content: ""; position: absolute; left: 5px; top: 1.5px;
-  width: 4px; height: 9px; border: solid var(--on-ink);
+  content: ""; position: absolute; left: 4px; top: 1px;
+  width: 4px; height: 8px; border: solid var(--on-ink);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .agenda__body { flex: 1; min-width: 0; }
@@ -813,8 +820,21 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-short .block__time { display: none; }
 .block.is-done { opacity: .55; }
 .block.is-done .block__title { text-decoration: line-through; text-decoration-thickness: 1px; }
-.block.is-done::before {
-  content: "✓"; position: absolute; right: 5px; bottom: 3px; font-size: 11px; font-weight: 700;
+/* War ein reines ::before ("✓", nicht antippbar) — jetzt eine echte Checkbox
+   an derselben Stelle, gleiche Grösse, damit sich am Layout nichts ändert.
+   Ungehakt bleibt sie unsichtbar wie vorher der leere Zustand. */
+.block__done {
+  appearance: none; position: absolute; right: 5px; bottom: 3px;
+  width: 13px; height: 12px; margin: 0; padding: 0; z-index: 4;
+  border: none; background: none; cursor: pointer;
+}
+.block__done::after {
+  content: "✓"; position: absolute; inset: 0; font-size: 11px; font-weight: 700;
+  line-height: 1; color: var(--area-text); opacity: 0;
+}
+.block__done:checked::after { opacity: 1; }
+@media (pointer: coarse) {
+  .block__done::before { content: ""; position: absolute; inset: -9px; }
 }
 /* Tagesschwerpunkt: kein Emoji, keine breitere Kante (verschlimmert den
    side-tab-Befund nur) - stattdessen ein gezeichneter Punkt oben rechts
@@ -1101,8 +1121,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .loose { max-height: 25dvh; padding: 4px 0; }
   .loose__hint { font-size: 10.5px; line-height: 1.35; }
 
-  /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter */
-  .toasts { bottom: calc(66px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
+  /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter.
+     Seit die Agenda den unteren Bereich der „Heute"-Karte fuellt, reicht
+     66px nicht mehr — der Toast legt sich ueber ihre Fusszeile, die
+     Ueberschrift „Tagesform" und sogar die letzten Danach-Zeilen. 250px
+     raeumt eine realistische „Heute"-Karte (Hero + zwei Danach-Zeilen)
+     komplett frei und liegt damit auch klar ueber Tabbar und Fab (62px +
+     54px hoch). */
+  .toasts { bottom: calc(250px + env(safe-area-inset-bottom)); width: min(94vw, 420px); }
 
   /* ---- Dialogfuss ------------------------------------------------------
      Drei Knoepfe nebeneinander passen auf 320 px nicht. Loeschen rutscht in
@@ -1186,8 +1212,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .task { padding: var(--s-3) var(--s-2); }
   .task__check { width: 24px; height: 24px; position: relative; }
   .task__check::before { content: ""; position: absolute; inset: -11px; border-radius: 8px; }
-  .agenda__check { width: 24px; height: 24px; }
-  .agenda__check::before { content: ""; position: absolute; inset: -10px; border-radius: 8px; }
+  .agenda__check::before { content: ""; position: absolute; inset: -14px; border-radius: 8px; }
   .task__del, .task__more { min-width: 44px; min-height: 44px; }
   /* Auf einem Touchgerät gibt es kein Hover — ein Knopf, der erst beim
      Zeigen erscheint, existiert dort nicht. */
@@ -1919,6 +1944,8 @@ function toastUndo(msg) {
 
 /* ============================================================ Modal */
 let openModal = null;
+// Vom oberen Blatt beiseitegelegt statt entfernt — siehe modalPush() unten.
+let stashedModal = null;
 function modal(builder, opts = {}) {
   closeModal();
   const scrim = document.createElement("div");
@@ -1936,11 +1963,49 @@ function modal(builder, opts = {}) {
   if (focusable) setTimeout(() => focusable.focus(), 40);
   return sheet;
 }
-function closeModal() { if (openModal) { openModal.remove(); openModal = null; } }
+// closeModal() heisst an rund 30 Stellen „alles zu" — das bleibt so, auch
+// wenn gerade ein Blatt beiseitegelegt ist. Sonst würde z.B. Escape
+// während einer beiseitegelegten Verschieben-Ansicht nur das obere Blatt
+// schließen und die andere unsichtbar im Speicher hängen lassen.
+function closeModal() {
+  if (stashedModal) { stashedModal.remove(); stashedModal = null; }
+  if (openModal) { openModal.remove(); openModal = null; }
+}
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
-function confirmSheet(title, text, confirmLabel, onYes) {
-  modal((s, close) => {
+/* Zweiter Einstieg neben modal() — NICHT modal() zu einem echten Stapel
+   ausbauen, das würde die Bedeutung jedes der rund 30 closeModal()-Aufrufe
+   verändern. modalPush() legt nur das gerade offene Blatt beiseite statt es
+   zu entfernen, und der Rückweg läuft über das eigene close() des oberen
+   Blatts (nicht über closeModal()) — dafür maximal zwei Ebenen. Gedacht für
+   genau zwei Fälle: die Serien-Rückfrage aus dem Blockeditor und aus dem
+   Verschieben-Dialog heraus (siehe confirmSheet(..., { push: true })). */
+function modalPush(builder, opts = {}) {
+  if (openModal) { openModal.remove(); stashedModal = openModal; openModal = null; }
+  const scrim = document.createElement("div");
+  scrim.className = "scrim";
+  const sheet = document.createElement("div");
+  sheet.className = "sheet" + (opts.wide ? " sheet--wide" : "");
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  scrim.appendChild(sheet);
+  const closeThis = () => {
+    scrim.remove();
+    openModal = null;
+    if (stashedModal) { openModal = stashedModal; stashedModal = null; $("#modalRoot").appendChild(openModal); }
+  };
+  builder(sheet, closeThis);
+  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeThis(); });
+  $("#modalRoot").appendChild(scrim);
+  openModal = scrim;
+  const focusable = sheet.querySelector("input, select, textarea, button");
+  if (focusable) setTimeout(() => focusable.focus(), 40);
+  return sheet;
+}
+
+function confirmSheet(title, text, confirmLabel, onYes, opts = {}) {
+  const open = opts.push ? modalPush : modal;
+  open((s, close) => {
     s.innerHTML = "<h2 class='sheet__title'></h2><p style='margin:0;color:var(--text-muted);font-size:14px;line-height:1.55'></p>";
     s.querySelector("h2").textContent = title;
     s.querySelector("p").textContent = text;
@@ -3346,6 +3411,30 @@ function blockEl({ b, col, of }, hourH, dayKey) {
   rz.className = "block__resize";
   el.appendChild(rz);
 
+  // Abhaken direkt am Block — bisher ging das nur über den Blockeditor.
+  // Vorschläge zählen nicht: die gelten erst als erledigt, wenn sie
+  // angenommen wurden.
+  if (!b.sug) {
+    const done = document.createElement("input");
+    done.type = "checkbox"; done.className = "block__done";
+    done.checked = fertig;
+    done.setAttribute("aria-label", "Erledigt: " + (b.title || area.name));
+    // Sonst löst der Klick auch den Spalten-Handler aus (verschieben/öffnen),
+    // und die Leertaste würde zusätzlich noch den Editor öffnen (Tastatur-
+    // Handler unten am Block, hört auch auf gebubbelte Ereignisse).
+    done.addEventListener("pointerdown", e => e.stopPropagation());
+    done.addEventListener("click", e => e.stopPropagation());
+    done.addEventListener("keydown", e => e.stopPropagation());
+    done.onchange = () => {
+      setzeErledigt(b, dayKey || b.date, done.checked);
+      // renderAll() statt nur diesen Block anzufassen: am Desktop stehen
+      // Agenda und Raster nebeneinander, sonst zeigt der Haken in der
+      // Agenda-Zeile den alten Stand, bis irgendetwas anderes neu zeichnet.
+      save(); renderAll();
+    };
+    el.appendChild(done);
+  }
+
   if (b.sug) {
     const bar = document.createElement("div");
     bar.className = "block__sug";
@@ -3851,13 +3940,23 @@ function blockSheet(draft, dayKey) {
         // Eine Serie zu löschen trifft jede Woche, nicht nur die angezeigte.
         // Das passierte bisher ohne jede Nachfrage.
         if (draft.repeat === "weekly")
+          // push: true — bei „Abbrechen" bleibt der halb ausgefüllte Editor
+          // dahinter erhalten statt zu verschwinden.
           confirmSheet("Wöchentlicher Eintrag",
             "„" + (draft.title || "Ohne Titel") + "\" steht in jeder Woche. Löschen entfernt " +
             "ihn aus allen Wochen — auch aus den kommenden.",
-            "Aus allen Wochen löschen", weg);
+            "Aus allen Wochen löschen", weg, { push: true });
         else weg();
       };
       foot.appendChild(del);
+
+      // Verschieben gehörte bisher nur der Tagesform — dabei ist moveSheet()
+      // die beste Verschiebefunktion der App. Kein neuer Verschiebe-Code,
+      // nur ein zweiter Weg dorthin.
+      const move = document.createElement("button");
+      move.className = "btn"; move.type = "button"; move.textContent = "Verschieben";
+      move.onclick = () => { close(); moveSheet(draft.id); };
+      foot.appendChild(move);
     }
     const sp = document.createElement("span"); sp.className = "spacer"; foot.appendChild(sp);
     const cancel = document.createElement("button");
@@ -4191,7 +4290,8 @@ function renderAgenda() {
       const rest = laufend.block.end - jetzt;
       html += "<div class='agenda__hero' style='--h:" + a.hue + "'>"
         + "<div class='agenda__hero-status'><span>" + escapeHtml(a.name) + "</span><span class='tag'>läuft</span></div>"
-        + "<div class='agenda__hero-title'>" + escapeHtml(laufend.block.title || a.name) + " · noch " + fmtDur(rest) + "</div>"
+        + "<div class='agenda__hero-title'>" + escapeHtml(laufend.block.title || a.name) + "</div>"
+        + "<div class='agenda__hero-sub'>noch " + fmtDur(rest) + "</div>"
         + "</div>";
     }
 
@@ -4253,6 +4353,51 @@ function renderAgenda() {
       if (lab) lab.classList.toggle("is-on", cb.checked);
       save();
     };
+  });
+
+  // Verschieben aus der Agenda — ohne die Zeile mit einem eigenen Knopf
+  // zuzustellen. Langes Drücken spricht dieselbe Sprache wie das Anlegen
+  // im Raster (holdToCreate, HOLD_TIME). Der Haken bleibt unberührt: wer
+  // ihn trifft, will abhaken, nicht verschieben.
+  box.querySelectorAll(".agenda__row").forEach(row => {
+    const id = row.querySelector(".agenda__check").dataset.id;
+    row.title = "Lange drücken zum Verschieben";
+    let timer = null, longPressed = false, move = null;
+    const cancel = () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", cancel);
+      document.removeEventListener("pointercancel", cancel);
+    };
+    row.addEventListener("pointerdown", e => {
+      if (e.target.closest(".agenda__check")) return;
+      // Neuer Versuch, alte Sperre ist Vergangenheit — moveSheet() legt
+      // sich beim letzten Mal über die Zeile, sodass der Klick, der die
+      // Sperre unten wieder aufhebt, sie nie erreicht hat. Ohne dieses
+      // Zurücksetzen bliebe ein ganz normaler Tipp danach fälschlich
+      // gesperrt.
+      longPressed = false;
+      const x0 = e.clientX, y0 = e.clientY;
+      move = ev => {
+        if (Math.abs(ev.clientY - y0) > TAP_SLOP || Math.abs(ev.clientX - x0) > TAP_SLOP) cancel();
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", cancel);
+      document.addEventListener("pointercancel", cancel);
+      timer = setTimeout(() => {
+        cancel();
+        longPressed = true;
+        if (navigator.vibrate) navigator.vibrate(12);
+        const b = state.blocks.find(x => x.id === id);
+        if (b) moveSheet(b.id);
+      }, HOLD_TIME);
+    });
+    // Der Klick, der nach dem Loslassen folgt, würde sonst als Label-Klick
+    // den Haken umschalten — genau das soll nach einem langen Druck nicht
+    // mehr passieren.
+    row.addEventListener("click", e => {
+      if (longPressed) { e.preventDefault(); longPressed = false; }
+    });
   });
 }
 
@@ -4441,10 +4586,12 @@ function moveSheet(id) {
         // Eine Serie zu verschieben hat sie bisher stillschweigend in einen
         // einzelnen Termin verwandelt — also von jedem Montag gelöscht.
         if (blk.repeat === "weekly")
+          // push: true — bei „Abbrechen" bleibt die Tagesauswahl dahinter
+          // erhalten statt zu verschwinden.
           confirmSheet("Wöchentlicher Eintrag",
             "„" + (blk.title || "Ohne Titel") + "\" steht bisher in jeder Woche. Verschieben " +
             "macht daraus einen einzelnen Termin — aus den anderen Wochen verschwindet er.",
-            "Trotzdem verschieben", schieben);
+            "Trotzdem verschieben", schieben, { push: true });
         else schieben();
       };
       wrap.appendChild(c);
