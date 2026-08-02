@@ -795,7 +795,12 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
 .daycol {
   position: relative; border-left: 1px solid var(--border);
   background: var(--surface);
-  touch-action: pan-y;
+  /* pinch-zoom ausdruecklich dazu, sonst nimmt "pan-y" allein dem Browser
+     jede andere Standardgeste weg — auch das Zwei-Finger-Zoomen, das vorher
+     nie eingeschraenkt war. Nie "none": das Raster muss senkrecht scrollbar
+     bleiben, das Wischen zum Tagwechsel (wischenEinrichten) greift nur ein,
+     wenn es selbst dx/dy auswertet, es blockiert nichts per touch-action. */
+  touch-action: pan-y pinch-zoom;
 }
 .daycol.is-weekend { background: var(--surface-2); }
 .daycol__line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); pointer-events: none; }
@@ -871,7 +876,14 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
 .block.is-frog .block__title { font-weight: 700; }
 .block__resize {
   position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
-  cursor: ns-resize; touch-action: none;
+  cursor: ns-resize;
+}
+/* touch-action:none gehoert nur der Maus-Groessenaenderung (attachColumnHandlers
+   prueft dort e.pointerType === "mouse") — mit dem Finger gibt es sie (noch)
+   nicht, dann war der Streifen nur eine 14px hohe Totzone, die das sonst
+   erlaubte senkrechte Scrollen (.daycol, pan-y) verschluckt hat. */
+@media (pointer: fine) {
+  .block__resize { touch-action: none; }
 }
 .block__ghost {
   position: absolute; left: 3px; right: 3px; z-index: 12;
@@ -910,10 +922,26 @@ html[data-theme="dark"] .rest {
 
 /* ============================================================ Mobile day switcher */
 .dayswitch {
-  display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0;
+  display: none; grid-template-columns: 22px repeat(7, minmax(0, 1fr)) 22px; gap: 2px;
   padding: 4px 2px; border-bottom: 1px solid var(--border);
   background: var(--surface); overflow: hidden;
 }
+/* Randpfeile fuer den Wochensprung, links und rechts der sieben Chips. Bei
+   320px ist selbst mit 2px-Fugen kein Platz fuer zwei volle 44px-Knoepfe
+   UND sieben ordentlich breite Tageschips zugleich (2*44 + 7*44 liegt weit
+   über 320, sogar ganz ohne jede Fuge) — deshalb bleiben sie mit 22px so
+   schmal wie ein Pfeilglyph und holen sich einen Teil ihrer Trefferfläche
+   wie die Chips unten über ein ::before. Das bleibt bewusst INNERHALB von
+   .dayswitch (kein negativer Versatz nach außen) — sonst zählt es zur
+   Scrollbreite von .dayswitch dazu, obwohl overflow:hidden es unsichtbar
+   abschneidet, und dsQuer (s. diag7.js) meldet fälschlich waagerechtes
+   Scrollen. */
+.dayswitch__nav {
+  width: 22px; min-width: 0; padding: 0; position: relative;
+}
+.dayswitch__nav::before { content: ""; position: absolute; top: 0; bottom: 0; width: 36px; }
+.dayswitch__nav--prev::before { left: 0; }
+.dayswitch__nav--next::before { right: 0; }
 .dayswitch__btn {
   min-width: 0; min-height: 46px; border-radius: var(--radius-sm);
   border: 1px solid transparent; background: transparent; padding: 3px 1px;
@@ -924,6 +952,17 @@ html[data-theme="dark"] .rest {
   color: var(--text-muted); line-height: 1.1;
 }
 .dayswitch__btn b { font-size: var(--t-h2); font-variant-numeric: tabular-nums; line-height: 1.15; }
+/* "Heute" bekommt geraeteuebergreifend dieselbe Form wie am Desktop: dort
+   ist .dayhead__num immer ein Kreis (border-radius:50%), gefuellt wird er
+   nur fuer den heutigen Tag (.dayhead.is-today). Vorher stand hier ein von
+   Hand gesetztes style.color = var(--focus) in renderDaySwitch — --focus
+   ist die Fokusringfarbe, keine Markierung fuer "heute". 28px bei
+   font-size t-h2 wie schon .dayhead__num im Tablet-Layout (~1245). */
+.dayswitch__btn.is-today b {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ink); color: var(--on-ink);
+}
 .dayswitch__btn[aria-pressed="true"] { background: var(--surface-3); border-color: var(--border-strong); }
 /* Wie voll ist dieser Tag?
 
@@ -1049,12 +1088,29 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      sollte, nicht die Tabbar — bei einem leeren Tag schwebte er dadurch
      mitten im Bild), zieht jede schwebende Fläche ihren bottom-Wert aus
      zwei Variablen:
-       --fussleiste  Höhe der Tabbar inkl. unterer Sicherheitszone.
+       --fussleiste  Höhe der Tabbar inkl. unterer Sicherheitszone, seit
+                     Stufe 8 zuzüglich des Tagesstreifens (--tagstreifen),
+                     wenn er steht — der sitzt jetzt selbst unmittelbar über
+                     der Tabbar statt oben unter der Kopfzeile.
        --fuss-oben   dasselbe, zusätzlich die Vorschlagsleiste, wenn sie
                      steht (body[data-sugbar="1"], gesetzt von renderSugBar). */
   body {
-    --fussleiste: calc(62px + env(safe-area-inset-bottom));
+    --tagstreifen: 0px;
+    --fussleiste: calc(62px + var(--tagstreifen) + env(safe-area-inset-bottom));
     --fuss-oben: var(--fussleiste);
+  }
+  /* 63px = 4px Polster oben + 53px hoher Chip + 4px Polster unten + 1px
+     Haarlinie und 1px Puffer. Der Chip selbst hat zwar min-height:46px,
+     wächst durch Label+Kreis+Balken (.dayswitch__btn span/b/i) aber auf
+     tatsächlich ~53px — 55px (angenommene 46px) war zu knapp und liess die
+     Vorschlagsleiste 2px in den Tagesstreifen hineinragen (per fuss.js
+     gemessen: dayswitch.top 448.9 < sugbar.bottom 451). Muss mit
+     .dayswitch/.dayswitch__btn oben übereinstimmen. Dieselbe Bedingung wie
+     weiter unten bei der display:grid-Regel für .dayswitch, sonst rechnen
+     beide Stellen mit unterschiedlichen Tagen. */
+  body[data-mview="plan"][data-tage="1"],
+  body[data-mview="heute"][data-tage="1"] {
+    --tagstreifen: 63px;
   }
   body[data-sugbar="1"] {
     /* 61px = Höhe der Vorschlagsleiste: 44px hohe Knöpfe + 16px senkrechtes
@@ -1162,6 +1218,12 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      dort gar nicht auswählen konnte. */
   body[data-mview="plan"][data-tage="1"] .dayswitch,
   body[data-mview="heute"][data-tage="1"] .dayswitch { display: grid; }
+  /* Der Streifen wandert direkt über die Tabbar statt unter die Kopfzeile —
+     .app ist schon flex-column, das Markup bleibt an seiner Stelle (vor
+     .main), nur die sichtbare Reihenfolge dreht sich per order. */
+  .main { order: 1; }
+  .dayswitch { order: 2; }
+  .tabbar { order: 3; }
   .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
   .block__title { top: 0; }
   .brand { display: none; }
@@ -1292,7 +1354,16 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .switch input { width: 22px; height: 22px; }
   .hakenrow input { width: 22px; height: 22px; }
   .energy__opt { min-height: 68px; }
-  .dayswitch__btn { min-height: 46px; }
+  /* Auf 320px berühren sich die sieben Chips jetzt randlos (2px Abstand,
+     s. .dayswitch oben) — die sichtbare Fläche schrumpft dadurch unter
+     44px. ::before holt die Trefferfläche auf 46x46 zurück, ohne den
+     schmalen Chip optisch zu verbreitern (gleiche Technik wie bei
+     .block__done/.arearow__swatch). */
+  .dayswitch__btn { min-height: 46px; position: relative; }
+  .dayswitch__btn::before {
+    content: ""; position: absolute; inset: 50%;
+    width: 46px; height: 46px; transform: translate(-50%, -50%);
+  }
   /* Annehmen und Verwerfen sind der Kern der Schleife — die dürfen nicht
      die kleinsten Knöpfe im Bild sein. */
   .block__sug { gap: 6px; right: 4px; top: 4px; }
@@ -2203,19 +2274,31 @@ function renderDaySwitch() {
   wrap.innerHTML = "";
   const mon = mondayOf(anchor);
   const todayIso = iso(new Date());
+
+  // Randpfeile für den Wochensprung — dieselbe Bewegung wie #prevWeek/
+  // #nextWeek im Kopf, nur eben direkt am Streifen, wo der Daumen ohnehin
+  // schon ist. selectedDayIdx bleibt stehen: wer auf Mittwoch steht und
+  // eine Woche weiterspringt, will den nächsten Mittwoch sehen, nicht
+  // wieder bei Montag anfangen.
+  const prev = document.createElement("button");
+  prev.type = "button"; prev.className = "btn btn--ghost dayswitch__nav dayswitch__nav--prev";
+  prev.textContent = "‹"; prev.setAttribute("aria-label", "Woche zurück");
+  prev.onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
+  wrap.appendChild(prev);
+
   for (let i = 0; i < 7; i++) {
     const d = addDays(mon, i);
     const key = iso(d);
     const frei = istFrei(key);
     const last = tagesAuslastung({ key, i });
+    const heute = key === todayIso;
 
     const b = document.createElement("button");
     b.className = "dayswitch__btn" + (frei ? " is-frei" : "")
-      + (last.quote > 1 ? " is-voll" : "");
+      + (last.quote > 1 ? " is-voll" : "") + (heute ? " is-today" : "");
     b.setAttribute("aria-pressed", String(i === selectedDayIdx));
     b.style.setProperty("--last", Math.round(clamp(last.quote, 0, 1) * 100) + "%");
     b.innerHTML = "<span>" + DAY_SHORT[i] + "</span><b>" + d.getDate() + "</b><i></i>";
-    if (key === todayIso) b.querySelector("b").style.color = "var(--focus)";
 
     // Ein Balken allein sagt niemandem etwas, der ihn nicht sieht.
     const wieVoll = frei ? "freigehalten"
@@ -2229,6 +2312,12 @@ function renderDaySwitch() {
     b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); };
     wrap.appendChild(b);
   }
+
+  const next = document.createElement("button");
+  next.type = "button"; next.className = "btn btn--ghost dayswitch__nav dayswitch__nav--next";
+  next.textContent = "›"; next.setAttribute("aria-label", "Woche vor");
+  next.onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
+  wrap.appendChild(next);
 }
 
 /* ============================================================ Blöcke einer Spalte */
@@ -3411,10 +3500,19 @@ function renderLoose() {
 }
 
 /* ============================================================ Raster */
+// Scrollposition je Tag/Ansicht — s. renderGrid ganz unten und der
+// scroll-Listener in wischenEinrichten. Schlüssel statt fixem Wert: die
+// Eintagesansicht zeigt einen bestimmten Tag, die Woche einen gemeinsamen
+// Scrollbereich über alle sieben Spalten.
+const scrollMerk = {};
+let scrollMerkSchluessel = null;
+function scrollSchluessel() {
+  return einTag ? iso(addDays(mondayOf(anchor), selectedDayIdx)) : "woche";
+}
+
 function renderGrid() {
   const grid = $("#grid");
   const wrap = $("#gridWrap");
-  const keepScroll = wrap.scrollTop;
   grid.innerHTML = "";
 
   const { dayStart, dayEnd } = state.settings;
@@ -3532,11 +3630,44 @@ function renderGrid() {
     grid.appendChild(empty);
   }
 
-  // keepScroll === 0 ist falsy — wer ganz oben stand, wurde vom Minutentakt
-  // sonst jede Minute zurück zur aktuellen Uhrzeit gerissen. Ohne Eintrag
-  // gibt es kein „jetzt", das einen Sprung lohnt — der Leerzustand oben
-  // bliebe sonst außerhalb des ersten Blicks.
-  wrap.scrollTop = keepScroll > 0 ? keepScroll : (hatEintraege ? startScroll(hourH) : 0);
+  // Gemerkter statt aus dem DOM gelesener Wert (scrollMerk oben): wrap.scrollTop
+  // gehörte an dieser Stelle schon nicht mehr zuverlässig zum neuen Tag, etwa
+  // nach einem Wisch-Wechsel, der selectedDayIdx vor dem Neuzeichnen schon
+  // weiterstellt — sonst würde man mit der Scrollposition des alten Tages auf
+  // dem neuen landen. null heißt „diesen Tag noch nie gesehen" (Sprung zur
+  // passenden Startzeit), 0 heißt „stand ganz oben" — das eine ist keine
+  // Abkürzung fürs andere, sonst risse der Minutentakt jeden, der bewusst
+  // ganz nach oben gescrollt hat, wieder zur aktuellen Uhrzeit zurück.
+  scrollMerkSchluessel = scrollSchluessel();
+  const gemerkt = scrollMerk[scrollMerkSchluessel];
+  wrap.scrollTop = gemerkt != null ? gemerkt : (hatEintraege ? startScroll(hourH) : 0);
+}
+
+/* Nur die Jetzt-Linie verschieben, ohne das Raster neu aufzubauen — für den
+   Minutentakt (s. ganz unten), solange ein Zeiger im Raster aktiv ist.
+   renderGrid() räumt vorher grid.innerHTML leer; das reisst den Knoten
+   unter einem gerade gehaltenen oder verschobenen Block weg. Die Linie
+   existiert höchstens einmal, in der Spalte des heutigen Tages. */
+function verschiebeJetztLinie() {
+  const grid = $("#grid");
+  if (!grid) return;
+  const hourH = parseFloat(getComputedStyle(grid).getPropertyValue("--hourh")) || 52;
+  const { dayStart, dayEnd } = state.settings;
+  const todayIso = iso(new Date());
+  const mins = new Date().getHours() * 60 + new Date().getMinutes();
+  grid.querySelectorAll(".daycol").forEach(col => {
+    const n = col.querySelector(".now");
+    const heute = col.dataset.date === todayIso;
+    if (!heute || mins < dayStart * 60 || mins > dayEnd * 60) { if (n) n.remove(); return; }
+    const top = ((mins - dayStart * 60) / 60 * hourH) + "px";
+    if (n) n.style.top = top;
+    else {
+      const el = document.createElement("div");
+      el.className = "now";
+      el.style.top = top;
+      col.appendChild(el);
+    }
+  });
 }
 
 /* Wohin das Raster beim ersten Zeichnen springt.
@@ -3671,6 +3802,13 @@ function dropOne(id) {
 const SNAP = 15;
 function snap(min) { return Math.round(min / SNAP) * SNAP; }
 
+// Wischt gerade jemand über einen Block, während ein langer Druck (s.
+// holdToMove) ihn schon zum Verschieben angehoben hat? Dann darf
+// wischenEinrichten das nicht als Wochentagwechsel lesen. Ausserhalb eines
+// Drags ist Wischen über Blöcken erlaubt — nur während eines laufenden
+// Drags nicht.
+let blockDragAktiv = false;
+
 function attachColumnHandlers(col, hourH) {
   const { dayStart, dayEnd } = state.settings;
   const minAt = clientY => {
@@ -3733,11 +3871,18 @@ function attachColumnHandlers(col, hourH) {
       return;
     }
 
-    /* --- Touch auf Block: erst beim Loslassen, und nur ohne Wischen ---
+    /* --- Touch auf Block: Tippen öffnet, langer Druck verschiebt ---
        Vorher ging der Editor schon beim Aufsetzen des Fingers auf, sodass
-       jeder Scrollversuch einen Dialog erzeugt hat. */
+       jeder Scrollversuch einen Dialog erzeugt hat (tapOrScroll unten löst
+       das weiterhin erst bei pointerup). Verschieben gab es am Telefon
+       bisher gar nicht — nur mit der Maus oben. Ein langer Druck (dieselben
+       380 ms wie holdToCreate) hebt den Block jetzt zum Verschieben an;
+       tapAbbrechen sorgt dafür, dass der Editor dann nicht zusätzlich noch
+       aufgeht, sobald losgelassen wird. */
     if (blockNode) {
-      tapOrScroll(e, () => editBlock(blockNode.dataset.id, col.dataset.date));
+      const b = state.blocks.find(x => x.id === blockNode.dataset.id);
+      const tapAbbrechen = tapOrScroll(e, () => editBlock(blockNode.dataset.id, col.dataset.date));
+      if (b) holdToMove(e, blockNode, b, col, hourH, tapAbbrechen);
       return;
     }
 
@@ -3821,13 +3966,13 @@ const HOLD_TIME = 380;    // so lange drücken für einen neuen Eintrag
 
 function tapOrScroll(e, run) {
   const x0 = e.clientX, y0 = e.clientY, t0 = Date.now();
-  let moved = false;
+  let moved = false, abgesagt = false;
   const move = ev => {
     if (Math.abs(ev.clientY - y0) > TAP_SLOP || Math.abs(ev.clientX - x0) > TAP_SLOP) moved = true;
   };
   const done = () => {
     off();
-    if (!moved && Date.now() - t0 < TAP_TIME) run();
+    if (!abgesagt && !moved && Date.now() - t0 < TAP_TIME) run();
   };
   const off = () => {
     document.removeEventListener("pointermove", move);
@@ -3837,6 +3982,10 @@ function tapOrScroll(e, run) {
   document.addEventListener("pointermove", move);
   document.addEventListener("pointerup", done);
   document.addEventListener("pointercancel", off);
+  // Rückgabewert für holdToMove: ein langer Druck, der zum Verschieben
+  // wird, soll beim Loslassen nicht zusätzlich noch den Editor öffnen. Die
+  // Auflösung selbst (oben in "done") bleibt unverändert bei pointerup.
+  return () => { abgesagt = true; };
 }
 
 function holdToCreate(e, col, minAt, hourH, dayEnd) {
@@ -3873,6 +4022,83 @@ function holdToCreate(e, col, minAt, hourH, dayEnd) {
   document.addEventListener("pointermove", move);
   document.addEventListener("pointerup", stop);
   document.addEventListener("pointercancel", stop);
+}
+
+/* Langer Druck auf einen Block verschiebt ihn — dieselbe Geste wie
+   holdToCreate auf freier Fläche, nur auf einem bestehenden Eintrag statt
+   auf leerem Raum. Bricht die Bewegung vor Ablauf der Haltezeit ab (der
+   Finger wandert, das ist dann Scrollen oder Wischen), bleibt tapOrScroll
+   unangetastet dafür zuständig, ob daraus noch ein Tipp wird — dessen
+   Auflösung bei pointerup ändert sich hier nicht. Löst der lange Druck
+   aber aus, übernimmt ab da dieselbe Verschieben-Logik wie am Schreibtisch
+   mit der Maus (15-Minuten-Raster über snap()), nur eben erst nach der
+   Haltezeit statt sofort bei der ersten Bewegung. */
+function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen) {
+  const { dayStart, dayEnd } = state.settings;
+  const x0 = e.clientX, y0 = e.clientY;
+  const origStart = b.start, len = b.end - b.start;
+  let pendStart = origStart, dragging = false;
+
+  // Dieselbe Rückmeldung wie beim Anlegen (holdToCreate) — ein Fingerdruck
+  // auf einen Block soll sich beim Halten nicht anders anfühlen als einer
+  // auf freier Fläche.
+  const ghost = document.createElement("div");
+  ghost.className = "block__ghost is-holding";
+  ghost.style.top = blockNode.style.top;
+  ghost.style.height = blockNode.style.height;
+  ghost.style.left = blockNode.style.left;
+  ghost.style.right = blockNode.style.right;
+  ghost.style.setProperty("--h", blockNode.style.getPropertyValue("--h"));
+  col.appendChild(ghost);
+
+  const startDrag = () => {
+    dragging = true;
+    ghost.remove();
+    blockDragAktiv = true;
+    tapAbbrechen();
+    if (navigator.vibrate) navigator.vibrate(12);
+    blockNode.classList.add("is-dragging");
+  };
+  const timer = setTimeout(startDrag, HOLD_TIME);
+
+  const move = ev => {
+    if (dragging) {
+      const delta = snap((ev.clientY - y0) / hourH * 60);
+      pendStart = clamp(origStart + delta, dayStart * 60, dayEnd * 60 - len);
+      blockNode.style.top = ((pendStart - dayStart * 60) / 60 * hourH) + "px";
+      return;
+    }
+    if (Math.abs(ev.clientY - y0) > TAP_SLOP || Math.abs(ev.clientX - x0) > TAP_SLOP) {
+      clearTimeout(timer);
+      ghost.remove();
+    }
+  };
+  const off = () => {
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", onUp);
+    document.removeEventListener("pointercancel", onCancel);
+  };
+  // pointerup übernimmt den neuen Stand, pointercancel (vom System
+  // unterbrochene Geste) verwirft ihn — renderAll() zeichnet in dem Fall
+  // aus dem unveränderten Datenstand neu, damit kein loses style.top stehen
+  // bleibt.
+  const finish = commit => {
+    clearTimeout(timer);
+    off();
+    ghost.remove();
+    if (dragging) {
+      blockNode.classList.remove("is-dragging");
+      blockDragAktiv = false;
+      if (commit) { b.start = pendStart; b.end = pendStart + len; save(); }
+      renderAll();
+    }
+  };
+  const onUp = () => finish(true);
+  const onCancel = () => finish(false);
+
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", onUp);
+  document.addEventListener("pointercancel", onCancel);
 }
 
 /* ============================================================ Block-Editor */
@@ -6181,26 +6407,62 @@ function wischenEinrichten() {
   if (!wrap || wrap.dataset.wisch) return;
   wrap.dataset.wisch = "1";
 
-  let x0 = 0, y0 = 0, aktiv = false, entschieden = false;
+  // Scrollposition je Tag mitschreiben (scrollMerk/scrollMerkSchluessel,
+  // s. renderGrid) — nur hier läuft der Nutzer tatsächlich, renderGrid
+  // selbst liest nur noch, statt aus dem DOM zu raten, welcher Tag gerade
+  // gescrollt wurde.
+  wrap.addEventListener("scroll", () => {
+    if (scrollMerkSchluessel != null) scrollMerk[scrollMerkSchluessel] = wrap.scrollTop;
+  }, { passive: true });
+
+  const grid = $("#grid");
+  let x0 = 0, y0 = 0, t0 = 0, aktiv = false, achse = null;
 
   wrap.addEventListener("pointerdown", e => {
     if (e.pointerType === "mouse") return;      // Maus zieht Blöcke, nicht Tage
     if (!einTag) return;                        // in der Wochenansicht wechselt nichts
-    if (e.target.closest(".block")) return;     // Block verschieben hat Vorrang
-    x0 = e.clientX; y0 = e.clientY;
-    aktiv = true; entschieden = false;
+    x0 = e.clientX; y0 = e.clientY; t0 = e.timeStamp;
+    aktiv = true; achse = null;
   }, { passive: true });
 
   wrap.addEventListener("pointermove", e => {
-    if (!aktiv || entschieden) return;
+    // Über Blöcken erlaubt, solange kein Drag läuft — erst holdToMove
+    // (blockDragAktiv) hat Vorrang, ein bloßes Antippen eines Blocks
+    // wischt weiterhin ganz normal den Tag weiter.
+    if (!aktiv || blockDragAktiv) return;
     const dx = e.clientX - x0, dy = e.clientY - y0;
-    if (Math.abs(dy) > 24) { aktiv = false; return; }   // das ist Scrollen
-    if (Math.abs(dx) < 55) return;
-    entschieden = true; aktiv = false;
-    tagWechseln(dx < 0 ? 1 : -1);
+
+    // Achse erst ab 10px festlegen, danach bis pointerup nicht mehr
+    // revidieren — sonst kippt eine leicht schräge Bewegung mittendrin von
+    // Wischen auf Scrollen um und tut am Ende keins von beidem richtig.
+    if (achse === null) {
+      if (Math.hypot(dx, dy) < 10) return;
+      achse = Math.abs(dx) > Math.abs(dy) * 1.7 ? "x" : "y";
+      if (achse === "y") { aktiv = false; return; }        // das ist Scrollen
+    }
+    if (achse !== "x") return;
+
+    // Sichtbare Rückmeldung während des Wischens — direkt an den Finger
+    // gebunden, keine CSS-Transition und damit auch nicht von der
+    // pauschalen prefers-reduced-motion-Regel oben erfasst (die deckt nur
+    // Transitions/Animationen ab). Wer reduzierte Bewegung eingestellt hat,
+    // sieht deshalb hier ausdrücklich keine Vorschau, sondern erst das
+    // Ergebnis nach dem Loslassen.
+    if (grid && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      grid.style.transform = "translateX(" + clamp(dx, -wrap.clientWidth, wrap.clientWidth) + "px)";
+    }
+
+    const breite = wrap.clientWidth || 1;
+    const t = e.timeStamp - t0;
+    const v = t > 0 ? Math.abs(dx) / t : 0;   // px/ms
+    if (Math.abs(dx) / breite >= 0.25 || v >= 0.4) {
+      aktiv = false;
+      if (grid) grid.style.transform = "";
+      tagWechseln(dx < 0 ? 1 : -1);
+    }
   }, { passive: true });
 
-  const ende = () => { aktiv = false; };
+  const ende = () => { aktiv = false; achse = null; if (grid) grid.style.transform = ""; };
   wrap.addEventListener("pointerup", ende, { passive: true });
   wrap.addEventListener("pointercancel", ende, { passive: true });
 }
@@ -6581,22 +6843,39 @@ Sync.boot()
     maybeBackupNag();
   });
 
+// Während ein Zeiger im Raster aktiv ist (Halten, Verschieben, Wischen),
+// darf der Minutentakt renderGrid() nicht auslösen — das räumt
+// grid.innerHTML leer und reisst damit den Knoten unter dem Finger weg.
+// Ein Set aus pointerId statt eines einzelnen Flags, falls je zwei Finger
+// gleichzeitig im Raster stehen (Zoomen).
+const zeigerImRaster = new Set();
+document.addEventListener("pointerdown", e => {
+  if (e.target.closest && e.target.closest("#gridWrap")) zeigerImRaster.add(e.pointerId);
+}, true);
+document.addEventListener("pointerup", e => zeigerImRaster.delete(e.pointerId), true);
+document.addEventListener("pointercancel", e => zeigerImRaster.delete(e.pointerId), true);
+
 let letzterTag = iso(new Date());
 setInterval(() => {
+  if (openModal) return;
   // Über Mitternacht hinweg zeigte die App weiter die abgelaufene Woche,
-  // weil "anchor" nur beim Laden gesetzt wurde.
+  // weil "anchor" nur beim Laden gesetzt wurde. Bei aktivem Zeiger wird
+  // letzterTag bewusst NICHT aktualisiert — sonst würde der Tageswechsel
+  // für diese eine Minute stillschweigend übersprungen, statt ihn beim
+  // nächsten Takt nachzuholen.
+  if (zeigerImRaster.size) { verschiebeJetztLinie(); return; }
   const heute = iso(new Date());
   if (heute !== letzterTag) {
     letzterTag = heute;
     if (iso(mondayOf(anchor)) !== iso(mondayOf(new Date()))) anchor = new Date();
     selectedDayIdx = (new Date().getDay() + 6) % 7;
-    if (!openModal) renderAll();
+    renderAll();
     return;
   }
   // Die Agenda hängt an "jetzt" wie die Jetzt-Linie im Raster — läuft
   // sie nicht mit, bleibt "noch 40 Min" stehen und ein vorbeigegangener
   // Eintrag rutscht nie von "läuft" nach "danach".
-  if (!openModal) { renderGrid(); renderAgenda(); }
+  renderGrid(); renderAgenda();
 }, 60000);
 // Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {

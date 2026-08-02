@@ -45,8 +45,9 @@ sieht Pseudo-Elemente nicht. Alles andere ist echt.
 | `node sicht.js` | Bilder von allen vier Ansichten auf iPhone SE und 13, hell, dunkel und quer (`s-*.png`) |
 | `node diag7.js` | Wie viele Stunden vom Tag sichtbar sind, je Gerät. Zeigt die Aufteilung Kopfzeile / Tagwechsler / Raster / Band / Leiste |
 | `node woche.js` | Der Auslastungsbalken im Tagwechsler: Füllung je Tag, Warnfarbe über der Marke, bewegt sich beim Verteilen |
-| `node tap2.js` | Tippen gegen Wischen mit echten Touch-Ereignissen. Sechs Fälle mit Soll-Werten daneben |
-| `node wisch.js` | Tageswechsel per Wischen, auch über den Wochenrand |
+| `node tap2.js` | Tippen gegen Wischen mit echten Touch-Ereignissen, dazu (seit Stufe 8) langer Druck zum Verschieben um ein Raster und ein per CDP simulierter echter Scrollversuch auf `.block__resize` |
+| `node wisch.js` | Tageswechsel per Wischen, auch über den Wochenrand. Seit Stufe 8 über echte ("trusted") Touch-Events per CDP statt `dispatchEvent` — die Achsen-/Geschwindigkeitsschwellen hängen an echtem Timing, das synthetische PointerEvents nicht zuverlässig nachbilden |
+| `node scroll.js` | Rasterposition je Tag (`scrollMerk`, seit Stufe 8): übersteht Tabwechsel und einen simulierten Minutentakt-Durchlauf; „nie gescrollt" (Startposition) und „bewusst ganz oben" (0) bleiben unterscheidbar |
 | `node drag.js` | Aufgabe ins Raster ziehen (Rechner) und dass ein Klick stattdessen das Aufgabenblatt öffnet |
 | `node grob3.js` | Das Band für Einträge ohne feste Uhrzeit am Telefon |
 | `node funktion.js` | Einstellungen mit Unterseiten: speichern, Dunkelmodus, Bereich anlegen |

@@ -1,11 +1,13 @@
 /* ============================================================
-   Pruefskript Fussbereich (Stufe 6) — iPhone SE (320x568) und Querformat
+   Pruefskript Fussbereich (Stufe 6, erweitert in Stufe 8) — iPhone SE
+   (320x568) und Querformat
 
    Prueft, was der Bericht zu Stufe 6 ueber die Stapelung von Tabbar,
    Vorschlagsleiste, FAB und Toasts behauptet:
      a) Ueberlappung — mit offenen Vorschlaegen ueberlappen sich Tabbar,
-        Vorschlagsleiste, FAB und ein sichtbarer Toast PAARWEISE NICHT
-        (Rechteck-Schnittflaeche = 0)
+        Tagesstreifen (.dayswitch, seit Stufe 8), Vorschlagsleiste, FAB
+        und ein sichtbarer Toast PAARWEISE NICHT (Rechteck-Schnittflaeche
+        = 0)
      b) Ohne Vorschlaege — die Leiste ist nicht im Bild, FAB und Toast
         ruecken nach unten (ihr bottom-Wert wird kleiner)
      c) Sicherheitszone — kein Element ragt unter die Tabbar-Unterkante
@@ -53,6 +55,7 @@ async function messen(p) {
       innerHeight: window.innerHeight,
       sugbarFlag: document.body.dataset.sugbar,
       tabbar: rectOrNull('.tabbar'),
+      dayswitch: rectOrNull('.dayswitch'),
       sugbar: rectOrNull('#sugBar'),
       fab: rectOrNull('.fab'),
       toast: rectOrNull('.toasts .toast:last-child'),
@@ -95,8 +98,11 @@ async function pruefeFall(p, tag, quer) {
   ok(!!mit.sugbar, 'Vorschlagsleiste ist sichtbar');
   ok(!!mit.fab || quer, 'FAB ist sichtbar (nur Hochformat erwartet)');
   ok(!!mit.toast, 'Toast ist sichtbar');
+  // Ansicht 'plan' bei 320px Breite/Hoehe (hoch wie quer) liegt unter der
+  // (max-width:640px)-Schwelle fuer einTag — der Tagesstreifen muss also da sein.
+  ok(!!mit.dayswitch, 'Tagesstreifen (.dayswitch) ist sichtbar');
 
-  const flaechen = { tabbar: mit.tabbar, sugbar: mit.sugbar, fab: mit.fab, toast: mit.toast };
+  const flaechen = { tabbar: mit.tabbar, dayswitch: mit.dayswitch, sugbar: mit.sugbar, fab: mit.fab, toast: mit.toast };
   const namen = Object.keys(flaechen).filter(k => flaechen[k]);
   for (let i = 0; i < namen.length; i++) {
     for (let j = i + 1; j < namen.length; j++) {
@@ -108,7 +114,7 @@ async function pruefeFall(p, tag, quer) {
 
   // Sicherheitszone: keine der schwebenden Flaechen ragt unter die
   // Tabbar-Unterkante (== Fensterunterkante bei safe-area-inset 0).
-  ['tabbar', 'sugbar', 'fab', 'toast'].forEach(k => {
+  ['tabbar', 'dayswitch', 'sugbar', 'fab', 'toast'].forEach(k => {
     const r = flaechen[k];
     if (!r) return;
     ok(r.bottom <= mit.innerHeight + 0.5, `${k} ragt nicht unter die Tabbar-Unterkante (${Math.round(r.bottom)} <= ${mit.innerHeight})`);
@@ -131,6 +137,11 @@ async function pruefeFall(p, tag, quer) {
 
   ok(ohne.sugbarFlag === '0', 'data-sugbar=0, wenn keine Vorschlaege mehr offen sind');
   ok(!ohne.sugbar, 'Vorschlagsleiste ist nicht mehr im Bild');
+  ok(!!ohne.dayswitch, 'Tagesstreifen bleibt sichtbar, auch ohne Vorschlaege');
+  if (ohne.dayswitch && ohne.tabbar) {
+    const s = schnittflaeche(ohne.dayswitch, ohne.tabbar);
+    ok(s === 0, `dayswitch und tabbar ueberlappen sich nicht (Schnittflaeche ${s}px²)`);
+  }
 
   if (mit.fab && ohne.fab) {
     // bottom-css-Wert = Abstand von der Fensterunterkante zur Unterkante des Elements
@@ -144,7 +155,7 @@ async function pruefeFall(p, tag, quer) {
     ok(cssBottomOhne < cssBottomMit, `Toast rueckt nach unten, wenn die Leiste weg ist (bottom ${cssBottomMit}px -> ${cssBottomOhne}px)`);
   }
 
-  ['tabbar', 'fab', 'toast'].forEach(k => {
+  ['tabbar', 'dayswitch', 'fab', 'toast'].forEach(k => {
     const r = ohne[k];
     if (!r) return;
     ok(r.bottom <= ohne.innerHeight + 0.5, `${k} ragt nicht unter die Tabbar-Unterkante (${Math.round(r.bottom)} <= ${ohne.innerHeight})`);
