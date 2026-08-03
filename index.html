@@ -1991,7 +1991,7 @@ function migrate(s) {
 
   // Wöchentliche Blöcke gelten ab ihrem Anlegedatum, nicht seit Anbeginn
   s.blocks.forEach(b => {
-    if (b.repeat === "weekly" && !b.since) b.since = b.date || "1970-01-01";
+    if (istSerie(b) && !b.since) b.since = b.date || "1970-01-01";
   });
 
   // Verwaiste Verweise reparieren. Wird ein Bereich auf einem Gerät gelöscht,
@@ -2489,15 +2489,35 @@ function renderDaySwitch() {
 }
 
 /* ============================================================ Blöcke einer Spalte */
+/* „Serie" heisst: wiederholt sich, egal in welchem Rhythmus. Dieses eine Tor
+   entscheidet für alle Stellen, die nur zwischen einmalig und wiederkehrend
+   unterscheiden wollen — eine vergessene Einzelabfrage auf "weekly" würde
+   einen zweiwöchentlichen Termin sonst lautlos wie einen einmaligen behandeln. */
+function istSerie(b) { return b.repeat === "weekly" || b.repeat === "2wochen"; }
+
 /* Liegt dieser Block an diesem Tag?
 
    Wöchentliche Blöcke galten bisher für *jeden* passenden Wochentag — auch für
    Wochen, die längst vorbei sind. Wer im August „Sport montags" anlegt, hatte
    damit rückwirkend auch jeden Montag im Januar erfüllt. „since" ist das Datum,
-   ab dem die Serie gilt; bei alten Daten setzt migrate() es auf das Anlegedatum. */
+   ab dem die Serie gilt; bei alten Daten setzt migrate() es auf das Anlegedatum.
+
+   Zweiwöchentliche Blöcke ("2wochen") brauchen zusätzlich eine Parität: sie
+   gelten nur in jeder zweiten Woche, gezählt ab der Woche von „since". */
 function onDay(b, dayKey, dayIdx) {
-  if (b.repeat !== "weekly") return b.date === dayKey;
-  return b.day === dayIdx && (!b.since || dayKey >= b.since);
+  if (!istSerie(b)) return b.date === dayKey;
+  if (b.day !== dayIdx) return false;
+  if (b.since && dayKey < b.since) return false;
+  if (b.repeat === "2wochen" && b.since) {
+    // Ganze Wochen zwischen dem Montag von since und dem Montag von dayKey.
+    // Math.round ist Pflicht, nicht Kosmetik: eine Woche hat an den
+    // Umstellungswochenenden nicht exakt 7×24h (6,958 oder 7,042 Tage durch
+    // die Sommerzeit) — ohne Runden geriete der Rhythmus dort kurz aus dem Takt.
+    const a = mondayOf(new Date(b.since + "T12:00:00"));
+    const z = mondayOf(new Date(dayKey + "T12:00:00"));
+    if (Math.round((z - a) / 604800000) % 2 !== 0) return false;
+  }
+  return true;
 }
 
 /* Fürs Raster: nur Blöcke mit fester Uhrzeit. Grobe hängen an einem
@@ -2619,7 +2639,7 @@ function weekDays() {
    wirklich stattgefunden hat.
    ============================================================ */
 
-function hakenKey(b, dayKey) { return b.id + "|" + (b.repeat === "weekly" ? dayKey : b.date); }
+function hakenKey(b, dayKey) { return b.id + "|" + (istSerie(b) ? dayKey : b.date); }
 
 function istErledigt(b, dayKey) {
   const e = state.erledigt[hakenKey(b, dayKey)];
@@ -5057,7 +5077,7 @@ function blockSheet(draft, dayKey) {
         "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
-        "<label class='switch'><input type='checkbox' id='bRepeat'> Jede Woche wiederholen</label>" +
+        "<div class='chipset' id='bRepeat'></div>" +
         "<div class='chipset' id='bDays' style='margin-top:12px'></div>" +
         "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
       "</div>" +
@@ -5071,7 +5091,27 @@ function blockSheet(draft, dayKey) {
     title.value = draft.title;
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end);
-    const rep = s.querySelector("#bRepeat"); rep.checked = draft.repeat === "weekly";
+    // ---- Wiederholung: drei Zustände statt eines Hakens (Chips statt
+    // Dropdown — bei drei überschaubaren Werten sofort anklickbar, der
+    // gewählte Rhythmus ist ohne weiteren Klick sichtbar).
+    let repeatMode = draft.repeat === "2wochen" ? "2wochen" : draft.repeat === "weekly" ? "weekly" : "none";
+    const repWrap = s.querySelector("#bRepeat");
+    const paintRepeat = () => {
+      repWrap.innerHTML = "";
+      [["none", "Einmalig"], ["weekly", "Wöchentlich"], ["2wochen", "Alle 2 Wochen"]].forEach(([wert, text]) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(repeatMode === wert));
+        c.textContent = text;
+        c.onclick = () => {
+          if (repeatMode === wert) return;
+          repeatMode = wert;
+          paintRepeat(); paintDays();
+        };
+        repWrap.appendChild(c);
+      });
+    };
+    paintRepeat();
 
     // ---- Abhaken. Bei einer Serie gilt das Häkchen nur für diesen Tag.
     const doneBox = s.querySelector("#bDone");
@@ -5081,7 +5121,7 @@ function blockSheet(draft, dayKey) {
       const malen = () => {
         const d = hakenTag ? new Date(hakenTag + "T12:00:00") : null;
         const tagText = d ? DAY_LONG[(d.getDay() + 6) % 7] + ", " + d.getDate() + "." + (d.getMonth() + 1) + "." : "diesen Tag";
-        dh.textContent = draft.repeat === "weekly"
+        dh.textContent = istSerie(draft)
           ? "Gilt nur für " + tagText + " — die anderen Wochen bleiben unberührt."
           : (doneBox.checked ? "Zählt auf das Wochenziel als wirklich passiert." : "Hake ab, was stattgefunden hat — daraus wird dein Wochenrückblick.");
       };
@@ -5208,11 +5248,11 @@ function blockSheet(draft, dayKey) {
         };
         dayWrap.appendChild(c);
       }
-      hint.textContent = rep.checked
-        ? (isNew && days.size > 1 ? days.size + " Einträge, jede Woche — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht in jeder Woche auf.")
+      const rhythmus = repeatMode === "2wochen" ? "alle 2 Wochen" : "jede Woche";
+      hint.textContent = repeatMode !== "none"
+        ? (isNew && days.size > 1 ? days.size + " Einträge, " + rhythmus + " — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht " + rhythmus + " auf.")
         : "Nur in dieser Woche (" + [...days].map(i => DAY_SHORT[i]).join(", ") + ", " + addDays(mon, [...days][0]).getDate() + "." + (addDays(mon, [...days][0]).getMonth() + 1) + ".).";
     };
-    rep.onchange = paintDays;
     paintDays();
 
     const foot = document.createElement("div");
@@ -5226,16 +5266,17 @@ function blockSheet(draft, dayKey) {
           state.blocks = state.blocks.filter(x => x.id !== draft.id);
           save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
         };
-        // Eine Serie zu löschen trifft jede Woche, nicht nur die angezeigte.
-        // Das passierte bisher ohne jede Nachfrage.
-        if (draft.repeat === "weekly")
+        // Eine Serie zu löschen trifft jede (bzw. jede zweite) Woche, nicht
+        // nur die angezeigte. Das passierte bisher ohne jede Nachfrage.
+        if (istSerie(draft)) {
+          const rhythmus = draft.repeat === "2wochen" ? "alle 2 Wochen" : "in jeder Woche";
           // push: true — bei „Abbrechen" bleibt der halb ausgefüllte Editor
           // dahinter erhalten statt zu verschwinden.
-          confirmSheet("Wöchentlicher Eintrag",
-            "„" + (draft.title || "Ohne Titel") + "\" steht in jeder Woche. Löschen entfernt " +
+          confirmSheet(draft.repeat === "2wochen" ? "Zweiwöchentlicher Eintrag" : "Wöchentlicher Eintrag",
+            "„" + (draft.title || "Ohne Titel") + "\" steht " + rhythmus + ". Löschen entfernt " +
             "ihn aus allen Wochen — auch aus den kommenden.",
             "Aus allen Wochen löschen", weg, { push: true });
-        else weg();
+        } else weg();
       };
       foot.appendChild(del);
 
@@ -5257,7 +5298,6 @@ function blockSheet(draft, dayKey) {
     const commit = () => {
       let st = parseTime(from.value), en = parseTime(to.value);
       if (en <= st) en = st + 30;
-      const weekly = rep.checked;
       const list = [...days];
       // Grobe Blöcke tragen ihre Dauer und den Abschnitt; start/end bleiben
       // nur als Anhaltspunkt gefüllt, damit Sortierungen weiter funktionieren.
@@ -5279,7 +5319,7 @@ function blockSheet(draft, dayKey) {
         list.forEach((d, i) => {
           const nb = Object.assign({
             id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
-            day: d, date: iso(addDays(mon, d)), repeat: weekly ? "weekly" : "none",
+            day: d, date: iso(addDays(mon, d)), repeat: repeatMode,
             since: iso(addDays(mon, d)), ortId: draft.ortId || null,
             // Die Stern-Markierung kam aus dem Entwurf und wurde hier
             // stillschweigend wieder auf false gesetzt — je nach Weg blieb sie
@@ -5300,10 +5340,16 @@ function blockSheet(draft, dayKey) {
         b.areaId = draft.areaId;
         b.day = list[0];
         b.date = iso(addDays(mon, list[0]));
-        b.repeat = weekly ? "weekly" : "none";
+        b.repeat = repeatMode;
         b.ortId = draft.ortId || null;
-        if (weekly && !b.since) b.since = b.date;
-        if (!weekly) delete b.since;
+        // since ist der Anker der Serie (bei "weekly" das Startdatum, bei
+        // "2wochen" zusätzlich die Parität). Ein bereits gesetztes since
+        // bleibt stehen — nur eine neu begonnene Serie bekommt eines, und
+        // zwar das Datum, auf dem sie hier gerade liegt: der Termin steht
+        // dann sichtbar dort, wo er gerade hingelegt wurde, am wenigsten
+        // überraschend für alles, was danach kommt.
+        if (repeatMode !== "none" && !b.since) b.since = b.date;
+        if (repeatMode === "none") delete b.since;
         Object.assign(b, grobFelder());
         if (!b.grob) { delete b.teil; delete b.dauer; }
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
@@ -5969,8 +6015,11 @@ function optionalToday() {
   const idx = selectedDayIdx;
   return state.blocks.filter(b => {
     if (b.sug) return false;
-    const hier = b.repeat === "weekly" ? b.day === idx : b.date === key;
-    if (!hier) return false;
+    // onDay() statt einer eigenen weekly-Abfrage: die hätte bei "2wochen"
+    // jede Woche "hier" gesagt statt nur jede zweite — onDay kennt die
+    // Parität bereits, ein zweites Mal von Hand nachbauen wäre die nächste
+    // Stelle, an der ein Rhythmus lautlos falsch würde.
+    if (!onDay(b, key, idx)) return false;
     const area = areaById(b.areaId);
     return !(area.plan && area.plan.must);
   }).sort((a, b) => a.start - b.start);
@@ -6086,7 +6135,7 @@ function moveSheet(id) {
       c.type = "button"; c.className = "chip";
       c.textContent = DAY_SHORT[day.i];
       const vergangen = day.key < heuteKey;
-      const selbst = (blk.repeat === "weekly" ? blk.day === day.i : blk.date === day.key);
+      const selbst = (istSerie(blk) ? blk.day === day.i : blk.date === day.key);
       c.disabled = vergangen || selbst;
       if (c.disabled) c.style.opacity = ".4";
       c.onclick = () => {
@@ -6119,15 +6168,17 @@ function moveSheet(id) {
         };
 
         // Eine Serie zu verschieben hat sie bisher stillschweigend in einen
-        // einzelnen Termin verwandelt — also von jedem Montag gelöscht.
-        if (blk.repeat === "weekly")
+        // einzelnen Termin verwandelt — also von jedem Montag (bzw. jeder
+        // zweiten Woche) gelöscht.
+        if (istSerie(blk)) {
+          const rhythmus = blk.repeat === "2wochen" ? "bisher alle 2 Wochen" : "bisher in jeder Woche";
           // push: true — bei „Abbrechen" bleibt die Tagesauswahl dahinter
           // erhalten statt zu verschwinden.
-          confirmSheet("Wöchentlicher Eintrag",
-            "„" + (blk.title || "Ohne Titel") + "\" steht bisher in jeder Woche. Verschieben " +
+          confirmSheet(blk.repeat === "2wochen" ? "Zweiwöchentlicher Eintrag" : "Wöchentlicher Eintrag",
+            "„" + (blk.title || "Ohne Titel") + "\" steht " + rhythmus + ". Verschieben " +
             "macht daraus einen einzelnen Termin — aus den anderen Wochen verschwindet er.",
             "Trotzdem verschieben", schieben, { push: true });
-        else schieben();
+        } else schieben();
       };
       wrap.appendChild(c);
     });
