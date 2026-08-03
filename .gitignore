@@ -1,0 +1,8 @@
+# Screenshots aus Prüfläufen landen hier, wenn ein Kindprozess ohne eigenes
+# cwd gestartet wurde (s. alles.js) — die vier echten, versionierten Icons
+# bleiben über die Ausnahmen unten erhalten.
+*.png
+!/icon-192.png
+!/icon-512.png
+!/icon-maskable-512.png
+!/apple-touch-icon.png

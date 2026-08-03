@@ -49,9 +49,12 @@ node alles.js --nur audit  # nur Skripte, deren Name "audit" enthält
 Sucht die Skripte bei jedem Lauf neu im Ordner, statt eine Liste zu pflegen,
 die beim nächsten neuen Prüfskript sowieso veraltet wäre. Führt sie nacheinander
 aus, zeigt bei Rot sofort die volle Ausgabe des betroffenen Skripts, und druckt
-am Ende eine Tabelle mit Skript, Ampel und Dauer. Skripte, die einen eigenen
-Server brauchen (`test3.js`, `pwatest.js`, `pwaupd.js`), laufen mit — dafür
-vorher `mockserver.js` bzw. `serve.js` von Hand starten, siehe unten.
+am Ende eine Tabelle mit Skript, Ampel (grün/rot/übersprungen) und Dauer.
+Skripte, die einen eigenen Server brauchen (`test3.js` → `mockserver.js`,
+`pwatest.js`/`pwaupd.js` → `serve.js`), startet `alles.js` diesen Server selbst
+und wartet auf Bereitschaft — von Hand ist dafür nichts mehr nötig. Schlägt
+der Start fehl (Port belegt), laufen die betroffenen Skripte nicht mit und
+erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 
 ## Oberfläche und Bedienung
 

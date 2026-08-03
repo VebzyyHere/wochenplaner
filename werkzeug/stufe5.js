@@ -1,6 +1,12 @@
 /* Prüfskript Stufe 5 (Abhaken & Verschieben ohne Umweg) — Einwegskript,
    Stil wie agenda.js. Nicht Teil der Standardsuite, nur zur Verifikation
-   dieser Änderung. */
+   dieser Änderung.
+   Uhrzeit UND Datum sind über page.clock.setFixedTime() auf Mittwoch, 10 Uhr
+   genagelt (wie in agenda.js) — sonst kollidiert der Testblock je nach
+   Startzeit mit dem festen "Arbeit"-Termin aus dem Erststart-Assistenten
+   (Mo–Fr 09–17 Uhr). Die Selektoren unten sind zusätzlich auf
+   [data-id='blk-test'] verengt, damit dieselbe Kollision nicht einfach bei
+   jeder anderen Uhrzeit wiederkehrt, für die diese feste Uhr steht. */
 const { chromium, devices } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'index.html');
@@ -10,12 +16,14 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  // Mittwoch, 10 Uhr — s. Kopfkommentar.
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
   await p.goto(F); await p.waitForTimeout(500);
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }
   await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(900);
@@ -48,7 +56,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
     return istErledigt(state.blocks.find(b => b.id === 'blk-test'), dayKey);
   });
   ok(vorErledigt === false, 'vor dem Klick: nicht erledigt');
-  await p.click('.block__done');
+  await p.click("[data-id='blk-test'] .block__done");
   await p.waitForTimeout(100);
   const nachKlick = await p.evaluate(() => {
     const dayKey = iso(addDays(mondayOf(anchor), (new Date().getDay() + 6) % 7));
@@ -73,7 +81,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   await p.waitForTimeout(150);
   const agendaCountAfterGrid = await p.evaluate(() => Object.keys(state.erledigt).length);
   ok(agendaCountAfterGrid === 1, 'weiterhin genau EIN Schlüssel nach Wechsel in die Agenda-Ansicht (' + agendaCountAfterGrid + ')');
-  const agendaCheckedLive = await p.evaluate(() => document.querySelector('.agenda__check')?.checked);
+  const agendaCheckedLive = await p.evaluate(() => document.querySelector(".agenda__check[data-id='blk-test']")?.checked);
   ok(agendaCheckedLive === true, 'Agenda-Haken zeigt den im Raster gesetzten Zustand live (renderAll-Sync, nicht nur state) — ' + agendaCheckedLive);
 
   /* ---- B) Verschieben-Knopf im Blockeditor ----------------------------- */
@@ -123,7 +131,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   await p.evaluate(() => setView('heute'));
   await p.waitForTimeout(150);
   const rowBox = await p.evaluate(() => {
-    const row = document.querySelector('.agenda__row');
+    const row = document.querySelector(".agenda__row:has([data-id='blk-test'])");
     if (!row) return null;
     const r = row.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -155,7 +163,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
     const dayKey = iso(addDays(mondayOf(anchor), (new Date().getDay() + 6) % 7));
     return istErledigt(state.blocks.find(x => x.id === 'blk-test'), dayKey);
   });
-  await p.click('.agenda__row .agenda__title');
+  await p.click(".agenda__row:has([data-id='blk-test']) .agenda__title");
   await p.waitForTimeout(150);
   const nach = await p.evaluate(() => {
     const dayKey = iso(addDays(mondayOf(anchor), (new Date().getDay() + 6) % 7));

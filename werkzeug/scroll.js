@@ -18,6 +18,14 @@
 
    Stil wie tap2.js/wisch.js: eine Chromium-Seite, deutsche Ausgabe, Exit 1
    bei Fehlern.
+
+   Uhrzeit UND Datum sind wie in agenda.js/schrift.js/stufe5.js ueber
+   page.clock.setFixedTime() auf Mittwoch, 10 Uhr genagelt. Grund hier:
+   startScroll() richtet sich nach "jetzt". Laeuft das Skript nach Mitternacht,
+   ist die berechnete Startposition selbst 0 — dann prueft c) nicht mehr den
+   Unterschied zwischen "nie gescrollt" und "bewusst oben", sondern vergleicht
+   0 mit 0 und die Kontrollzeile schlaegt fehl. Ohne feste Uhr war dieses
+   Skript nachts rot und tagsueber gruen, ohne dass sich am Code etwas aendert.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
@@ -28,12 +36,14 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone 13'] });
+  const ctx = await br.newContext({ ...devices['iPhone 13'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
 
+  // Mittwoch, 10 Uhr — s. Kopfkommentar.
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });

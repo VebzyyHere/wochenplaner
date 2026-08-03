@@ -11,6 +11,11 @@
      g) Langnamen — echte deutsche Bezeichner, kein Scrollen, kein Abschneiden
 
    Stil wie audit.js: eine Chromium-Seite, deutsche Ausgabe, Exit 1 bei Fehlern.
+   Uhrzeit UND Datum sind über page.clock.setFixedTime() auf Mittwoch, 10 Uhr
+   genagelt (wie in schleife.js/aufgabenverteiler.js) — sonst hängt Falz-Befund
+   a) davon ab, wann jemand das Skript zufällig startet, statt an einer echten
+   Vertragslücke; Abschnitt h) unten prüft den Abend absichtlich mit einer
+   zweiten, eigenen festen Uhr (23 Uhr) statt die Falz für alle Zeiten wegzudefinieren.
 
    Anmerkung zu (a): der Auftrag nennt als untere Grenze ".dayswitch". Das
    Element steht laut Markup (~1243) zwar VOR ".main", sitzt seit Stufe 8
@@ -36,12 +41,14 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  // Mittwoch, 10 Uhr — s. Kopfkommentar.
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
   await p.goto(F); await p.waitForTimeout(500);
 
   // Erststart-Assistent wegklicken (wie audit.js)
@@ -63,10 +70,11 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   await p.waitForTimeout(150);
 
   /* ---- Szenario 1: realistische Agenda (a, b, c, g) -------------------
-     Tagfenster testweise auf 0–24 Uhr geweitet, damit das Szenario
-     unabhängig von der echten Uhrzeit beim Skriptlauf funktioniert — der
-     laufende Eintrag muss die tatsächliche "jetzt"-Zeit im Browser
-     einklammern, die sich nicht fälschen lässt, ohne Date() zu mocken. */
+     Tagfenster weiterhin auf 0–24 Uhr geweitet: ursprünglich, damit das
+     Szenario unabhängig von der echten Uhrzeit beim Skriptlauf funktioniert.
+     Seit die Uhr über page.clock fest auf 10 Uhr steht (s. Kopfkommentar) ist
+     "jetzt" deterministisch — die Weitung bleibt trotzdem unschädlich stehen,
+     statt die Fensterränder für alle drei Testblöcke neu durchzurechnen. */
   const sc1 = await p.evaluate(() => {
     const cap = m => Math.max(0, Math.min(1439, m));
     state.settings.dayStart = 0; state.settings.dayEnd = 24;
@@ -240,6 +248,88 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   ok(!!maskCheck && maskCheck.text === boese, 'Titel erscheint unverändert als Text');
   ok(!!maskCheck && maskCheck.kinder === 0, 'kein <b>-Kindelement im DOM entstanden');
   ok(!!maskCheck && !/<b>/.test(maskCheck.html), 'kein rohes <b>-Tag im innerHTML');
+
+  /* ---- h) Abend (23 Uhr) mit Tagesabschluss: gestaffelter Vertrag ------
+     Eigener Kontext mit eigener festen Uhr statt eines Zeitsprungs auf der
+     laufenden Seite, damit Tagesabschluss an frischen Testblöcken hängt statt
+     an Nebenwirkungen der Szenarien oben. Prüft den Befund zu Stufe 13: die
+     ANTWORT (Heute zählt, laufender Eintrag, erste Danach-Zeile) bleibt ohne
+     Scrollen sichtbar, der Tagesabschluss steht sichtbar DARUNTER statt sie
+     zu verdrängen. Die volle Falz aus a) wird hier NICHT verlangt — laut
+     Befund verlängert Tagesabschluss die Karte legitim, das scrollbare
+     .panel fängt das ab (kein Produktfehler) — aber "irgendwo unsichtbar
+     unten" bliebe trotzdem eine echte Regression, deshalb bleibt das geprüft. */
+  console.log('\n## h) Abend (23 Uhr) mit Tagesabschluss: Antwort sichtbar, Tagesabschluss darunter');
+  const ctx2 = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
+  const p2 = await ctx2.newPage();
+  const konsolenfehler2 = [];
+  p2.on('pageerror', e => konsolenfehler2.push('PAGEERROR: ' + e.message));
+  p2.on('console', m => { if (m.type() === 'error') konsolenfehler2.push('CONSOLE: ' + m.text()); });
+
+  await p2.clock.setFixedTime(new Date('2026-08-05T23:00:00'));
+  await p2.goto(F); await p2.waitForTimeout(500);
+  for (let i = 0; i < 3; i++) { await p2.click('.sheet__foot .btn--primary'); await p2.waitForTimeout(280); }
+  await p2.click('.sheet__foot .btn--primary'); await p2.waitForTimeout(900);
+  await p2.evaluate(() => setView('heute'));
+  await p2.waitForTimeout(200);
+
+  const sc3 = await p2.evaluate(() => {
+    const dayKey = iso(addDays(mondayOf(anchor), selectedDayIdx));
+    // 22:40–23:35 läuft (klammert 23 Uhr ein), 23:50–23:59 danach — beide
+    // bewusst nicht erledigt, damit offenHeute sicher nicht leer ist und
+    // Tagesabschluss greift (state.settings.dayEnd bleibt Vorgabe 22 Uhr).
+    state.blocks = [
+      { id: uid(), title: 'Vorlesung Statistik II', areaId: 'a2',
+        day: selectedDayIdx, date: dayKey, repeat: 'none',
+        start: 22 * 60 + 40, end: 23 * 60 + 35, frog: false, grob: false },
+      { id: uid(), title: 'Notizen nachtragen', areaId: 'a2',
+        day: selectedDayIdx, date: dayKey, repeat: 'none',
+        start: 23 * 60 + 50, end: 23 * 60 + 59, frog: false, grob: false }
+    ];
+    state.tasks = [{ id: uid(), title: 'Hausarbeit Statistik fertig schreiben', areaId: 'a2', done: false, frog: true }];
+    save(); renderAll();
+    return { dayKey };
+  });
+  console.log('   ' + JSON.stringify(sc3));
+  await p2.waitForTimeout(200);
+
+  const abend = await p2.evaluate(() => {
+    const R = el => el ? el.getBoundingClientRect() : null;
+    const sichtbar = el => {
+      const r = R(el);
+      return !!r && r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight;
+    };
+    const panel = document.querySelector('.panel');
+    const label = document.querySelector('#agenda .agenda__label'); // "Heute zählt"
+    const heroTitle = document.querySelector('#agenda .agenda__hero-title');
+    const ersteDanachZeile = document.querySelector('#agenda .agenda__list .agenda__row');
+    const abschlussLabel = [...document.querySelectorAll('#agenda .agenda__label')]
+      .find(e => e.textContent === 'Tagesabschluss');
+    return {
+      heuteZaehltSichtbar: sichtbar(label),
+      laufenderEintragSichtbar: sichtbar(heroTitle),
+      laufenderEintragTitel: heroTitle ? heroTitle.textContent.trim() : null,
+      ersteDanachZeileSichtbar: sichtbar(ersteDanachZeile),
+      tagesabschlussVorhanden: !!abschlussLabel,
+      tagesabschlussTop: abschlussLabel ? R(abschlussLabel).top : null,
+      danachZeileBottom: ersteDanachZeile ? R(ersteDanachZeile).bottom : null,
+      panelOverflowY: panel ? getComputedStyle(panel).overflowY : null,
+      windowH: window.innerHeight
+    };
+  });
+  console.log('   ' + JSON.stringify(abend));
+  ok(abend.heuteZaehltSichtbar, '"Heute zählt" ohne Scrollen sichtbar (23 Uhr, mit Tagesabschluss)');
+  ok(abend.laufenderEintragSichtbar, 'laufender Eintrag ohne Scrollen sichtbar (' + abend.laufenderEintragTitel + ')');
+  ok(abend.ersteDanachZeileSichtbar, 'erste Danach-Zeile ohne Scrollen sichtbar');
+  ok(abend.tagesabschlussVorhanden, 'Tagesabschluss ist überhaupt entstanden (Testdaten prüfen, falls nicht)');
+  ok(!!abend.tagesabschlussTop && !!abend.danachZeileBottom && abend.tagesabschlussTop >= abend.danachZeileBottom,
+    'Tagesabschluss steht sichtbar unter der Danach-Zeile, nicht davor (' + abend.tagesabschlussTop + ' >= ' + abend.danachZeileBottom + ')');
+  ok(abend.panelOverflowY === 'auto' || abend.panelOverflowY === 'scroll',
+    '.panel ist scrollbar (overflow-y: ' + abend.panelOverflowY + ') — Tagesabschluss bleibt erreichbar, auch wenn er unten abgeschnitten wird');
+
+  console.log('\n=== Konsolenfehler (Abend-Kontext):', konsolenfehler2.length ? konsolenfehler2 : 'keine');
+  if (konsolenfehler2.length) fehler.push('Konsolenfehler aufgetreten (Abend-Kontext)');
+  await ctx2.close();
 
   console.log('\n=== Konsolenfehler:', konsolenfehler.length ? konsolenfehler : 'keine');
   if (konsolenfehler.length) fehler.push('Konsolenfehler aufgetreten');

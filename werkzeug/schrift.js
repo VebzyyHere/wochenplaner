@@ -29,6 +29,10 @@
 
    Stil wie agenda.js/haken.js: eine Chromium-Seite, deutsche Ausgabe,
    Exit 1 bei Fehlern, gemessene Werte werden ausgegeben.
+   Uhrzeit UND Datum sind über page.clock.setFixedTime() auf Mittwoch, 10 Uhr
+   genagelt (wie in agenda.js) — sonst hängt der Vergleichswert weiter unten
+   ("bei normaler Schrift passt die Agenda über die Tabbar") davon ab, wann
+   jemand das Skript zufällig startet, statt an einer echten Vertragslücke.
 
    Warum der Falz-Vertrag hier gestaffelt ist: die volle Falz aus Stufe 4
    (ganze Agenda ohne Scrollen über der Tabbar) galt immer implizit für die
@@ -75,12 +79,14 @@ const messen = () => {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  // Mittwoch, 10 Uhr — s. Kopfkommentar.
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
   await p.goto(F); await p.waitForTimeout(500);
 
   // Erststart-Assistent wegklicken (wie agenda.js/audit.js) — noch bei
