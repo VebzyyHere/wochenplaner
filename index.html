@@ -1265,6 +1265,23 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     border-width: 0; border-radius: 0; background: transparent;
     padding: 0 0 var(--s-4);
   }
+  /* Die Vorschlagsleiste ist fixed und schwebt frei ueber dem Fussbereich —
+     anders als die Tabbar, ein echtes Flex-Geschwister, bekommt sie von
+     Flexbox keinen eigenen Platz zugewiesen. FAB und Toasts rechnen sie
+     deshalb schon laengst ueber --fuss-oben ein (~1214/~1326); der Karte in
+     "Heute" und dem Raster in "Plan" fehlte das Gegenstueck (belegt durch
+     leiste.js). Bodenabstand ist die Differenz aus --fuss-oben und
+     --fussleiste — exakt die Leistenhoehe, aber aus der Variable abgeleitet
+     statt als dritte Kopie der 61px (die stehen schon an zwei Stellen, s.
+     Kommentare dort). .planwrap statt .gridwrap/.loose einzeln, weil beide
+     Flex-Kinder von .planwrap sind — ein Polster am Container verkuerzt die
+     verfuegbare Flaeche fuer beide gemeinsam. */
+  body[data-sugbar="1"] .panel > .card {
+    padding-bottom: calc(var(--fuss-oben) - var(--fussleiste) + var(--s-4));
+  }
+  body[data-sugbar="1"] .planwrap {
+    padding-bottom: calc(var(--fuss-oben) - var(--fussleiste));
+  }
   .card__head { margin-bottom: var(--s-3); }
 
   /* Die Aufgabenliste darf den Platz nutzen, damit das Eingabefeld oben
