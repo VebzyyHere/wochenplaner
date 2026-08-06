@@ -4117,15 +4117,22 @@ function goalsSheet() {
       const orteW = row.querySelector(".gOrte");
       const regeln = regelnEditor(row.querySelector(".gRegeln"), a, a.id);
 
+      // Stufe 3: Art, Grob und Ort waren die einzigen Felder, die sofort auf
+      // p schrieben, statt wie der Rest erst in row._commit() — dadurch hat
+      // "Abbrechen" sie nicht zurückgesetzt. Jetzt eigener Entwurf je Zeile,
+      // Chips schreiben nur hier hinein; row._commit() übernimmt ihn beim
+      // Speichern (bzw. beim Zuklappen, wie die übrigen Draft-Felder auch).
+      let art = p.art, grob = !!p.grob, ortId = p.ortId;
+
       const tags = row.querySelector(".goalrow__tags");
       const paintTags = () => {
         const f = a.regeln && a.regeln.fenster && a.regeln.fenster[0];
         const an = a.regeln && a.regeln.anker;
         tags.innerHTML =
-          (p.grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
+          (grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
           (p.keinVorschlag ? "<span class='tag tag--soft'>keine Vorschläge</span>" : "") +
-          (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "") +
+          (ortId ? "<span class='tag'>" + escapeHtml(ortName(ortId)) + "</span>" : "") +
           (f ? "<span class='tag'>" + escapeHtml(fmtTageListe(f.tage) + " " +
                 fmtTime(f.von) + "–" + fmtTime(f.bis) + " Uhr") + "</span>" : "") +
           (an ? "<span class='tag'>" + (an.ref
@@ -4140,30 +4147,31 @@ function goalsSheet() {
         ART_REIHE.forEach(k => {
           const c = document.createElement("button");
           c.type = "button"; c.className = "chip";
-          c.setAttribute("aria-pressed", String(p.art === k));
+          c.setAttribute("aria-pressed", String(art === k));
           c.textContent = ARTEN[k].label;
-          c.onclick = () => { p.art = k; paintArt(); };
+          c.onclick = () => { art = k; paintArt(); };
           artW.appendChild(c);
         });
-        const A = ARTEN[p.art] || ARTEN.orga;
+        const A = ARTEN[art] || ARTEN.orga;
         artHint.textContent = A.hint + " · Blöcke " + A.min + "–" + A.max +
           " min, danach " + A.pause + " min Pause.";
       };
       paintArt();
 
-      // Grob (Stufe 13 Teil F) — wie die Art sofort wirksam, nicht erst
-      // beim Zuklappen/Speichern (row._commit) wie die übrigen Felder unten.
+      // Grob (Stufe 13 Teil F) — die Oberfläche reagiert weiterhin sofort
+      // (paintGrob/paintTags), aber seit Stufe 3 landet die Wahl erst im
+      // Entwurf (grob) und geht mit den übrigen Feldern durch row._commit().
       const paintGrob = () => {
         grobW.innerHTML = "";
         [[false, "Feste Uhrzeit"], [true, "Nur Tageszeit"]].forEach(([val, label]) => {
           const c = document.createElement("button");
           c.type = "button"; c.className = "chip";
-          c.setAttribute("aria-pressed", String(!!p.grob === val));
+          c.setAttribute("aria-pressed", String(grob === val));
           c.textContent = label;
-          c.onclick = () => { p.grob = val; paintGrob(); paintTags(); };
+          c.onclick = () => { grob = val; paintGrob(); paintTags(); };
           grobW.appendChild(c);
         });
-        grobHint.textContent = p.grob
+        grobHint.textContent = grob
           ? "Der Vorschlag legt nur einen Tagesabschnitt fest — „Samstagabend, etwa zwei " +
             "Stunden“ statt 14:00–16:30. Für Freizeit und Zeit mit Menschen oft ehrlicher."
           : "Der Vorschlag setzt eine feste Uhrzeit, wie ein normaler Termin.";
@@ -4171,7 +4179,7 @@ function goalsSheet() {
       paintGrob();
 
       // Ort
-      ortChips(orteW, () => p.ortId, id => { p.ortId = id; paintTags(); });
+      ortChips(orteW, () => ortId, id => { ortId = id; paintTags(); });
 
       mustIn.checked = p.must;
       hIn.value = p.goal || 0;
@@ -4207,7 +4215,10 @@ function goalsSheet() {
       row._commit = () => {
         p.must = mustIn.checked;
         p.keinVorschlag = kvIn.checked;
-        // p.grob: siehe paintGrob() oben — sofort gesetzt, kein Feld hier mehr.
+        // Art, Grob und Ort kommen erst hier auf p — siehe Entwurf oben.
+        p.art = art;
+        p.grob = grob;
+        p.ortId = ortId;
         p.goal = clamp(parseFloat(String(hIn.value).replace(",", ".")) || 0, 0, 80);
         p.days = [...days].sort((x, y) => x - y);
         const f = parseTime(from.value), t = parseTime(to.value);
