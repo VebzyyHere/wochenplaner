@@ -19,11 +19,27 @@
         und kein Element darin trägt die berechnete --danger-Farbe (über
         getComputedStyle geprüft, nicht über den Quelltext).
      f) "Später" in Schritt 1 schließt das Blatt, ohne den Wochenstart als
-        erledigt zu markieren.
+        erledigt zu markieren — UND ritualFaellig() bleibt danach wahr, wenn
+        der Zeitpunkt selbst dafür spricht. Deshalb prüft f) nicht nur den
+        Klick, sondern die Zeitregel aus ritualFaellig() an vier Zeitpunkten
+        einer Woche (eigene Kontexte mit eigener fester Uhr, wie schon
+        agenda.js es für seinen Abend-Abschnitt vormacht): Sonntag 15 Uhr
+        (noch nicht fällig), Sonntag 17 Uhr (ab 16 Uhr zählt zur neuen
+        Woche), Montag 10 Uhr (fällig) und Mittwoch 10 Uhr (die Karte
+        schweigt bewusst, s. Kommentar vor ritualFaellig() in index.html).
 
    Stil wie haken.js/tk.js: eine Chromium-Seite, deutsche Ausgabe, Exit 1
    bei Fehlern. Nimmt nebenbei zwei Bilder auf (hell/dunkel) für die
    Ton-Prüfung von Auge.
+
+   Uhrzeit UND Datum sind über page.clock.setFixedTime() auf Montag,
+   2026-08-03, 10 Uhr genagelt (Europe/Berlin, wie in agenda.js/scroll.js/
+   stufe5.js) — das Skript lief zuvor mit der jeweils echten Systemzeit,
+   und ritualFaellig() ist Mi-Sa wahrheitsgemäß falsch (s. Kommentar vor
+   der Funktion in index.html), wodurch die Zusicherung in f) an genau
+   diesen Tagen zwangsläufig scheiterte. Montag 10 Uhr passt auch zu den
+   übrigen Zusicherungen: a)-e) bauen ihren Zustand relativ zu `anchor`
+   (= Ladezeitpunkt) selbst auf und sind vom Wochentag unabhängig.
    ============================================================ */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -42,11 +58,14 @@ function fmtDurJS(min) {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const p = await br.newPage({ viewport: { width: 1400, height: 950 } });
+  const ctx = await br.newContext({ viewport: { width: 1400, height: 950 }, timezoneId: 'Europe/Berlin' });
+  const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
 
+  // Montag, 10 Uhr — s. Kopfkommentar.
+  await p.clock.setFixedTime(new Date('2026-08-03T10:00:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
@@ -233,6 +252,33 @@ function fmtDurJS(min) {
   ok(nachSpaeter.blattWeg, 'das Blatt schließt sich über "Später"');
   ok(!vorSpaeter.gesetzt && !nachSpaeter.gesetzt, 'state.rituale bleibt für diese Woche ungesetzt');
   ok(nachSpaeter.faellig, 'ritualFaellig() bleibt wahr — die Ritual-Karte bietet den Start beim nächsten Mal wieder an');
+
+  /* ---- f, Fortsetzung: die Zeitregel selbst, an vier Zeitpunkten --------
+     Eigene Kontexte mit eigener fester Uhr statt eines Zeitsprungs auf der
+     laufenden Seite (wie agenda.js es für seinen Abend-Abschnitt macht),
+     damit jeder Zeitpunkt an einem frischen Zustand hängt statt an
+     Nebenwirkungen der Szenarien oben. */
+  console.log('\n7) Zeitregel ritualFaellig() an vier Zeitpunkten:');
+  async function faelligUm(iso) {
+    const ctxZ = await br.newContext({ timezoneId: 'Europe/Berlin' });
+    const pZ = await ctxZ.newPage();
+    await pZ.clock.setFixedTime(new Date(iso));
+    await pZ.goto(F);
+    await pZ.waitForTimeout(300);
+    const f = await pZ.evaluate(() => ritualFaellig());
+    await ctxZ.close();
+    return f;
+  }
+  const zeitpunkte = [
+    { zeit: '2026-08-02T15:00:00', erwartet: false, label: 'Sonntag 15 Uhr — noch nicht fällig' },
+    { zeit: '2026-08-02T17:00:00', erwartet: true, label: 'Sonntag 17 Uhr — zählt schon zur neuen Woche' },
+    { zeit: '2026-08-03T10:00:00', erwartet: true, label: 'Montag 10 Uhr — fällig' },
+    { zeit: '2026-08-05T10:00:00', erwartet: false, label: 'Mittwoch 10 Uhr — Karte schweigt bewusst' }
+  ];
+  for (const z of zeitpunkte) {
+    const f = await faelligUm(z.zeit);
+    ok(f === z.erwartet, 'ritualFaellig() ' + z.label + ' (' + f + ')');
+  }
 
   console.log('\n=== Konsolenfehler: ' + (errs.length ? errs.join(' | ') : 'keine'));
   if (errs.length) fehler.push('Konsolenfehler aufgetreten');
