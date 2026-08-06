@@ -33,10 +33,16 @@ Ohne die Variable nimmt Playwright seinen eigenen.
 | `node check.js` | JavaScript-Syntax beider Script-Blöcke. Zwei Sekunden, fängt Tippfehler ab, bevor der Browser startet |
 | `node audit.js` | **Der wichtigste.** Geht auf einem iPhone SE (320 × 568) durch alle vier Ansichten und siebzehn Dialoge. Meldet: Trefferflächen unter 44 px, waagerechtes Scrollen, abgeschnittenen Text, Dialogfüße außerhalb des Bildes. Legt zu jedem Schritt ein Bild `au-*.png` ab |
 | `node dev.js` | Gerätematrix (iPhone SE/13/14 Pro Max, iPad, iPad Pro): zu kleine Ziele, Rasterhöhe |
+| `node kontrast.js` | Design-Tokens im `<style>`-Block: fehlende Fallbacks (`var(--x, ...)`), Hex-Werte außerhalb `:root`, WCAG-Kontrast der Text-auf-Hintergrund-Paare in Hell und Dunkel. Exit-Code 1 bei Fehlern |
 
 Falsch-positive Meldungen in `audit.js`: Häkchen und Farbfelder sind bewusst
 klein und haben ihre Trefferfläche über ein unsichtbares `::before`. Das Skript
 sieht Pseudo-Elemente nicht. Alles andere ist echt.
+
+Vor jedem Commit läuft `node vorcommit.js`: führt `check.js` und `kontrast.js`
+aus, bricht bei Rot ab — bewusst nur diese zwei, die Playwright-Skripte
+brauchen einen Browser und sind für einen Hook zu langsam. Einrichtung als
+Git-Hook: `hook-einrichten.md`.
 
 ## Alles auf einmal
 
@@ -69,6 +75,13 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node drag.js` | Aufgabe ins Raster ziehen (Rechner) und dass ein Klick stattdessen das Aufgabenblatt öffnet |
 | `node grob3.js` | Das Band für Einträge ohne feste Uhrzeit am Telefon |
 | `node funktion.js` | Einstellungen mit Unterseiten: speichern, Dunkelmodus, Bereich anlegen |
+| `node agenda.js` | iPhone SE, gestaffelter Falz-Vertrag bei Standardschrift (Agenda passt ohne Scrollen über die Tabbar), 44px-Trefferflächen, grobe Einträge, Maskierung über `escapeHtml()`; eigener Abschnitt h) für den Abend mit Tagesabschluss, eigene 23-Uhr-Uhr |
+| `node schrift.js` | Derselbe Falz-Vertrag bei zwei Stufen größerer Systemschrift: kein waagerechtes Scrollen, kein abgeschnittener Text, nur noch die Antwort muss ohne Scrollen sichtbar bleiben |
+| `node fuss.js` | Stapelung von Tabbar, Tagesstreifen, Vorschlagsleiste, FAB und Toast im Fußbereich, Hoch- und Querformat |
+| `node leiste.js` | Die Vorschlagsleiste schwebt in „Heute" und „Plan" nicht mehr über Karten- bzw. Rasterinhalt, iPhone SE und iPhone 13 |
+| `node dialog.js` | Barrierefreiheit der Dialoge: Tab bleibt im offenen Blatt, Fokus kehrt beim Schließen zurück, `aria-labelledby`, `.app[inert]` |
+| `node haken.js` | Abhaken hängt am Paar Eintrag+Datum (`hakenKey`), nicht am Weg über den abgehakt wurde und nicht an der Serie; 44×44-Trefferfläche des Häkchens |
+| `node abbrechen.js` | Art-/Grob-/Ort-Chips im Ziele-Editor übernehmen erst bei „Speichern" — Abbrechen, Escape oder Klick auf den Hintergrund lassen sie unverändert |
 
 ## Inhalt und Logik
 
@@ -80,6 +93,17 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node frei.js` | Freigehaltene Tage: Vorschläge werden zurückgenommen, Neuverteilung lässt den Tag aus, von Hand eintragen bleibt erlaubt |
 | `node ob.js` | Erststart-Assistent auf Rechner und iPhone SE bis zum fertigen Plan |
 | `node tk.js` | Aufgabenblatt: Titel, Bereich, Dauer, Stern, in den Plan legen, löschen |
+| `node regeln.js` | Der kontextbewusste Verteiler: Fenster (erlaubte Wochentage/Uhrzeit) und Anker (Mindestabstand zu einem anderen Bereich) in `area.regeln`, most-constrained-first |
+| `node erklaer.js` | Die Begründungszeile jedes Vorschlags: nicht-leer, lesbarer deutscher Satz, Handlungsanweisung bei unlösbaren Fällen, Alternativen samt Abzugsgrund |
+| `node stabil.js` | Der Verteiler bleibt ruhig: zweimal verteilen ohne Änderung bewegt nichts, ein neuer Termin ändert nur seinen Tag, heute und von Hand gezogene Blöcke bleiben unberührt |
+| `node wunsch.js` | Median der Vorschlag-Startzeiten je Art gegen den bevorzugten „Wunschpunkt" der Art, verglichen vorher/nachher aus echten Kopien von `index.html` |
+| `node serie.js` | Zweiwöchentliche Termine: Parität zur `since`-Woche über die Sommerzeitumstellung hinweg, eigener Haken-Schlüssel je Woche, Serien-Rückfrage bei Löschen/Verschieben |
+| `node aufgabenverteiler.js` | Aufgaben werden über `buildSuggestions()` verplant: echte `areaId` statt erfundener „task:..."-ID, `naechsteStelle()` findet die nächste freie Lücke |
+| `node aufgaben.js` | Ergänzt `aufgabenverteiler.js` um Datenkorruption beim Verplanen: keine Duplikate beim Abhaken, kein verwaister Block nach dem Löschen einer Aufgabe |
+| `node netz.js` | Das Sicherheitsnetz vor der v9-Migration: `Store.backupVorV9()`/`hasVorV9()`/`loadVorV9()` sichern den unveränderten v8-Stand genau einmal und lassen ihn sich wiederherstellen |
+| `node rueckblick.js` | Wochenrückblick: geplant gegen tatsächlich je Bereich mit Wochenziel, Mehrwochen-Angebot zur Zielanpassung ab drei von vier Wochen unter der Marke |
+| `node schleife.js` | „Die Schleife schließt sich": Grund/Ort in der Agenda, Anker-Chips im Wochenstart, Tagesabschluss ab Feierabend, abgeschaltete Vorschlagstypen überleben `migrate()` |
+| `node stufe5.js` | Einwegskript zur Verifikation von Abhaken & Verschieben ohne Umweg, nicht Teil der Standardsuite |
 
 Wichtig bei `realtest.js`: **grobe Blöcke dürfen in den Kennzahlen nicht
 mitzählen.** Sie haben keine echte Uhrzeit und liegen im Band unter dem Raster —
