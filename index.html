@@ -1273,14 +1273,21 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      leiste.js). Bodenabstand ist die Differenz aus --fuss-oben und
      --fussleiste — exakt die Leistenhoehe, aber aus der Variable abgeleitet
      statt als dritte Kopie der 61px (die stehen schon an zwei Stellen, s.
-     Kommentare dort). .planwrap statt .gridwrap/.loose einzeln, weil beide
-     Flex-Kinder von .planwrap sind — ein Polster am Container verkuerzt die
-     verfuegbare Flaeche fuer beide gemeinsam. */
+     Kommentare dort). Das Polster gehoert auf den gescrollten INHALT, nicht
+     auf .planwrap — das ist nur der Flex-Container und traegt selbst kein
+     overflow; ein Polster dort verkuerzt die verfuegbare Flaeche fuer
+     .gridwrap statt den Scrollweg zu verlaengern (kostete eine Stunde
+     Rasterhoehe, s. diag7.js/leiste.js). Darum getrennt: .grid ist der
+     Inhalt von .gridwrap (das Aequivalent zu .card oben), .loose scrollt
+     sich dagegen selbst wie .tasks (~1294) und bekommt das Polster direkt. */
   body[data-sugbar="1"] .panel > .card {
     padding-bottom: calc(var(--fuss-oben) - var(--fussleiste) + var(--s-4));
   }
-  body[data-sugbar="1"] .planwrap {
+  body[data-sugbar="1"] .gridwrap > .grid {
     padding-bottom: calc(var(--fuss-oben) - var(--fussleiste));
+  }
+  body[data-sugbar="1"] .loose {
+    padding-bottom: calc(var(--fuss-oben) - var(--fussleiste) + var(--s-2));
   }
   .card__head { margin-bottom: var(--s-3); }
 

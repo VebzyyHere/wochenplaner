@@ -11,6 +11,16 @@
    gescrollt bleibt ein Streifen Inhalt dauerhaft hinter der Leiste,
    kein Scrollen holt ihn hervor.
 
+   Ergaenzt um die Gegenrichtung (s. gridwrapHoeheOhneBand): das Polster
+   fuer die Leiste darf die sichtbare Hoehe des Rasters (.gridwrap) nicht
+   schrumpfen lassen. Ein erster Anlauf hatte das Polster auf .planwrap
+   gesetzt (Flex-Container von .gridwrap und .loose) statt auf den
+   gescrollten Inhalt — das loeste "verdeckter Inhalt", kostete aber eine
+   Stunde sichtbare Rasterhoehe, weil ein Polster am Container die
+   verfuegbare Flaeche fuer .gridwrap verkuerzt statt nur dessen Scrollweg
+   zu verlaengern. Beide Richtungen stehen jetzt in einem Skript, damit
+   sie sich nicht mehr gegenseitig aushebeln koennen.
+
    Stil wie fuss.js/agenda.js: eine Chromium-Seite je Geraet, deutsche
    Ausgabe, Exit 1 bei Fehlern. Uhrzeit UND Datum sind ueber
    page.clock.setFixedTime() auf Mittwoch, 2026-08-05, 10 Uhr,
@@ -125,10 +135,38 @@ async function abendGrobSicherstellen(p) {
   await p.waitForTimeout(150);
 }
 
+// Sichtbare Hoehe von .gridwrap in der Ansicht "Plan" — bewusst mit
+// leerem Grobband (.loose), sonst wuerde dessen eigener Platzbedarf die
+// Zahl verfaelschen statt allein den Effekt der Leiste zu zeigen. Entfernt
+// dafuer jeden .grob-Block der laufenden Woche, genau wie clearSuggestions
+// die Vorschlaege entfernt (~3605), nur eben unabhaengig vom sug-Flag.
+async function gridwrapHoeheOhneBand(p) {
+  await p.evaluate(() => {
+    const wochenKeys = new Set(weekDays().map(d => d.key));
+    const vorher = state.blocks.length;
+    state.blocks = state.blocks.filter(b => !(b.grob && wochenKeys.has(b.date)));
+    if (state.blocks.length !== vorher) { save(); renderAll(); }
+  });
+  await p.evaluate(() => setView('plan'));
+  await p.waitForTimeout(200);
+  return p.evaluate(() => {
+    const gw = document.querySelector('.gridwrap');
+    if (!gw) return null;
+    const cs = getComputedStyle(gw);
+    if (cs.display === 'none') return null;
+    return Math.round(gw.getBoundingClientRect().height * 10) / 10;
+  });
+}
+
 async function pruefeGeraet(p, tag) {
   await onboardingWeg(p);
   const sugOk = await sugbarSicherstellen(p);
   ok(sugOk, tag + ': Vorschlagsleiste steht (body[data-sugbar="1"]) vor der eigentlichen Pruefung');
+
+  // Gegenrichtung, Teil 1: Rasterhoehe MIT Leiste, noch vor dem gleich
+  // folgenden Abendtermin (der fuellt nur .loose, s.u.).
+  const rasterMit = sugOk ? await gridwrapHoeheOhneBand(p) : null;
+
   await abendGrobSicherstellen(p);
 
   /* ---- Fall 1: mit offener Vorschlagsleiste ---------------------------- */
@@ -154,6 +192,16 @@ async function pruefeGeraet(p, tag) {
   await p.waitForTimeout(200);
   const sugAusOk = await p.evaluate(() => document.body.dataset.sugbar === '0');
   ok(sugAusOk, tag + ': Vorschlagsleiste ist weg (data-sugbar=0) fuer den Gegenfall');
+
+  // Gegenrichtung, Teil 2: dieselbe Messung ohne Leiste, dann Vergleich.
+  // Toleranz 0.5px wie beim Bottom-Vergleich oben — dieselbe Sub-Pixel-
+  // Rundung, kein grosszuegiger Spielraum fuer echtes Schrumpfen.
+  const rasterOhne = await gridwrapHoeheOhneBand(p);
+  if (rasterMit !== null && rasterOhne !== null) {
+    console.log(`\n## ${tag} — Rasterhoehe (.gridwrap, ohne Band): mit Leiste ${rasterMit}px, ohne Leiste ${rasterOhne}px`);
+    ok(rasterMit + 0.5 >= rasterOhne,
+      `sichtbare Rasterhoehe schrumpft nicht durch die Leiste (mit Leiste ${rasterMit}px, ohne Leiste ${rasterOhne}px)`);
+  }
 
   for (const view of ['heute', 'plan']) {
     console.log(`\n## ${tag} / ${view} — ohne Vorschlagsleiste`);
