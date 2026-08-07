@@ -23,7 +23,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
   // Mittwoch, 10 Uhr — s. Kopfkommentar.
-  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }
   await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(900);

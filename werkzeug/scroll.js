@@ -43,7 +43,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
 
   // Mittwoch, 10 Uhr — s. Kopfkommentar.
-  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });

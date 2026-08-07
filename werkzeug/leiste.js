@@ -227,7 +227,7 @@ async function pruefeGeraet(p, tag) {
     p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
     // Mittwoch, 2026-08-05, 10 Uhr — s. Kopfkommentar.
-    await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
+    await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
 
     console.log(`\n=== ${geraet} ===`);
     await pruefeGeraet(p, tag);

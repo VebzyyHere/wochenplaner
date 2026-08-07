@@ -48,7 +48,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
   // Mittwoch, 10 Uhr — s. Kopfkommentar.
-  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
 
   // Erststart-Assistent wegklicken (wie audit.js)
@@ -266,7 +266,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   p2.on('pageerror', e => konsolenfehler2.push('PAGEERROR: ' + e.message));
   p2.on('console', m => { if (m.type() === 'error') konsolenfehler2.push('CONSOLE: ' + m.text()); });
 
-  await p2.clock.setFixedTime(new Date('2026-08-05T23:00:00'));
+  await p2.clock.setFixedTime(new Date('2026-08-05T23:00:00+02:00'));
   await p2.goto(F); await p2.waitForTimeout(500);
   for (let i = 0; i < 3; i++) { await p2.click('.sheet__foot .btn--primary'); await p2.waitForTimeout(280); }
   await p2.click('.sheet__foot .btn--primary'); await p2.waitForTimeout(900);

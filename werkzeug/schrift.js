@@ -86,7 +86,7 @@ const messen = () => {
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
   // Mittwoch, 10 Uhr — s. Kopfkommentar.
-  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
 
   // Erststart-Assistent wegklicken (wie agenda.js/audit.js) — noch bei

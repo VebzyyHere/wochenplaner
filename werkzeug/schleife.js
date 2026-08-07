@@ -37,7 +37,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
   // Feste Uhrzeit: Mittwoch, 18:00 — ein normaler Werktag mit reichlich
   // Abstand zur Nachtruhe. Ab hier steht new Date() im Browser immer hier.
-  await p.clock.setFixedTime(new Date('2026-08-05T18:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-05T18:00:00+02:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });

@@ -65,7 +65,7 @@ function fmtDurJS(min) {
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
 
   // Montag, 10 Uhr — s. Kopfkommentar.
-  await p.clock.setFixedTime(new Date('2026-08-03T10:00:00'));
+  await p.clock.setFixedTime(new Date('2026-08-03T10:00:00+02:00'));
   await p.goto(F);
   await p.waitForTimeout(500);
   await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
@@ -270,10 +270,10 @@ function fmtDurJS(min) {
     return f;
   }
   const zeitpunkte = [
-    { zeit: '2026-08-02T15:00:00', erwartet: false, label: 'Sonntag 15 Uhr — noch nicht fällig' },
-    { zeit: '2026-08-02T17:00:00', erwartet: true, label: 'Sonntag 17 Uhr — zählt schon zur neuen Woche' },
-    { zeit: '2026-08-03T10:00:00', erwartet: true, label: 'Montag 10 Uhr — fällig' },
-    { zeit: '2026-08-05T10:00:00', erwartet: false, label: 'Mittwoch 10 Uhr — Karte schweigt bewusst' }
+    { zeit: '2026-08-02T15:00:00+02:00', erwartet: false, label: 'Sonntag 15 Uhr — noch nicht fällig' },
+    { zeit: '2026-08-02T17:00:00+02:00', erwartet: true, label: 'Sonntag 17 Uhr — zählt schon zur neuen Woche' },
+    { zeit: '2026-08-03T10:00:00+02:00', erwartet: true, label: 'Montag 10 Uhr — fällig' },
+    { zeit: '2026-08-05T10:00:00+02:00', erwartet: false, label: 'Mittwoch 10 Uhr — Karte schweigt bewusst' }
   ];
   for (const z of zeitpunkte) {
     const f = await faelligUm(z.zeit);
