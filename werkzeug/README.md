@@ -104,6 +104,9 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node rueckblick.js` | Wochenrückblick: geplant gegen tatsächlich je Bereich mit Wochenziel, Mehrwochen-Angebot zur Zielanpassung ab drei von vier Wochen unter der Marke |
 | `node schleife.js` | „Die Schleife schließt sich": Grund/Ort in der Agenda, Anker-Chips im Wochenstart, Tagesabschluss ab Feierabend, abgeschaltete Vorschlagstypen überleben `migrate()` |
 | `node stufe5.js` | Einwegskript zur Verifikation von Abhaken & Verschieben ohne Umweg, nicht Teil der Standardsuite |
+| `node restdestag.js` | Der Rest-des-Tages-Knopf in „Heute": Sichtbarkeit nur unter allen Bedingungen zugleich (heutiger Tag, schon Belegtes, offene Minuten, vor Feierabend, `istFrei()`), Vorschläge erst ab der festgenagelten Uhrzeit, feste Termine und Serien bleiben unverändert, ein bereits vergangener eigener Vorschlag von heute bleibt Feld für Feld unangetastet, ohne Antippen passiert nichts |
+| `node importfuzz.js` | Fuzzing des einzigen Wegs, auf dem fremde Daten in den Zustand kommen (`importData()`), über den echten Weg Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`: Oberfläche bleibt bedienbar, keine Konsolenfehler, bestehender Zustand bleibt byte-identisch außer bei ausdrücklichem „Ersetzen" |
+| `node zeitrand.js` | Die Zeitrechnung an ihren Rändern: Sommerzeitwechsel bleiben ein lückenloser Wochenanker (2026–2030), zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und echte 53-Wochen-Jahre, die beim Herbstwechsel doppelt vorkommende lokale Stunde verschiebt „Heute" nicht |
 
 Wichtig bei `realtest.js`: **grobe Blöcke dürfen in den Kennzahlen nicht
 mitzählen.** Sie haben keine echte Uhrzeit und liegen im Band unter dem Raster —

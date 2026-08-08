@@ -11,7 +11,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
-`index.html` **ist** das Produkt — 8359 Zeilen, ~389 KB, Vanilla JS, kein Build, kein npm,
+`index.html` **ist** das Produkt — 8484 Zeilen, ~396 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
 wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
@@ -22,7 +22,7 @@ das gibt die aktuelle Landkarte der Abschnittsbanner.
 | 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
 | 32–1473 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
 | 1475–1601 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1602–8356 | Hauptskript unter `"use strict"` |
+| 1602–8482 | Hauptskript unter `"use strict"` |
 
 `Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
 Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
@@ -73,7 +73,14 @@ bei erneutem Lauf ruhig), `wunsch.js` (Startzeiten je Art gegen ihren Wunschpunk
 (Aufgaben werden ohne Datenkorruption verplant), `netz.js` (Sicherheitsnetz vor der
 v9-Migration, `Store.backupVorV9()`), `rueckblick.js` (Wochenrückblick: geplant gegen
 tatsächlich), `schleife.js` ("die Schleife schließt sich": Grund/Ort in der Agenda, Anker-Chips,
-Tagesabschluss), `stufe5.js` (Einwegskript, nicht Teil der Standardsuite).
+Tagesabschluss), `stufe5.js` (Einwegskript, nicht Teil der Standardsuite), `restdestag.js`
+(Rest-des-Tages-Knopf in „Heute": Sichtbarkeit nur unter allen Bedingungen zugleich, Vorschläge
+erst ab fester Uhrzeit, ein bereits vergangener eigener Vorschlag von heute bleibt unangetastet,
+ohne Antippen passiert nichts), `importfuzz.js` (Fuzzing des einzigen Imports über den echten Weg
+Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`: Bedienbarkeit, Konsolenfehler,
+unveränderter Bestand außer bei „Ersetzen"), `zeitrand.js` (die Zeitrechnung an ihren Rändern:
+Sommerzeitwechsel, zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und
+53-Wochen-Jahre, die doppelt vorkommende Stunde beim Herbstwechsel).
 
 Bedienung: `sicht.js`, `diag7.js`, `woche.js`, `tap2.js`, `wisch.js`, `drag.js`, `grob3.js`,
 `funktion.js`, `scroll.js` (Rasterposition je Tag), `agenda.js` (gestaffelter Falz-Vertrag,
@@ -135,10 +142,10 @@ zum ersten Mal auf `version: 9` zieht — eigener Schlüssel neben dem Zustand, 
 hat, bekommt `at`, was verschwunden ist, landet als Grabstein in `state.tombs`. Deshalb wird
 nirgends von Hand gestempelt. `undoLast()` hält den Stand vor der letzten Änderung.
 
-**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8214) ruft zehn
-`render*`-Funktionen, darunter `renderAgenda()` (5810, trägt seit Stufe 13 auch den
-Tagesabschluss ab Feierabend) und `renderRitual()` (6310, Zugang zum Wochenritual). `setView()`
-(7902) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
+**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8339) ruft zehn
+`render*`-Funktionen, darunter `renderAgenda()` (5900, trägt seit Stufe 13 auch den
+Tagesabschluss ab Feierabend) und `renderRitual()` (6426, Zugang zum Wochenritual). `setView()`
+(8027) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
 (Tabbar, Markup 1575) — am Desktop stehen sie nebeneinander.
 
 **Verteiler.** `buildSuggestions()` (3547) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
@@ -151,17 +158,26 @@ grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 2913). `istSerie()` 
 "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine für Anzeige und
 Abhaken.
 
-**Wochenritual.** `ritualSheet()` (6337) führt am Montag durch drei Schritte —
-`schrittRueckblick()` (6363, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
-Zielanpassung über `rueckblickMuster()` 6704), Ziele, Verteilen. `renderRitual()` (6310) zeigt die
+**Rest des Tages.** `restDesTagesBauen()` (3709), aufrufbar über den Knopf in „Heute"
+(Sichtbarkeit über `restDesTagesMoeglich()` 3771), wendet denselben Verteiler wie das
+Wochenziel-Verteilen an, nur auf den laufenden Tag beschränkt. Zwei rote Linien, teuer erarbeitet,
+nicht versehentlich wieder aufweichen: auf einem freigehaltenen Tag schlägt auch dieser Weg nichts
+vor (`istFrei()`); und ein bereits vergangener eigener Vorschlag von heute wird nicht mehr
+angefasst — `growSuggestions()` kennt kein „jetzt" und würde ihn beim Auffüllen des
+Feierabend-Rests sonst verlängern, darum sichert der Weg die vergangenen Blöcke vorher lokal
+(`vergangeneSnapshot`) und schreibt sie danach Feld für Feld zurück.
+
+**Wochenritual.** `ritualSheet()` (6453) führt am Montag durch drei Schritte —
+`schrittRueckblick()` (6479, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
+Zielanpassung über `rueckblickMuster()` 6820), Ziele, Verteilen. `renderRitual()` (6426) zeigt die
 Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
 
-**Abgleich.** `Sync` (7516) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
+**Abgleich.** `Sync` (7641) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
 bewusst im Klartext in `SUPABASE` (1620) — der anon key darf öffentlich sein, geschützt wird über
 Row Level Security. `GET`/`POST /rest/v1/plans` (Spalte `data`, Header
 `Prefer: resolution=merge-duplicates,return=minimal`), Session unter `wochenplaner.session`,
 Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
-`mergeStates()` (7434): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
+`mergeStates()` (7559): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
 
 **Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen. Cache-first wäre
 schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
@@ -185,10 +201,15 @@ Geprüft in `werkzeug/pwatest.js`.
   `s.version` am Ende mitziehen.
 - **Nie `at` von Hand setzen, nie Grabsteine löschen.** Sonst kehren gelöschte Einträge beim
   nächsten Abgleich vom anderen Gerät zurück.
-- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7369): alles, was hier existiert und
+- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7485): alles, was hier existiert und
   in der Sicherung fehlt, bekommt einen Grabstein — und den schiebt der Abgleich auf alle Geräte.
   Eine drei Monate alte Sicherung vom Handy hat so schon den Plan am PC gelöscht. Der Dialog mit
-  „Zusammenführen" als Vorgabe bleibt.
+  „Zusammenführen" als Vorgabe bleibt — diese Semantik ist unverändert. Was sich geändert hat: eine
+  kaputte Datei kommt gar nicht mehr bis zu diesem Dialog. Kein Objekt oder ein blankes Array
+  (bestünde sonst still `typeof === "object"` und würde `state` selbst zum Array machen, siehe
+  Kommentar an `importData()`) endet in einem erklärenden Toast statt in `migrate()`, ein
+  JSON-Parse-Fehler ebenso — geprüft in `werkzeug/importfuzz.js` über den echten Weg
+  Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`.
 - **Grobe Blöcke** (`b.grob`, mit `teil` + `dauer` statt Uhrzeit) dürfen in den Kennzahlen von
   `realtest.js` nicht mitzählen. Sie haben keine echte Uhrzeit und erscheinen sonst als „Übergang
   ohne Lücke" — dieser Messfehler hat einmal eine Verschlechterung vorgetäuscht, die es nicht gab.
@@ -197,10 +218,14 @@ Geprüft in `werkzeug/pwatest.js`.
   erledigt.
 - **Neue Felder gehören auf `area`, `task` oder `block` — nie an die `state`-Wurzel und nie in
   `area.plan`.**
-- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6254) schicken.
-- **`renderEnergy()` (6034) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
+- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6370) schicken.
+- **`renderEnergy()` (6150) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
   `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
+- **`growSuggestions()` kennt generell kein „jetzt".** Bekannt, bewusst nicht behoben, außerhalb
+  des Auftrags, der `restDesTagesBauen()` brachte: auch der wöchentliche Verteiler kann daher
+  theoretisch einen längst vergangenen eigenen Vorschlag von heute verlängern, weil
+  `clearSuggestions(warm)` (3612) den laufenden Tag bewusst unberührt lässt.
 
 ## Verträge
 
