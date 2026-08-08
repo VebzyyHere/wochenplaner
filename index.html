@@ -271,11 +271,50 @@ button { cursor: pointer; }
   overflow: hidden; text-overflow: ellipsis;
 }
 .weeknav { display: flex; align-items: center; gap: var(--s-1); }
+/* #weekLabel ist ein echter <button> (öffnet "Frei diese Woche", siehe
+   dort) — die drei Zeilen setzen nur den Browser-Rahmen/-Hintergrund
+   zurück, den ein <button> sonst mitbringt; Maße/Typografie bleiben wie
+   beim bisherigen <div>. min-height sichert die 44px-Trefferfläche, ohne
+   die Kopfzeilenhöhe zu ändern — die steht schon durch die Pfeile daneben fest. */
 .weeknav__label {
-  min-width: 148px; text-align: center; font-size: var(--t-body); font-weight: 600;
+  min-width: 148px; min-height: 44px; text-align: center; font-size: var(--t-body); font-weight: 600;
   font-variant-numeric: tabular-nums;
+  background: none; border: none; border-radius: var(--radius-sm); color: inherit;
+  cursor: pointer;
 }
+@media (hover: hover) { .weeknav__label:hover { background: var(--surface-2); } }
 .weeknav__label small { display: block; font-weight: 500; color: var(--text-muted); font-size: var(--t-sm); }
+/* Ruhige Andeutung, dass sich hier etwas öffnet — ohne eigene Fläche oder
+   Farbe, die der Chrome laut Gestaltungsregel nicht tragen darf. */
+.weeknav__caret {
+  width: 11px; height: 11px; margin-left: 3px; vertical-align: 1px;
+  fill: none; stroke: var(--text-muted); stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ============================================================
+   Frei diese Woche (Auftrag A) — sieben Zeilen in Worten statt eines
+   Rasters, aus dem man Lücken heraussuchen muss. Komplett achromatisch:
+   freie Zeit gehört keinem Bereich, im Gegensatz zu jedem Block sonst in
+   dieser App — hier darf die Oberfläche also wirklich farblos bleiben.
+   ============================================================ */
+.freizeithint {
+  margin: 0 0 var(--s-3); color: var(--text-muted); font-size: var(--t-xs);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.freizeitlist { display: flex; flex-direction: column; }
+.freizeitrow {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  padding: 8px 2px; border-bottom: 1px solid var(--border);
+}
+.freizeitrow:last-child { border-bottom: none; }
+.freizeitrow__tag { flex: none; width: 6em; font-weight: 700; font-size: var(--t-body); }
+.freizeitrow__zeit { flex: 1; min-width: 0; font-size: var(--t-body); color: var(--text-muted); line-height: 1.35; }
+.freizeitrow__zeit b { color: var(--text); font-weight: 700; }
+.freizeitrow.is-vorbei .freizeitrow__tag,
+.freizeitrow.is-vorbei .freizeitrow__zeit { color: var(--text-faint); }
+.freizeitrow.is-vorbei .freizeitrow__zeit b { color: var(--text-faint); }
+.freizeitrow.is-heute { background: var(--surface-2); border-radius: var(--radius-sm); }
 
 .main { display: flex; flex: 1; min-height: 0; }
 
@@ -1521,7 +1560,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
     <div class="weeknav">
       <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück">‹</button>
-      <div class="weeknav__label" id="weekLabel"></div>
+      <button type="button" class="weeknav__label" id="weekLabel" aria-label="Frei diese Woche anzeigen"></button>
       <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
     </div>
 
@@ -2472,13 +2511,108 @@ function renderHeader() {
     : sameMonth
       ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
       : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
-  $("#weekLabel").innerHTML = "KW " + isoWeek(mon) + "<small>" + range + "</small>";
+  $("#weekLabel").innerHTML = "KW " + isoWeek(mon)
+    + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>"
+    + "<small>" + range + "</small>";
   $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
   // In der laufenden Woche braucht niemand einen Knopf, der dorthin führt.
   // Am Telefon war die Kopfzeile bis auf null Pixel gefüllt — das Zahnrad
   // wurde angeschnitten. Der Knopf erscheint nur, wenn er etwas tut.
   const heuteBtn = $("#todayBtn");
   if (heuteBtn) heuteBtn.hidden = iso(mon) === iso(mondayOf(new Date()));
+}
+
+/* ============================================================
+   Frei diese Woche (Auftrag A) — #weekLabel öffnet dieses Blatt.
+
+   Beantwortet direkt "hast du diese Woche Zeit" in Worten, die man am
+   Telefon sagen kann ("Donnerstag ab halb sechs") — kein Raster, aus dem
+   man Lücken erst heraussuchen muss. Rechnet auf freeGaps() (3024) auf,
+   der Lückenberechnung, die es für den Verteiler schon gibt, statt sie
+   neu zu erfinden.
+
+   FREIZEIT_MIN = 30: freeGaps() selbst liefert auch 15-Minuten-Fenster
+   (das ist für den Verteiler richtig, ein Puffer zwischen zwei Blöcken
+   darf klein sein) — als Antwort auf "hast du Zeit" ist das aber Lärm:
+   niemand sagt am Telefon "ich hab von 17:30 bis 17:45 Zeit zu". 30
+   Minuten ist die kürzeste Spanne, für die man sinnvoll noch etwas zusagt.
+
+   WIDERSPRUCH, ABSICHTLICH SICHTBAR — NICHT REPARIEREN: grobe Blöcke
+   (b.grob, ohne Uhrzeit, mit teil+dauer) sind für freeGaps() unsichtbar
+   (~3087, filter(b => !b.grob && ...)) — der Verteiler darf grobe Sachen
+   an jede Stelle des Tages legen, freeGaps kennt also keine feste Uhrzeit,
+   die es aussparen könnte. tagesAuslastung() (2495) zählt dieselben
+   Blöcke trotzdem zu Recht als verplante Zeit, denn ihre Dauer ist real,
+   nur ihre Uhrzeit nicht. Beide Funktionen haben in ihrem eigenen
+   Zusammenhang recht, keine von beiden wird hier angefasst — diese Liste
+   macht den Unterschied nur sichtbar, indem sie hinter die echten
+   Fenster nennt, was an dem Tag zusätzlich noch unverplant herumliegt,
+   ohne ihm eine erfundene Uhrzeit anzudichten. */
+const FREIZEIT_MIN = 30;
+
+function freizeitZeile(day, todayKey) {
+  // Vergangene Tage: freeGaps() gibt hier [] zurück, aber OHNE .gruende
+  // (die Eigenschaft fehlt ganz, Zeile ~3028) — gaps.gruende.length würde
+  // dort abstürzen. Deshalb erst gar nicht hinein, sondern hier schon
+  // raus; "vorbei" statt Weglassen, damit die Woche vollständig bleibt.
+  if (day.key < todayKey) return { text: "vorbei", art: "vorbei" };
+
+  const gaps = freeGaps(day, {}, null, {});
+  const gruende = gaps.gruende || [];
+
+  const grobeHeute = state.blocks.filter(b => b.grob && onDay(b, day.key, day.i));
+  const hinweis = grobeHeute.length
+    ? " · " + grobeHeute.map(b => "<b>" + fmtDur(b.dauer) + "</b> " + escapeHtml(b.title) + " offen").join(", ")
+    : "";
+
+  // Ein freigehaltener Tag hat gruende ["Tag freigehalten"] und keine
+  // Lücken — er ist trotzdem der freieste Tag der Woche und muss darum
+  // genauso fett auftreten wie "ganzer Tag frei", nicht wie "nichts frei".
+  if (gruende.includes("Tag freigehalten")) return { text: "<b>freigehalten</b>" + hinweis, art: "frei" };
+
+  const echte = gaps.filter(g => g.end - g.start >= FREIZEIT_MIN);
+  if (!echte.length) return { text: "nichts frei" + hinweis, art: "voll" };
+
+  const basisLo = state.settings.dayStart * 60, basisHi = state.settings.dayEnd * 60;
+  if (echte.length === 1 && echte[0].start <= basisLo + 15 && echte[0].end >= basisHi - 15) {
+    return { text: "<b>ganzer Tag frei</b>" + hinweis, art: "ganz" };
+  }
+
+  // Reicht ein Fenster bis ans Tagesende, ist es offen ("ab X", viel
+  // Zeit) — hat es ein echtes Ende, ist es eher ein Termin-Fenster
+  // ("X–Y"), nicht der ganze Abend.
+  const teile = echte.map(g =>
+    g.end >= basisHi - 15 ? "ab <b>" + fmtTime(g.start) + "</b>"
+                          : "<b>" + fmtTime(g.start) + "–" + fmtTime(g.end) + "</b>");
+  return { text: teile.join(", ") + hinweis, art: "teil" };
+}
+
+function freizeitSheet() {
+  modal((s, close) => {
+    const todayKey = iso(new Date());
+    let rows = "";
+    weekDays().forEach(day => {
+      const z = freizeitZeile(day, todayKey);
+      const heute = day.key === todayKey;
+      rows += "<div class='freizeitrow" + (z.art === "vorbei" ? " is-vorbei" : "")
+        + (heute ? " is-heute" : "") + "'>"
+        + "<span class='freizeitrow__tag'>" + DAY_SHORT[day.i] + (heute ? " · heute" : "") + "</span>"
+        + "<span class='freizeitrow__zeit'>" + z.text + "</span>"
+        + "</div>";
+    });
+    s.innerHTML =
+      "<h2 class='sheet__title'>Frei diese Woche</h2>" +
+      "<p class='freizeithint'>ab " + FREIZEIT_MIN + " Min frei · Nachtruhe zählt mit</p>" +
+      "<div class='freizeitlist'>" + rows + "</div>";
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const okBtn = document.createElement("button");
+    okBtn.className = "btn btn--primary"; okBtn.type = "button"; okBtn.textContent = "Fertig";
+    okBtn.onclick = close;
+    foot.appendChild(okBtn);
+    s.appendChild(foot);
+  });
 }
 
 /* ============================================================ Tag-Umschalter (Mobile) */
@@ -7946,6 +8080,7 @@ function paintSyncBadge() {
 /* ============================================================ Navigation */
 $("#prevWeek").onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
 $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
+$("#weekLabel").onclick = freizeitSheet;
 $("#todayBtn").onclick = () => {
   anchor = new Date();
   selectedDayIdx = (new Date().getDay() + 6) % 7;
