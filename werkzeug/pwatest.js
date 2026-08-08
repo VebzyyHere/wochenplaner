@@ -104,5 +104,10 @@ const { chromium, devices } = require('playwright');
   console.log('8) Manifest-Identitaet gegen Live-Origin (' + liveOrigin + '):', mId, '->',
     mId ? new URL(mId, liveOrigin).href : '(fehlt)');
   if (fehler.length) { console.log('\n9) FEHLER (' + fehler.length + '):'); fehler.forEach(f => console.log(' - ' + f)); }
-  await br.close(); process.exit(fehler.length ? 1 : 0);
+  await br.close();
+  // Bisher zaehlte fuer den Exit-Code nur "fehler" (die Identitaets-
+  // Zusicherung, Auftrag C2) -- HTTP-Fehler (6) und JS-Fehler (7) liefen nur
+  // ins Protokoll, nie in den Exit-Code. Ein Pruefskript, das eigene Funde
+  // nicht rot meldet, erzeugt falsches Vertrauen (Auftrag C).
+  process.exit((fehler.length || fehl.length || errs.length) ? 1 : 0);
 })();
