@@ -107,6 +107,7 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node restdestag.js` | Der Rest-des-Tages-Knopf in „Heute": Sichtbarkeit nur unter allen Bedingungen zugleich (heutiger Tag, schon Belegtes, offene Minuten, vor Feierabend, `istFrei()`), Vorschläge erst ab der festgenagelten Uhrzeit, feste Termine und Serien bleiben unverändert, ein bereits vergangener eigener Vorschlag von heute bleibt Feld für Feld unangetastet, ohne Antippen passiert nichts |
 | `node importfuzz.js` | Fuzzing des einzigen Wegs, auf dem fremde Daten in den Zustand kommen (`importData()`), über den echten Weg Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`: Oberfläche bleibt bedienbar, keine Konsolenfehler, bestehender Zustand bleibt byte-identisch außer bei ausdrücklichem „Ersetzen" |
 | `node zeitrand.js` | Die Zeitrechnung an ihren Rändern: Sommerzeitwechsel bleiben ein lückenloser Wochenanker (2026–2030), zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und echte 53-Wochen-Jahre, die beim Herbstwechsel doppelt vorkommende lokale Stunde verschiebt „Heute" nicht |
+| `node freiwoche.js` | „Frei diese Woche": `#weekLabel` öffnet ein Blatt, das `freeGaps()` endlich zeigt — sieben Zeilen in Worten statt eines Rasters, aus dem man Lücken erst heraussuchen muss |
 
 Wichtig bei `realtest.js`: **grobe Blöcke dürfen in den Kennzahlen nicht
 mitzählen.** Sie haben keine echte Uhrzeit und liegen im Band unter dem Raster —
