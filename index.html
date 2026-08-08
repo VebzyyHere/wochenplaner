@@ -2602,7 +2602,11 @@ function freizeitSheet() {
     });
     s.innerHTML =
       "<h2 class='sheet__title'>Frei diese Woche</h2>" +
-      "<p class='freizeithint'>ab " + FREIZEIT_MIN + " Min frei · Nachtruhe zählt mit</p>" +
+      // Die Nachtruhe nur nennen, wenn sie auch eingeschaltet ist — defaultSleep()
+      // liefert on:false, und ein Blatt, aus dem man jemandem vorliest, darf nicht
+      // behaupten, es rechne etwas ein, das gar nicht wirkt.
+      "<p class='freizeithint'>ab " + FREIZEIT_MIN + " Min frei"
+        + (state.settings.sleep && state.settings.sleep.on ? " · Nachtruhe zählt mit" : "") + "</p>" +
       "<div class='freizeitlist'>" + rows + "</div>";
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
