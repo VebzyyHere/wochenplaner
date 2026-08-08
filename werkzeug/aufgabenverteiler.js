@@ -32,8 +32,12 @@
       Laenge, die dem Bereich noch offenstand.
 
    Stil wie stabil.js/erklaer.js: eine Chromium-Seite, deutsche Ausgabe,
-   Exit 1 bei Fehlern. Die Uhrzeit wird ueber page.clock.setFixedTime()
-   festgenagelt (wie in schleife.js) — Teil e) testet den Standard-
+   Exit 1 bei Fehlern. Uhrzeit, Datum und Zeitzone werden ueber
+   page.clock.setFixedTime() und timezoneId festgenagelt (wie in
+   schleife.js) — die Zone gehoert dazu, weil das ISO-Literal sonst als
+   lokale Zeit des ausfuehrenden Rechners gelesen wuerde und die
+   Browseruhr auf einem anders eingestellten Rechner woanders staende.
+   Teil e) testet den Standard-
    Wunschzeitpunkt "jetzt + 1 h" auf dem HEUTIGEN Tag, und freeGaps()
    schneidet den Tag am aktuellen Zeitpunkt ab. Ohne feste Uhr blieb je
    nach Tageszeit irgendwann kein Platz mehr nach dem geblockten
@@ -48,7 +52,8 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const p = await br.newPage({ viewport: { width: 1400, height: 950 } });
+  const ctx = await br.newContext({ viewport: { width: 1400, height: 950 }, timezoneId: 'Europe/Berlin' });
+  const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });

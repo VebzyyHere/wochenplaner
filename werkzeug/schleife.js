@@ -17,9 +17,11 @@
       nicht (das Feld muss die Migration ueberleben).
 
    Stil wie erklaer.js/rt.js: eine Chromium-Seite, deutsche Ausgabe,
-   Exit 1 bei Fehlern. Die Uhrzeit wird ueber page.clock.setFixedTime()
-   festgenagelt (Playwright 1.62), NICHT ueber die echte Systemuhr —
-   sonst haengt e) davon ab, wann das Skript zufaellig laeuft.
+   Exit 1 bei Fehlern. Uhrzeit, Datum und Zeitzone werden ueber
+   page.clock.setFixedTime() und timezoneId festgenagelt (Playwright 1.62),
+   NICHT ueber die echte Systemuhr — sonst haengt e) davon ab, wann das
+   Skript zufaellig laeuft. Die Zone gehoert dazu, weil das ISO-Literal
+   sonst als lokale Zeit des ausfuehrenden Rechners gelesen wuerde.
    ============================================================ */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -30,7 +32,8 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const p = await br.newPage({ viewport: { width: 1400, height: 950 } });
+  const ctx = await br.newContext({ viewport: { width: 1400, height: 950 }, timezoneId: 'Europe/Berlin' });
+  const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
