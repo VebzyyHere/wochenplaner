@@ -59,6 +59,9 @@ node check.js && node audit.js && node dev.js
   fixieren.
 - `kontrast.js` — Design-Tokens im `<style>`-Block (fehlende Fallbacks, Hex-Werte außerhalb
   `:root`) und WCAG-Kontrast der Text/Hintergrund-Paare in Hell und Dunkel.
+- `hover.js` — der Primärknopf im `:hover`-Zustand unter echtem Zeiger: die Kaskade muss
+  wirklich die Primär-Hover-Regel liefern, nicht die gleich spezifische generische
+  `.btn:hover`-Fläche; WCAG-Kontrast in Hell und Dunkel.
 
 Als Git-Hook (Einrichtung: `werkzeug/hook-einrichten.md`) läuft vor jedem Commit `vorcommit.js`:
 führt `check.js` und `kontrast.js` aus, bricht bei Rot ab. Das ersetzt nicht die volle Kette —

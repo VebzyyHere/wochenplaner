@@ -200,7 +200,6 @@ button { cursor: pointer; }
   background: var(--ink); border-color: var(--ink);
   color: var(--on-ink); font-weight: 600;
 }
-.btn--primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
 .btn--ghost { background: transparent; border-color: transparent; }
 /* Ohne echtes Zeigegerät bleibt :hover nach dem Antippen hängen (z. B.
    #nextWeek zeigt dann dauerhaft die Hover-Fläche) — deshalb nur auf
@@ -210,6 +209,11 @@ button { cursor: pointer; }
   .btn:hover { background: var(--surface-2); }
   .btn--ghost:hover { background: var(--surface-2); }
 }
+/* Nach dem @media-Block, nicht davor: gleiche Spezifität wie .btn:hover,
+   und bei Gleichstand gewinnt die spätere Regel. Vor dem Block platziert
+   übermalte .btn:hover jeden gehoverten Primärknopf mit --surface-2, die
+   Schrift blieb --on-ink — weiß auf fast Weiß (Prüfung: werkzeug/hover.js). */
+.btn--primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
 .btn--danger { color: var(--danger); border-color: transparent; background: transparent; }
 .btn--danger:hover { background: oklch(0.55 0.19 25 / 0.12); }
 .btn--icon { min-width: 38px; padding: 0 var(--s-2); }

@@ -34,6 +34,7 @@ Ohne die Variable nimmt Playwright seinen eigenen.
 | `node audit.js` | **Der wichtigste.** Geht auf einem iPhone SE (320 × 568) durch alle vier Ansichten und siebzehn Dialoge. Meldet: Trefferflächen unter 44 px, waagerechtes Scrollen, abgeschnittenen Text, Dialogfüße außerhalb des Bildes. Legt zu jedem Schritt ein Bild `au-*.png` ab |
 | `node dev.js` | Gerätematrix (iPhone SE/13/14 Pro Max, iPad, iPad Pro): zu kleine Ziele, Rasterhöhe |
 | `node kontrast.js` | Design-Tokens im `<style>`-Block: fehlende Fallbacks (`var(--x, ...)`), Hex-Werte außerhalb `:root`, WCAG-Kontrast der Text-auf-Hintergrund-Paare in Hell und Dunkel. Exit-Code 1 bei Fehlern |
+| `node hover.js` | Der Primärknopf unter echtem Zeiger: die Kaskade muss im `:hover`-Zustand wirklich die Primär-Regel liefern, nicht die gleich spezifische generische `.btn:hover`-Fläche — WCAG-Kontrast von Schrift auf Hintergrund an einer Sonde `.btn.btn--primary`, Hell und Dunkel. Exit-Code 1 bei Fehlern |
 
 Falsch-positive Meldungen in `audit.js`: Häkchen und Farbfelder sind bewusst
 klein und haben ihre Trefferfläche über ein unsichtbares `::before`. Das Skript
