@@ -167,6 +167,17 @@ Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
 schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
 (Supabase) werden nie angefasst — ein zwischengespeicherter Plan wäre schlimmer als kein Plan.
 
+**Manifest-Identität.** `manifest.json`s `id` steht bewusst als **absoluter Pfad**
+(`/wochenplaner/`), während `start_url` und `scope` `"./"` bleiben — das ist kein Schlamperei-Rest,
+sondern Absicht. Grund: ein relatives `id` wird laut Spec nicht gegen die Manifest-URL oder gegen
+`start_url` aufgelöst, sondern gegen die bloße **Origin** von `start_url` — deren Pfad fällt weg.
+Live läuft die App unter einem Unterpfad (`https://vebzyyhere.github.io/wochenplaner/`, nicht an
+der Domain-Wurzel): ein relatives `id` wie `"./"` würde zu `https://vebzyyhere.github.io/`
+aufgelöst — einer anderen Identität als der heutigen (ohne `id` gilt implizit der aufgelöste
+`start_url`, also der Unterpfad) — und hätte die schon installierte App zur Karteileiche gemacht.
+Nur der absolute Pfad `/wochenplaner/` trifft, gegen die Origin aufgelöst, wieder den Unterpfad.
+Geprüft in `werkzeug/pwatest.js`.
+
 ## Invarianten
 
 - **`migrate()` ist die einzige Schema-Stelle.** Kumulativ und idempotent, läuft beim Laden, beim

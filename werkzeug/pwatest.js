@@ -3,7 +3,7 @@ const { chromium, devices } = require('playwright');
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
   const ctx = await br.newContext({ ...devices['iPhone 13'], serviceWorkers: 'allow' });
   const p = await ctx.newPage();
-  const errs = [], fehl = [];
+  const errs = [], fehl = [], fehler = [];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
   p.on('response', r => { if (r.status() >= 400) fehl.push(r.status() + ' ' + r.url()); });
@@ -22,10 +22,43 @@ const { chromium, devices } = require('playwright');
       appleTitel: g('apple-mobile-web-app-title'),
       touchIcon: (document.querySelector('link[rel=apple-touch-icon]')||{}).href,
       manifest: mj && mj.name ? { name: mj.name, kurz: mj.short_name, display: mj.display,
-        start: mj.start_url, icons: mj.icons.map(i=>i.sizes+(i.purpose?'/'+i.purpose:'')) } : mj
+        start: mj.start_url, id: mj.id,
+        icons: mj.icons.map(i=>i.sizes+(i.purpose?'/'+i.purpose:'')) } : mj
     };
   });
   console.log('1) App-Angaben:', JSON.stringify(meta, null, 1));
+
+  // Manifest-Identitaet ("id") -- Auftrag C2. Berechnet hier, ausgegeben und
+  // geprueft weiter unten als Punkt 8, damit die Nummerierung der Ausgabe
+  // in Laufreihenfolge bleibt.
+  //
+  // Ein relatives id wird laut Spec NICHT gegen die Manifest-URL und NICHT
+  // gegen den aufgeloesten start_url aufgeloest, sondern gegen die blosse
+  // ORIGIN von start_url -- deren Pfad faellt weg (MDN-Beispiel: start_url
+  // ".../my-app/home", id "foo" -> ".../foo", nicht ".../my-app/foo").
+  // Dieser Server laeuft an der Domain-Wurzel (http://localhost:8901/), wo
+  // Manifest-URL, start_url und Origin denselben Pfad haben -- dort ist der
+  // Unterschied unsichtbar. Deshalb NICHT gegen man.href/die lokale Origin
+  // pruefen, sondern gegen die Origin der echten Live-Adresse: reine
+  // Zeichenketten-/URL-Rechnung, die auch hier lokal schon den Fehler
+  // faengt, den ein Vergleich gegen die lokale Origin nicht sehen wuerde.
+  const LIVE = 'https://vebzyyhere.github.io/wochenplaner/';
+  const liveOrigin = new URL(LIVE).origin + '/';
+  const mId = meta.manifest && meta.manifest.id;
+  const mStart = meta.manifest && meta.manifest.start;
+  if (!mId) {
+    fehler.push('manifest.json hat kein "id"-Feld');
+  } else {
+    const idLive = new URL(mId, liveOrigin).href;
+    if (idLive !== LIVE) {
+      fehler.push('id "' + mId + '" loest gegen die Live-Origin zu "' + idLive + '" auf, erwartet "' + LIVE + '"');
+    }
+    const idOrigin = new URL(mId, liveOrigin).origin;
+    const startOrigin = new URL(mStart, liveOrigin).origin;
+    if (idOrigin !== startOrigin) {
+      fehler.push('id-Ursprung "' + idOrigin + '" weicht vom start_url-Ursprung "' + startOrigin + '" ab');
+    }
+  }
 
   const sw = await p.evaluate(async () => {
     const r = await navigator.serviceWorker.getRegistration();
@@ -68,5 +101,8 @@ const { chromium, devices } = require('playwright');
 
   console.log('\n6) HTTP-Fehler:', fehl.length ? fehl : 'keine');
   console.log('7) JS-Fehler:', errs.length ? errs : 'keine');
-  await br.close(); process.exit(0);
+  console.log('8) Manifest-Identitaet gegen Live-Origin (' + liveOrigin + '):', mId, '->',
+    mId ? new URL(mId, liveOrigin).href : '(fehlt)');
+  if (fehler.length) { console.log('\n9) FEHLER (' + fehler.length + '):'); fehler.forEach(f => console.log(' - ' + f)); }
+  await br.close(); process.exit(fehler.length ? 1 : 0);
 })();
