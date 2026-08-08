@@ -1410,6 +1410,15 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   body[data-tage="7"] .block__sug { display: none; }
   .topbar { padding: 2px var(--s-2); }
   .weeknav__label { font-size: var(--t-sm); }
+
+  /* Bei so wenig Höhe kostet das festgepinnte Eingabefeld (~1320) mehr,
+     als es bringt: dem Aufgabenblatt blieben gemessen nur noch 144px für
+     die Liste bei 302px Inhalt. Ab hier scrollt die Ansicht wieder als
+     Ganzes wie jede andere Karte auch — das Eingabefeld bleibt über den
+     einen gemeinsamen Scrollweg weiter erreichbar, nur nicht mehr fixiert. */
+  body[data-mview="aufgaben"] .panel { overflow-y: auto; }
+  body[data-mview="aufgaben"] .card[data-card="aufgaben"] { flex: none; padding-bottom: var(--s-4); }
+  body[data-mview="aufgaben"] .tasks { flex: none; overflow-y: visible; }
 }
 
 /* ============================================================
