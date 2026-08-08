@@ -4552,12 +4552,17 @@ function renderGrid() {
     // Als Grid-Kind statt als Geschwister von #grid: liegt so exakt über den
     // (leeren) Tagesspalten, ohne deren eigene Zeile/Höhe zu verändern, und
     // bleibt oben stehen statt in der bodyH-hohen Zeile zu verschwinden.
+    // Bei genau einem gezeigten Tag (einTag) ist der sonst wortgleiche Text
+    // sonst von einem bewusst freigehaltenen Tag nicht zu unterscheiden.
+    const einzelTag = dayIdxs.length === 1 ? iso(addDays(mon, dayIdxs[0])) : null;
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.style.gridColumn = "1 / -1";
     empty.style.gridRow = einTag ? "1" : "2";
     empty.style.alignSelf = "start";
-    empty.innerHTML = "<b>Noch nichts geplant</b>Tippe auf eine freie Stelle im Raster, um einen ersten Eintrag anzulegen.";
+    empty.innerHTML = (einzelTag && istFrei(einzelTag))
+      ? "<b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten."
+      : "<b>Noch nichts geplant</b>Tippe auf eine freie Stelle im Raster, um einen ersten Eintrag anzulegen.";
     grid.appendChild(empty);
   }
 
@@ -5925,9 +5930,16 @@ function renderAgenda() {
   });
 
   if (!laufend && !danach.length) {
-    html += "<div class='empty'><b>" + (eintraege.length ? "Nichts mehr offen" : "Noch nichts geplant") + "</b>"
-      + (eintraege.length ? "Für den Rest des Tages steht nichts mehr an." : "Für diesen Tag steht noch nichts im Plan.")
-      + "</div><button type='button' class='btn btn--primary btn--sm' id='agendaVorschlag'>Vorschlagen</button>";
+    // Ein bewusst freigehaltener Tag ohne Eintraege sieht sonst wortgleich
+    // aus wie ein einfach vergessener — samt "Vorschlagen"-Knopf, der hier
+    // ohnehin nichts ausloest (istFrei-Vertrag in buildSuggestions()).
+    if (!eintraege.length && istFrei(dayKey)) {
+      html += "<div class='empty'><b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten.</div>";
+    } else {
+      html += "<div class='empty'><b>" + (eintraege.length ? "Nichts mehr offen" : "Noch nichts geplant") + "</b>"
+        + (eintraege.length ? "Für den Rest des Tages steht nichts mehr an." : "Für diesen Tag steht noch nichts im Plan.")
+        + "</div><button type='button' class='btn btn--primary btn--sm' id='agendaVorschlag'>Vorschlagen</button>";
+    }
   } else {
     if (laufend) {
       const a = areaById(laufend.block.areaId);
