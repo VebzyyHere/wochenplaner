@@ -7493,6 +7493,15 @@ function importData() {
       try {
         const data = JSON.parse(r.result);
         if (!data || typeof data !== "object") throw new Error("bad");
+        if (Array.isArray(data)) {
+          // Ein Array besteht "typeof === object" und würde sonst unbemerkt
+          // an migrate() durchgereicht: state würde selbst zum Array, und
+          // JSON.stringify() verschluckt beim nächsten save() jedes benannte
+          // Feld (areas, blocks, tasks, ...) — stiller, kompletter Datenverlust
+          // ohne jede Fehlermeldung (Importfuzz Fall 2b, werkzeug/importfuzz.js).
+          toast("Diese Datei ist keine gültige Wochenplaner-Sicherung");
+          return;
+        }
         migrate(data);
 
         // Ersetzen ist nicht harmlos: alles, was es hier gibt und in der
