@@ -1,9 +1,10 @@
 /* ============================================================
-   Pruefskript Vorschlagsleiste vs. Karten-/Rasterinhalt (Stufe 1) —
+   Pruefskript Vorschlagsleiste vs. Karten-/Rasterinhalt (Stufe 1,
+   erweitert um Auftrag B: zwei Befunde an derselben Stelle)
    iPhone SE (320x568) und iPhone 13 (390x844)
 
    Prueft den Befund: die Vorschlagsleiste (.sugbar, position:fixed
-   ueber der Tabbar, s. ~1228) schwebt in "Heute" und "Plan" ueber dem
+   ueber der Tabbar, s. ~1236) schwebt in "Heute" und "Plan" ueber dem
    Karten- bzw. Rasterinhalt, ohne dass diese dafuer Bodenabstand
    reservieren. FAB und Toasts rechnen die Leiste laengst korrekt ueber
    --fuss-oben ein (s. fuss.js) — die Karte in "Heute" (.panel > .card,
@@ -21,11 +22,29 @@
    zu verlaengern. Beide Richtungen stehen jetzt in einem Skript, damit
    sie sich nicht mehr gegenseitig aushebeln koennen.
 
+   Auftrag B, Befund 1 (pruefeDoppelknopf): stehen Vorschlaege an, sind
+   gleichzeitig "Vorschlagen" (leere Heute-Karte, #agendaVorschlag) und
+   "Uebernehmen" (.sugbar__accept) volltonig betont sichtbar — zwei
+   gleich starke Knoepfe im selben Blickfeld. Eigenes, von Hand gebautes
+   Szenario je Geraet (nicht der echte Verteiler): der heutige Tag bleibt
+   leer, ein einzelner Vorschlag liegt auf einem anderen Wochentag —
+   genau die berichtete Abendsituation ("stehen noch Vorschlaege, aber
+   fuer heute ist nichts mehr offen").
+
+   Auftrag B, Befund 2 (pruefeGrosseSchrift): iPhone SE, Grundschrift auf
+   150 % (wie schrift.js) — bei nur noch 320px Breite und vergroesserter
+   Schrift reichte der Platz neben "Uebernehmen"+"×" nicht mehr fuer die
+   Zahl in der Leiste; "Vorschlaege" lief ueber den eigenen Rand hinaus
+   und wurde vom spaeter gezeichneten Knopf verdeckt (kein Ueberlappen im
+   Bild, aber auch kein vollstaendiger Text).
+
    Stil wie fuss.js/agenda.js: eine Chromium-Seite je Geraet, deutsche
    Ausgabe, Exit 1 bei Fehlern. Uhrzeit UND Datum sind ueber
-   page.clock.setFixedTime() auf Mittwoch, 2026-08-05, 10 Uhr,
-   Europe/Berlin genagelt (Vertrag dieses Projekts) — sonst haengt der
-   Befund am Zufallszeitpunkt des Laufs statt an einer echten Luecke.
+   page.clock.setFixedTime() auf Mittwoch, 2026-08-05, Europe/Berlin
+   genagelt (Vertrag dieses Projekts) — sonst haengt der Befund am
+   Zufallszeitpunkt des Laufs statt an einer echten Luecke. Befund 1
+   nutzt bewusst 20 Uhr (die tatsaechlich berichtete Abendsituation),
+   der Rest des Skripts bleibt bei den bestehenden 10 Uhr.
    Screenshots landen daneben in werkzeug/ zur Sichtpruefung von Hand.
    ============================================================ */
 const { chromium, devices } = require('playwright');
@@ -40,6 +59,168 @@ async function onboardingWeg(p) {
   await p.goto(F); await p.waitForTimeout(500);
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }
   await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(900);
+}
+
+// Befund 1: welche der beiden Kandidaten (Vorschlagen/Uebernehmen) tragen
+// GERADE volltonigen Akzent? Ueber eine Sonde statt eine Klassenliste zu
+// pruefen — die CSS-Regel fuer Befund 1 ueberschreibt nur die berechnete
+// Farbe von #agendaVorschlag, die Klasse "btn--primary" bleibt im Markup
+// stehen. Ein echter Vergleich der berechneten Hintergrundfarbe gegen
+// eine frisch erzeugte .btn.btn--primary-Sonde erkennt das zuverlaessig,
+// unabhaengig davon, in welcher Farbnotation --ink im Stylesheet steht.
+async function betonteKnoepfe(p) {
+  return p.evaluate(() => {
+    const probe = document.createElement('button');
+    probe.className = 'btn btn--primary';
+    probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+    document.body.appendChild(probe);
+    const inkBg = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    const sichtbar = el => {
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const kandidaten = {
+      vorschlagen: document.querySelector('#agendaVorschlag'),
+      uebernehmen: document.querySelector('.sugbar__accept')
+    };
+    const ergebnis = {};
+    for (const [name, el] of Object.entries(kandidaten)) {
+      ergebnis[name] = { sichtbar: sichtbar(el), betont: sichtbar(el) && getComputedStyle(el).backgroundColor === inkBg };
+    }
+    return ergebnis;
+  });
+}
+
+// Von Hand gebautes Szenario statt des echten Verteilers: der heutige Tag
+// bleibt komplett leer (loest "Vorschlagen" aus), ein einzelner Vorschlag
+// liegt auf einem anderen Tag derselben Woche (loest die Leiste aus). Setzt
+// state.blocks komplett neu, damit kein Default-Eintrag aus dem
+// Erststart-Assistenten dazwischenfunkt.
+async function doppelknopfSzenario(p) {
+  await p.evaluate(() => {
+    const montag = mondayOf(anchor);
+    const andererIdx = (selectedDayIdx + 1) % 7;
+    state.blocks = [{
+      id: uid(), title: 'Sport', areaId: state.areas[0].id,
+      day: andererIdx, date: iso(addDays(montag, andererIdx)), repeat: 'none',
+      start: 600, end: 660, frog: false, grob: false, sug: true
+    }];
+    state.tasks = [];
+    setView('heute');
+    save(); renderAll();
+  });
+  await p.waitForTimeout(200);
+}
+
+// Auftrag B, Befund 1 komplett: mit offener Leiste genau ein betonter
+// Knopf, ohne Vorschlaege behaelt "Vorschlagen" seinen Akzent. Eigener,
+// frischer Kontext (s. Aufrufer) — 20 Uhr, die tatsaechlich berichtete
+// Abendsituation.
+async function pruefeDoppelknopf(p, tag) {
+  await onboardingWeg(p);
+  await p.clock.setFixedTime(new Date('2026-08-05T20:00:00+02:00'));
+  await doppelknopfSzenario(p);
+
+  const bK = await betonteKnoepfe(p);
+  console.log(`\n## ${tag} — Befund 1: betonte Knoepfe, Vorschlaege stehen, heute leer`);
+  console.log('   ' + JSON.stringify(bK));
+  ok(bK.vorschlagen.sichtbar && bK.uebernehmen.sichtbar,
+    tag + ': beide Kandidaten ("Vorschlagen" und "Uebernehmen") sind gleichzeitig sichtbar (sonst waere der Fall gegenstandslos)');
+  const anzahl = Number(bK.vorschlagen.betont) + Number(bK.uebernehmen.betont);
+  ok(anzahl === 1, tag + `: genau EIN volltonig betonter Knopf im Blickfeld (gezaehlt: ${anzahl})`);
+  ok(bK.uebernehmen.betont && !bK.vorschlagen.betont,
+    tag + ': "Uebernehmen" traegt den Akzent, "Vorschlagen" weicht zurueck (Vorschlaege liegen schon vor)');
+  await p.screenshot({ path: path.join(__dirname, `leiste-${tag}-doppelknopf-mit.png`) });
+
+  // Gegenprobe: keine Vorschlaege mehr irgendwo in der Woche -> "Vorschlagen"
+  // ist wieder die einzige anstehende Entscheidung und muss seinen Akzent
+  // zurueckbekommen — sonst waere die Regel dauerhaft zurueckgewichen statt
+  // bedingt zu sein.
+  await p.evaluate(() => { state.blocks = []; save(); renderAll(); });
+  await p.waitForTimeout(150);
+  const bOhne = await betonteKnoepfe(p);
+  console.log(`\n## ${tag} — Befund 1 Gegenprobe: keine Vorschlaege`);
+  console.log('   ' + JSON.stringify(bOhne));
+  ok(!bOhne.uebernehmen.sichtbar, tag + ': keine Vorschlaege -> Leiste ist weg');
+  ok(bOhne.vorschlagen.sichtbar && bOhne.vorschlagen.betont,
+    tag + ': ohne Vorschlaege behaelt "Vorschlagen" seinen Akzent (es ist wieder die Primaeraktion)');
+  await p.screenshot({ path: path.join(__dirname, `leiste-${tag}-doppelknopf-ohne.png`) });
+}
+
+// Auftrag B, Befund 2: iPhone SE, Grundschrift auf 150% (wie schrift.js).
+// Neun Vorschlaege auf einem anderen Tag (der Auftragswortlaut nennt genau
+// "9 Vorschlaege" als reproduzierten Fall), heutiger Tag leer, damit die
+// Leiste steht. Eigener, frischer Kontext.
+async function pruefeGrosseSchrift(br) {
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
+  const p = await ctx.newPage();
+  const konsolenfehler = [];
+  p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
+  p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
+
+  await onboardingWeg(p);
+  await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
+  await p.evaluate(() => {
+    const montag = mondayOf(anchor);
+    const andererIdx = (selectedDayIdx + 1) % 7;
+    const andererTag = iso(addDays(montag, andererIdx));
+    state.blocks = Array.from({ length: 9 }, (_, i) => ({
+      id: uid(), title: 'Sport ' + i, areaId: state.areas[0].id,
+      day: andererIdx, date: andererTag, repeat: 'none',
+      start: 480 + i * 60, end: 480 + i * 60 + 45, frog: false, grob: false, sug: true
+    }));
+    state.tasks = [];
+    setView('heute');
+    save(); renderAll();
+  });
+  await p.waitForTimeout(200);
+
+  const vorher = await p.evaluate(() => ({
+    sugbar: document.body.dataset.sugbar,
+    text: document.querySelector('.sugbar__text') ? document.querySelector('.sugbar__text').textContent : null
+  }));
+  ok(vorher.sugbar === '1', 'iPhone SE: Vorschlagsleiste steht vor der Schrift-Pruefung (' + vorher.text + ')');
+
+  // Grundschrift um zwei Stufen anheben — exakt wie schrift.js (dortiger
+  // Kopfkommentar erklaert die Begruendung fuer "24px").
+  await p.addStyleTag({ content: 'html { font-size: 24px; }' });
+  await p.waitForTimeout(200);
+
+  const m = await p.evaluate(() => {
+    const R = el => el ? el.getBoundingClientRect() : null;
+    const text = document.querySelector('.sugbar__text');
+    const accept = document.querySelector('.sugbar__accept');
+    const close = document.querySelector('.sugbar__close');
+    const tr = R(text), ar = R(accept), cr = R(close);
+    const overlap = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    return {
+      inhalt: text ? text.textContent : null,
+      scrollWidth: text ? text.scrollWidth : null,
+      clientWidth: text ? text.clientWidth : null,
+      textRect: tr, acceptRect: ar, closeRect: cr,
+      ueberlapptTextAccept: overlap(tr, ar),
+      ueberlapptAcceptClose: overlap(ar, cr),
+      ueberlapptTextClose: overlap(tr, cr),
+      querScroll: document.documentElement.scrollWidth > window.innerWidth + 1
+    };
+  });
+  console.log('\n## iPhone SE — Befund 2: Leiste bei 150% Schrift');
+  console.log('   ' + JSON.stringify(m));
+  ok(m.scrollWidth !== null && m.scrollWidth <= m.clientWidth + 2,
+    `Label vollstaendig lesbar, nicht abgeschnitten (Inhalt "${m.inhalt}", scrollWidth ${m.scrollWidth} <= clientWidth ${m.clientWidth})`);
+  ok(!m.ueberlapptTextAccept && !m.ueberlapptAcceptClose && !m.ueberlapptTextClose,
+    'Text, "Uebernehmen" und "×" ueberlappen sich nicht');
+  ok(!m.querScroll, 'kein waagerechtes Scrollen durch die breitere/hoehere Leiste');
+  await p.screenshot({ path: path.join(__dirname, 'leiste-se-grossschrift-mit.png') });
+
+  console.log('\n=== Konsolenfehler (Befund 2, iPhone SE 150%):', konsolenfehler.length ? konsolenfehler : 'keine');
+  if (konsolenfehler.length) fehler.push('Konsolenfehler aufgetreten (Befund 2, iPhone SE 150%)');
+
+  await ctx.close();
 }
 
 // Der Erststart-Assistent legt mit seinen Vorgaben (START_ZIELE, alle > 0)
@@ -235,7 +416,24 @@ async function pruefeGeraet(p, tag) {
     console.log(`\n=== Konsolenfehler (${geraet}):`, konsolenfehler.length ? konsolenfehler : 'keine');
     if (konsolenfehler.length) fehler.push(`Konsolenfehler aufgetreten (${geraet})`);
     await ctx.close();
+
+    // Auftrag B, Befund 1: eigener frischer Kontext (leeres localStorage),
+    // sonst zeigt der Erststart-Assistent von onboardingWeg() sich nicht
+    // mehr, weil schon ein Stand aus der Pruefung oben gespeichert waere.
+    const ctx2 = await br.newContext({ ...devices[geraet], timezoneId: 'Europe/Berlin' });
+    const p2 = await ctx2.newPage();
+    const konsolenfehler2 = [];
+    p2.on('pageerror', e => konsolenfehler2.push('PAGEERROR: ' + e.message));
+    p2.on('console', m => { if (m.type() === 'error') konsolenfehler2.push('CONSOLE: ' + m.text()); });
+    await pruefeDoppelknopf(p2, tag);
+    console.log(`\n=== Konsolenfehler (Befund 1, ${geraet}):`, konsolenfehler2.length ? konsolenfehler2 : 'keine');
+    if (konsolenfehler2.length) fehler.push(`Konsolenfehler aufgetreten (Befund 1, ${geraet})`);
+    await ctx2.close();
   }
+
+  // Auftrag B, Befund 2: iPhone SE, Grundschrift 150% (Auftragswortlaut
+  // nennt ausdruecklich dieses Geraet als schmalsten Fall).
+  await pruefeGrosseSchrift(br);
 
   await br.close();
 

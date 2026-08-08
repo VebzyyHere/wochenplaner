@@ -1224,20 +1224,46 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   /* Vorschlagsleiste: keine Karte — kein Schatten, kein Radius, kein
      farbiger Rand. Eine Haarlinie nach oben genügt, die Fläche bleibt
      ruhig. "Übernehmen" ist der einzige betonte Knopf, wie überall sonst
-     auch — der Akzent gehört der Primäraktion, nicht der Dekoration. */
+     auch — der Akzent gehört der Primäraktion, nicht der Dekoration.
+     flex-wrap: bei sehr schmalem Gerät UND vergrößerter Systemschrift
+     reicht der Platz neben "Übernehmen" + "×" nicht mehr für die Zahl
+     (gemessen: iPhone SE 320px bei 150% Schrift bleiben der Zahl nur noch
+     53px Breite). Ohne flex-wrap quetschte min-width:0 den Text bis ein
+     Wort über den eigenen Rand hinaus lief — sichtbar nicht als Ellipse,
+     sondern vom später gezeichneten Knopf verdeckt (leiste.js). Bei
+     genug Platz (Normalschrift, breitere Geräte) bleibt alles in einer
+     Zeile, weil dort nichts umbrechen muss. */
   body[data-sugbar="1"] .sugbar {
-    display: flex; align-items: center; gap: var(--s-3);
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3);
     position: fixed; left: 0; right: 0; z-index: 41;
     bottom: var(--fussleiste); min-height: 61px;
     padding: var(--s-2) var(--s-4);
     border-top: 1px solid var(--border);
     background: var(--surface);
   }
-  .sugbar__text { flex: 1; min-width: 0; font-size: var(--t-sm); font-weight: 600; color: var(--text); }
+  /* min-width:max-content statt 0 — die Zahl darf so viel Platz
+     beanspruchen, wie sie braucht; reicht der daneben nicht mehr, wandern
+     "Übernehmen"/"×" dank flex-wrap oben in eine zweite Zeile, statt den
+     Text zu quetschen. */
+  .sugbar__text { flex: 1; min-width: max-content; font-size: var(--t-sm); font-weight: 600; color: var(--text); }
   .sugbar__accept { min-height: 44px; padding: 0 var(--s-4); }
   .sugbar__close {
     flex: none; min-width: 44px; min-height: 44px;
     color: var(--text-faint); font-size: var(--t-h1); line-height: 1;
+  }
+  /* Stehen schon Vorschläge an, ist "Übernehmen" oben die anstehende
+     Entscheidung — "Vorschlagen" in der leeren Heute-Karte (#agendaVorschlag,
+     s. renderAgenda) würde nur weitere Vorschläge erzeugen und darf
+     zurückweichen. Sonst werben zwei gleich betonte Knöpfe im selben
+     Blickfeld um denselben Akzent (Skeptiker-Befund, vier Bilder). Fällt
+     zurück auf dieselbe schlichte Optik wie "Trotzdem hierhin" (~5157),
+     keine eigene Ghost-Klasse nötig. Ohne Vorschläge (data-sugbar="0")
+     bleibt "Vorschlagen" unangetastet die Primäraktion. .btn behält die
+     44px-Trefferfläche unter (pointer: coarse) unverändert — das ändert
+     nur Farbe/Gewicht, nicht die Größe. */
+  body[data-sugbar="1"] #agendaVorschlag {
+    background: var(--surface); border-color: var(--border-strong);
+    color: var(--text); font-weight: 500;
   }
 
   /* ---- Eine Ansicht zur Zeit -------------------------------------------
