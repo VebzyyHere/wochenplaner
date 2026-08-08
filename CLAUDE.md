@@ -11,7 +11,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
-`index.html` **ist** das Produkt — 8484 Zeilen, ~396 KB, Vanilla JS, kein Build, kein npm,
+`index.html` **ist** das Produkt — 8496 Zeilen, ~397 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
 wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
@@ -22,7 +22,7 @@ das gibt die aktuelle Landkarte der Abschnittsbanner.
 | 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
 | 32–1473 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
 | 1475–1601 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1602–8482 | Hauptskript unter `"use strict"` |
+| 1602–8494 | Hauptskript unter `"use strict"` |
 
 `Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
 Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
@@ -142,13 +142,13 @@ zum ersten Mal auf `version: 9` zieht — eigener Schlüssel neben dem Zustand, 
 hat, bekommt `at`, was verschwunden ist, landet als Grabstein in `state.tombs`. Deshalb wird
 nirgends von Hand gestempelt. `undoLast()` hält den Stand vor der letzten Änderung.
 
-**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8339) ruft zehn
-`render*`-Funktionen, darunter `renderAgenda()` (5900, trägt seit Stufe 13 auch den
-Tagesabschluss ab Feierabend) und `renderRitual()` (6426, Zugang zum Wochenritual). `setView()`
-(8027) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
+**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8351) ruft zehn
+`render*`-Funktionen, darunter `renderAgenda()` (5898, trägt seit Stufe 13 auch den
+Tagesabschluss ab Feierabend) und `renderRitual()` (6424, Zugang zum Wochenritual). `setView()`
+(8039) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
 (Tabbar, Markup 1575) — am Desktop stehen sie nebeneinander.
 
-**Verteiler.** `buildSuggestions()` (3547) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
+**Verteiler.** `buildSuggestions()` (3561) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
 Vorschläge sind normale Blöcke mit `sug: true` — dadurch lassen sie sich ziehen wie alles andere.
 Seit v9 kann ein Bereich zusätzlich `area.regeln` tragen (Fenster: erlaubte Wochentage/Uhrzeit;
 Anker: Mindestabstand zu einem anderen Bereich) — der Verteiler prüft beides *vor* der
@@ -158,8 +158,8 @@ grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 2913). `istSerie()` 
 "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine für Anzeige und
 Abhaken.
 
-**Rest des Tages.** `restDesTagesBauen()` (3709), aufrufbar über den Knopf in „Heute"
-(Sichtbarkeit über `restDesTagesMoeglich()` 3771), wendet denselben Verteiler wie das
+**Rest des Tages.** `restDesTagesBauen()` (3723), aufrufbar über den Knopf in „Heute"
+(Sichtbarkeit über `restDesTagesMoeglich()` 3769), wendet denselben Verteiler wie das
 Wochenziel-Verteilen an, nur auf den laufenden Tag beschränkt. Zwei rote Linien, teuer erarbeitet,
 nicht versehentlich wieder aufweichen: auf einem freigehaltenen Tag schlägt auch dieser Weg nichts
 vor (`istFrei()`); und ein bereits vergangener eigener Vorschlag von heute wird nicht mehr
@@ -167,17 +167,17 @@ angefasst — seit Stufe 16 sorgt dafür `growSuggestions()` selbst (kennt „je
 Ende, das schon erreicht oder überschritten ist), die frühere lokale Sicherung/Rückschreibung
 (`vergangeneSnapshot`) ist damit entfallen.
 
-**Wochenritual.** `ritualSheet()` (6453) führt am Montag durch drei Schritte —
-`schrittRueckblick()` (6479, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
-Zielanpassung über `rueckblickMuster()` 6820), Ziele, Verteilen. `renderRitual()` (6426) zeigt die
+**Wochenritual.** `ritualSheet()` (6451) führt am Montag durch drei Schritte —
+`schrittRueckblick()` (6477, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
+Zielanpassung über `rueckblickMuster()` 6818), Ziele, Verteilen. `renderRitual()` (6424) zeigt die
 Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
 
-**Abgleich.** `Sync` (7641) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
+**Abgleich.** `Sync` (7653) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
 bewusst im Klartext in `SUPABASE` (1620) — der anon key darf öffentlich sein, geschützt wird über
 Row Level Security. `GET`/`POST /rest/v1/plans` (Spalte `data`, Header
 `Prefer: resolution=merge-duplicates,return=minimal`), Session unter `wochenplaner.session`,
 Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
-`mergeStates()` (7559): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
+`mergeStates()` (7571): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
 
 **Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen. Cache-first wäre
 schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
@@ -201,7 +201,7 @@ Geprüft in `werkzeug/pwatest.js`.
   `s.version` am Ende mitziehen.
 - **Nie `at` von Hand setzen, nie Grabsteine löschen.** Sonst kehren gelöschte Einträge beim
   nächsten Abgleich vom anderen Gerät zurück.
-- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7485): alles, was hier existiert und
+- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7483): alles, was hier existiert und
   in der Sicherung fehlt, bekommt einen Grabstein — und den schiebt der Abgleich auf alle Geräte.
   Eine drei Monate alte Sicherung vom Handy hat so schon den Plan am PC gelöscht. Der Dialog mit
   „Zusammenführen" als Vorgabe bleibt — diese Semantik ist unverändert. Was sich geändert hat: eine
@@ -218,13 +218,13 @@ Geprüft in `werkzeug/pwatest.js`.
   erledigt.
 - **Neue Felder gehören auf `area`, `task` oder `block` — nie an die `state`-Wurzel und nie in
   `area.plan`.**
-- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6370) schicken.
-- **`renderEnergy()` (6150) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
+- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6368) schicken.
+- **`renderEnergy()` (6148) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
   `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
 - **`growSuggestions()` kennt seit Stufe 16 „jetzt".** War bekannt, bewusst nicht behoben, solange
   nur `restDesTagesBauen()` betroffen war (dort lokal umgangen über `vergangeneSnapshot`) — betraf
-  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (3612) den laufenden Tag
+  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (3626) den laufenden Tag
   bewusst unberührt lässt. Jetzt verlängert `growSuggestions()` an keinem eigenen Vorschlag von
   heute mehr ein Ende, das schon erreicht oder überschritten ist; ein gerade laufender Block
   (start ≤ jetzt < end) wächst unverändert weiter.
