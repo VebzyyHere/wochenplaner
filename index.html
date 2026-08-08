@@ -3033,26 +3033,52 @@ function ortChips(wrap, getId, setId) {
    Platzproblem, sondern ein Zielproblem. Und ein Tag, der bis zum Rand
    verplant ist, hält nicht — unverplante Zeit ist keine Lücke im Plan,
    sondern Teil davon.
+
+   Stufe A: In der LAUFENDEN Woche zählen "wach" und "fest" nur noch ab jetzt.
+   Ohne das meldete die Ampel am Samstagabend nach Feierabend "57 % verplant,
+   grün" — die 40 Stunden Montag bis Freitag standen im Nenner mit, obwohl sie
+   längst vorbei waren, und übrig blieb praktisch nur der Sonntag. growSuggestions()
+   (3672 ff.) kennt "jetzt" schon seit Stufe 16, hier zieht die Kapazitätsrechnung
+   nach. Zukünftige und vergangene Wochen bleiben bewusst bei der alten Rechnung
+   (ganze Woche) — eine Zukunftswoche hat noch keine Vergangenheit, und eine
+   vergangene Woche liest man als Rückblick, wo die ganze Woche die richtige Zahl
+   ist. Das braucht unten keinen eigenen Zweig: außerhalb der laufenden Woche ist
+   "istHeute" nie wahr und kein Tag "vergangen", also bleibt jeder Tag ungeklemmt
+   — genau die alte Formel.
    ============================================================ */
 const VERPLANT_GRENZE = 0.65;
 function wochenKapazitaet() {
   const tage = weekDays();
-  let wach = 0;
-  tage.forEach(() => {
-    let frei = (state.settings.dayEnd - state.settings.dayStart) * 60;
+  const laufend = istDieseWoche();
+  const heuteKey = iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+
+  let wach = 0, fest = 0;
+  tage.forEach(day => {
+    // Vergangene Tage der laufenden Woche sind vorbei — 0 zu beiden Seiten.
+    if (laufend && day.key < heuteKey) return;
+    const istHeute = laufend && day.key === heuteKey;
+    const von = istHeute ? Math.max(jetzt, state.settings.dayStart * 60) : state.settings.dayStart * 60;
+    const bis = state.settings.dayEnd * 60;
+
+    let frei = Math.max(0, bis - von);
     restSpans().forEach(r => {
-      frei -= Math.max(0, Math.min(state.settings.dayEnd * 60, r.end)
-                        - Math.max(state.settings.dayStart * 60, r.start));
+      frei -= Math.max(0, Math.min(bis, r.end) - Math.max(von, r.start));
     });
     wach += Math.max(0, frei);
+
+    state.blocks.forEach(b => {
+      if (b.sug || !onDay(b, day.key, day.i)) return;
+      // Heute: grobe Blöcke haben keine Uhrzeit, an der man clampen könnte —
+      // sie zählen wie bisher voll. Exakte zählen nur noch ihren Rest ab
+      // jetzt; ein schon beendeter Block trägt nichts mehr bei.
+      fest += (!istHeute || b.grob) ? dauerVon(b) : Math.max(0, b.end - Math.max(b.start, jetzt));
+    });
   });
 
-  let fest = 0;
-  tage.forEach(day => state.blocks.forEach(b => {
-    if (!b.sug && onDay(b, day.key, day.i)) fest += dauerVon(b);
-  }));
-
-  // Offene Wochenziele plus die Pausen, die dazugehören
+  // Offene Wochenziele plus die Pausen, die dazugehören — unverändert: ein
+  // bereits verplanter Block deckt das Ziel, egal ob sein Termin vergangen
+  // oder künftig ist.
   let offen = 0, pausen = 0;
   state.areas.forEach(a => {
     const rest = Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false));
@@ -3076,8 +3102,12 @@ function wochenKapazitaet() {
 
   const bedarf = fest + offen + pausen;
   const grenze = wach * VERPLANT_GRENZE;
-  return { wach, fest, offen, pausen, bedarf, grenze,
-           quote: wach ? bedarf / wach : 0, ok: bedarf <= grenze };
+  // wach kann in der laufenden Woche auf 0 fallen (Sonntagnacht, alles vorbei)
+  // — bedarf/0 wäre Infinity. 9.99 reicht, um sicher rot zu zeichnen, ohne eine
+  // absurde Zahl zu führen; ampelZeichnen() deckelt die Anzeige zusätzlich bei
+  // "über 200 %".
+  const quote = wach ? bedarf / wach : (bedarf > 0 ? 9.99 : 0);
+  return { wach, fest, offen, pausen, bedarf, grenze, quote, ok: bedarf <= grenze };
 }
 
 /* Zeichnet die Auslastungs-Ampel. Grün bis 60 %, gelb bis 70 %, darüber rot —
@@ -3090,8 +3120,15 @@ function ampelZeichnen(el) {
   if (!el) return;
   const k = wochenKapazitaet();
   const pct = Math.round(k.quote * 100);
+  // Stufe A: über 200 % ist kein ehrlicher Prozentwert mehr, nur noch Lärm
+  // (vor allem im wach===0-Randfall, siehe wochenKapazitaet) — der Balken
+  // selbst ist über scaleX ohnehin schon bei 100 % gedeckelt.
+  const pctText = pct > 200 ? "über 200" : String(pct);
+  // In der laufenden Woche zählt nur noch der Rest — das muss auch im Text
+  // stehen, sonst wirkt die Stundenangabe darunter wie ein Rechenfehler.
+  const wieWoche = istDieseWoche() ? "Rest der Woche" : "Woche";
   el.innerHTML =
-    "<div class='ampel'><span>Woche zu <b style='color:var(--text)'>" + pct + " %</b> verplant</span>" +
+    "<div class='ampel'><span>" + wieWoche + " zu <b style='color:var(--text)'>" + pctText + " %</b> verplant</span>" +
     "<span class='ampel__bar'><span class='ampel__fill' style='transform:scaleX(" +
       (Math.min(100, pct) / 100) + ");background:" + ampelFarbe(k.quote) + "'></span>" +
       "<span class='ampel__mark' style='left:" + Math.round(VERPLANT_GRENZE * 100) + "%'></span>" +
@@ -4002,6 +4039,53 @@ function planeNaechsteWoche() {
   else toast("Vorschlag für die nächste Woche steht");
 }
 
+/* Stufe A: der Torwächter vor jedem Verteilen — vorher stand diese Prüfung
+   nur in renderGoals(), die leere "Heute"-Karte (#agendaVorschlag) rief
+   buildSuggestions() daneben ungeprüft auf. "verteilen" ist die eigentliche
+   Aktion (buildSuggestions() + save()/renderAll() + Toast) — passt die Woche,
+   läuft sie sofort; sonst "Das wird eng" mit dem Ausweg, statt erst zu
+   verteilen und danach zu melden, was nicht passte. */
+function verteilenMitGate(verteilen) {
+  const k = wochenKapazitaet();
+  if (k.ok) { verteilen(); return; }
+  modal((sh, close) => {
+    sh.innerHTML =
+      "<h2 class='sheet__title'>Das wird eng</h2>" +
+      "<p style='margin:0 0 14px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
+      "Deine Ziele und Termine summieren sich mit den nötigen Pausen auf <b>" +
+      fmtDur(Math.round(k.bedarf)) + "</b>. In dieser Woche stehen dir " +
+      fmtDur(Math.round(k.wach)) + " wache Stunden zur Verfügung — realistisch verplanbar " +
+      "sind davon etwa <b>" + fmtDur(Math.round(k.grenze)) + "</b>.</p>" +
+      "<p style='margin:0 0 14px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
+      "Ein Plan ohne Luft hält nicht: Es kommt immer etwas dazwischen, und dann " +
+      "kippt der ganze Tag statt nur ein Block. Nimm lieber " +
+      fmtDur(Math.round(k.bedarf - k.grenze)) + " aus den Wochenzielen heraus.</p>" +
+      "<div id='wAmpel'></div>";
+    ampelZeichnen(sh.querySelector("#wAmpel"));
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const trotz = document.createElement("button");
+    trotz.className = "btn"; trotz.type = "button"; trotz.textContent = "Trotzdem verteilen";
+    trotz.onclick = () => { close(); verteilen(); };
+    foot.appendChild(trotz);
+    // Der eigentliche Ausweg — nur in der laufenden Woche sinnvoll: in einer
+    // Zukunftswoche gibt es kein "nächste Woche", das mehr Platz hätte.
+    if (istDieseWoche()) {
+      const weiter = document.createElement("button");
+      weiter.className = "btn"; weiter.type = "button"; weiter.textContent = "Nächste Woche planen";
+      weiter.onclick = () => { close(); planeNaechsteWoche(); };
+      foot.appendChild(weiter);
+    }
+    const sp = document.createElement("span"); sp.className = "spacer";
+    foot.appendChild(sp);
+    const ziele = document.createElement("button");
+    ziele.className = "btn btn--primary"; ziele.type = "button"; ziele.textContent = "Ziele anpassen";
+    ziele.onclick = () => { close(); goalsSheet(); };
+    foot.appendChild(ziele);
+    sh.appendChild(foot);
+  });
+}
+
 function renderGoals() {
   const list = $("#goalsList");
   const foot = $("#goalsFoot");
@@ -4102,44 +4186,13 @@ function renderGoals() {
     const b = document.createElement("button");
     b.className = "btn btn--primary btn--sm";
     b.textContent = "Vorschlagen";
-    b.onclick = () => {
-      const verteilen = () => {
-        const r = buildSuggestions();
-        save(); renderAll();
-        if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
-        else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
-        else toast("Vorschlag steht — schau, ob's dir passt");
-      };
-      const k = wochenKapazitaet();
-      if (k.ok) { verteilen(); return; }
-      // Nicht erst verteilen und danach melden, was nicht passte.
-      modal((sh, close) => {
-        sh.innerHTML =
-          "<h2 class='sheet__title'>Das wird eng</h2>" +
-          "<p style='margin:0 0 14px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
-          "Deine Ziele und Termine summieren sich mit den nötigen Pausen auf <b>" +
-          fmtDur(Math.round(k.bedarf)) + "</b>. In dieser Woche stehen dir " +
-          fmtDur(Math.round(k.wach)) + " wache Stunden zur Verfügung — realistisch verplanbar " +
-          "sind davon etwa <b>" + fmtDur(Math.round(k.grenze)) + "</b>.</p>" +
-          "<p style='margin:0 0 14px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
-          "Ein Plan ohne Luft hält nicht: Es kommt immer etwas dazwischen, und dann " +
-          "kippt der ganze Tag statt nur ein Block. Nimm lieber " +
-          fmtDur(Math.round(k.bedarf - k.grenze)) + " aus den Wochenzielen heraus.</p>" +
-          "<div id='wAmpel'></div>";
-        ampelZeichnen(sh.querySelector("#wAmpel"));
-        const foot = document.createElement("div");
-        foot.className = "sheet__foot";
-        const trotz = document.createElement("button");
-        trotz.className = "btn"; trotz.type = "button"; trotz.textContent = "Trotzdem verteilen";
-        trotz.onclick = () => { close(); verteilen(); };
-        const sp = document.createElement("span"); sp.className = "spacer";
-        const ziele = document.createElement("button");
-        ziele.className = "btn btn--primary"; ziele.type = "button"; ziele.textContent = "Ziele anpassen";
-        ziele.onclick = () => { close(); goalsSheet(); };
-        foot.append(trotz, sp, ziele);
-        sh.appendChild(foot);
-      });
-    };
+    b.onclick = () => verteilenMitGate(() => {
+      const r = buildSuggestions();
+      save(); renderAll();
+      if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
+      else if (r.missing >= 15) toast("Verteilt, bis auf " + fmtDur(r.missing) + " — da war kein Platz mehr");
+      else toast("Vorschlag steht — schau, ob's dir passt");
+    });
     foot.appendChild(b);
     const n = naechste(); if (n) foot.appendChild(n);
   } else {
@@ -6226,12 +6279,12 @@ function renderAgenda() {
 
   $("#agendaFrog").onclick = () => { if (wichtig) taskSheet(wichtig); else setView("aufgaben"); };
   const vorschlagBtn = $("#agendaVorschlag");
-  if (vorschlagBtn) vorschlagBtn.onclick = () => {
+  if (vorschlagBtn) vorschlagBtn.onclick = () => verteilenMitGate(() => {
     const r = buildSuggestions();
     save(); renderAll();
     if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
     else toast("Vorschlag steht — schau, ob's dir passt");
-  };
+  });
   const restTagBtn = $("#restTagBtn");
   if (restTagBtn) restTagBtn.onclick = () => {
     const r = restDesTagesBauen();
@@ -6908,6 +6961,29 @@ function ritualSheet() {
           }
         }
         box.appendChild(lead);
+
+        // Stufe A5: passt der Rest der Woche nicht mehr (dieselbe Prüfung wie
+        // in der Ampel und im "Das wird eng"-Dialog), sagt das Ritual das
+        // offen dazu — mit demselben Ausweg (verteilenMitGate, Stufe A3),
+        // nicht nur über die Ampel-Farbe weiter oben in Schritt 2.
+        if (istDieseWoche() && !wochenKapazitaet().ok) {
+          const warn = document.createElement("div");
+          warn.style.margin = "-4px 0 12px";
+          warn.innerHTML = "<p class='goalrow__sub' style='margin:0 0 8px'>Der Rest passt nicht mehr in diese Woche.</p>";
+          const weiter = document.createElement("button");
+          weiter.className = "btn"; weiter.type = "button";
+          weiter.textContent = "Nächste Woche planen";
+          // planeNaechsteWoche() blättert anchor eine Woche weiter und ruft
+          // renderAll() — Schritt 1/2 dieses Rituals hängen aber an der
+          // Vorwoche/dieser Woche von oben (mon/vorwoche, beim Öffnen des
+          // Blatts erfasst) und würden dabei inkonsistent. Sauberer Schnitt,
+          // derselbe wie beim "Trotzdem"-Knopf im Gate-Dialog: erst das
+          // Blatt schließen, dann verteilen — planeNaechsteWoche() meldet
+          // das Ergebnis bereits selbst per Toast.
+          weiter.onclick = () => { close(); planeNaechsteWoche(); };
+          warn.appendChild(weiter);
+          box.appendChild(warn);
+        }
 
         if (!hasSuggestions() && offen >= 15) {
           const b = document.createElement("button");
