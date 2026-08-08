@@ -7500,6 +7500,13 @@ function importData() {
           toast("Diese Datei ist keine gültige Wochenplaner-Sicherung");
           return;
         }
+        // "areas" ist das eine Feld, das jede echte Sicherung traegt — von
+        // freshState() bis migrate() nie leer oder weggelassen, weil die
+        // ganze Planung um Bereiche herum aufgebaut ist. Muss VOR migrate()
+        // gelesen werden: migrate() fuellt ein fehlendes areas-Feld selbst
+        // mit den Standardbereichen auf und wuerde die Fremddatei sonst
+        // nachtraeglich wie eine echte aussehen lassen.
+        const hatBereiche = Array.isArray(data.areas);
         migrate(data);
 
         // Ersetzen ist nicht harmlos: alles, was es hier gibt und in der
@@ -7513,12 +7520,19 @@ function importData() {
         };
 
         modal((s, close) => {
+          // "0 Eintraege, 0 Aufgaben" sieht fuer eine tatsaechlich leere
+          // Sicherung genauso aus wie fuer eine Datei ohne jede erkennbare
+          // Wochenplaner-Struktur — obwohl "Ersetzen" direkt daneben steht.
+          // hatBereiche unterscheidet die beiden Faelle ehrlich.
+          const keineDaten = !hatBereiche && !(data.blocks || []).length && !(data.tasks || []).length;
           s.innerHTML =
             "<h2 class='sheet__title'>Sicherung laden</h2>" +
             "<p style='margin:0 0 10px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
-            "Die Datei enthält <b>" + (data.blocks || []).length + " Einträge</b> und <b>" +
-            (data.tasks || []).length + " Aufgaben</b>. Aktuell hier: " +
-            state.blocks.length + " Einträge, " + state.tasks.length + " Aufgaben.</p>" +
+            (keineDaten
+              ? "Diese Datei enthält keine erkennbaren Wochenplaner-Daten. "
+              : "Die Datei enthält <b>" + (data.blocks || []).length + " Einträge</b> und <b>" +
+                (data.tasks || []).length + " Aufgaben</b>. ") +
+            "Aktuell hier: " + state.blocks.length + " Einträge, " + state.tasks.length + " Aufgaben.</p>" +
             "<p style='margin:0 0 4px;color:var(--text-faint);font-size:var(--t-sm);line-height:1.6'>" +
             "<b>Zusammenführen</b> behält beides und nimmt bei Unterschieden das Neuere. " +
             "<b>Ersetzen</b> wirft den jetzigen Plan weg — auch auf deinen anderen Geräten.</p>";

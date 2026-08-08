@@ -143,12 +143,14 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
       JSON.stringify(nach.tasks) === JSON.stringify(vor.tasks);
     const eintrag = {
       titel, dateiname, aktion: aktion || '(kein Dialog / abbrechen)',
-      toastVorKlick: nach.toast, dialogOffen: nach.dialogOffen, toastNachKlick: nach.toastNachKlick,
+      toastVorKlick: nach.toast, dialogOffen: nach.dialogOffen, dialogHtml: nach.dialogHtml,
+      toastNachKlick: nach.toastNachKlick,
       zustandUnveraendert, bedienbar, appDa: nach.appDa, stateIstArray: nach.stateIstArray,
       konsolenfehler: [...konsolenfehler]
     };
     console.log('Rueckmeldung vor Klick (Toast):', JSON.stringify(nach.toast));
     console.log('Dialog "Sicherung laden" erschienen:', nach.dialogOffen, '| Aktion:', eintrag.aktion);
+    if (nach.dialogOffen) console.log('Dialogtext:', JSON.stringify(nach.dialogHtml));
     console.log('Rueckmeldung nach Klick (Toast):', JSON.stringify(nach.toastNachKlick));
     console.log('Zustand unveraendert:', zustandUnveraendert, '| state ist Array:', nach.stateIstArray);
     console.log('Oberflaeche bedienbar danach:', bedienbar);
@@ -280,6 +282,43 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const zk = await fall('8) Zukunftsversion (version 99), ERSETZEN', 'zukunft.json', JSON.stringify(zukunftDatei), 'ersetzen');
   const zkVersion = await p.evaluate(() => state.version);
   ok(zkVersion === 9, '8) migrate() zieht eine Zukunftsversion trotzdem auf version 9 (' + zkVersion + '), kein Absturz');
+
+  // ==============================================================
+  // 9) Auftrag B — der Bestaetigungsdialog muss bei "0 Eintraege,
+  //    0 Aufgaben" unterscheiden: echte leere Sicherung (traegt "areas")
+  //    vs. Fremddatei ohne erkennbare Wochenplaner-Daten. Gegenprobe:
+  //    eine normal gefuellte Sicherung zeigt die Anzeige unveraendert.
+  // ==============================================================
+  const echteLeereSicherung = {
+    version: 9, profile: { id: 'p9a', name: '' },
+    settings: { dayStart: 7, dayEnd: 22, theme: 'auto', sleep: { on: false, from: 0, to: 0, wind: 0 } },
+    areas: [{ id: 'a1', name: 'Arbeit', hue: 10, plan: { goal: 0, days: [0,1,2,3,4,5,6], from: null, to: null, min: 15, max: 240, must: true, pad: 0, art: null, ortId: null } }],
+    blocks: [], tasks: [], days: {}, orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}
+  };
+  const leerEcht = await fall('9a) echte leere Sicherung (hat "areas"), Abbrechen', 'leer-echt.json',
+    JSON.stringify(echteLeereSicherung), 'abbrechen');
+  ok(!!leerEcht.dialogHtml && leerEcht.dialogHtml.indexOf('0 Einträge') !== -1 &&
+     leerEcht.dialogHtml.indexOf('keine erkennbaren') === -1,
+    '9a) echte leere Sicherung: Dialog nennt "0 Einträge" OHNE den Fremddatei-Hinweis');
+
+  const leerFremd = await fall('9b) Fremddatei ohne erkennbare Daten ({}), Abbrechen', 'leeresobjekt.json',
+    '{}', 'abbrechen');
+  ok(!!leerFremd.dialogHtml && leerFremd.dialogHtml.indexOf('keine erkennbaren Wochenplaner-Daten') !== -1,
+    '9b) leeres Objekt (keine "areas", keine Bloecke/Aufgaben): Dialog benennt es als Fremddatei');
+
+  const gefuelltDatei = {
+    version: 9, profile: { id: 'p9c', name: '' },
+    settings: { dayStart: 7, dayEnd: 22, theme: 'auto', sleep: { on: false, from: 0, to: 0, wind: 0 } },
+    areas: [{ id: 'a1', name: 'Arbeit', hue: 10, plan: { goal: 3, days: [0,1,2,3,4,5,6], from: null, to: null, min: 15, max: 240, must: true, pad: 0, art: null, ortId: null } }],
+    blocks: [{ id: 'gb1', title: 'Termin', areaId: 'a1', day: 0, date: '2026-08-03', repeat: 'none', start: 540, end: 600, frog: false }],
+    tasks: [{ id: 'gt1', title: 'Aufgabe', areaId: 'a1' }],
+    days: {}, orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}
+  };
+  const gefuellt = await fall('9c) normale gefuellte Sicherung (Gegenprobe), Abbrechen', 'gefuellt.json',
+    JSON.stringify(gefuelltDatei), 'abbrechen');
+  ok(!!gefuellt.dialogHtml && gefuellt.dialogHtml.indexOf('Die Datei enthält') !== -1 &&
+     gefuellt.dialogHtml.indexOf('1 Einträge') !== -1 && gefuellt.dialogHtml.indexOf('1 Aufgaben') !== -1,
+    '9c) gefuellte Sicherung: Anzeige unveraendert wie vor Auftrag B');
 
   await p.close();
   await ctx.close();
