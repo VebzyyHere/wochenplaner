@@ -78,10 +78,10 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node agenda.js` | iPhone SE, gestaffelter Falz-Vertrag bei Standardschrift (Agenda passt ohne Scrollen über die Tabbar), 44px-Trefferflächen, grobe Einträge, Maskierung über `escapeHtml()`; eigener Abschnitt h) für den Abend mit Tagesabschluss, eigene 23-Uhr-Uhr |
 | `node schrift.js` | Derselbe Falz-Vertrag bei zwei Stufen größerer Systemschrift: kein waagerechtes Scrollen, kein abgeschnittener Text, nur noch die Antwort muss ohne Scrollen sichtbar bleiben |
 | `node fuss.js` | Stapelung von Tabbar, Tagesstreifen, Vorschlagsleiste, FAB und Toast im Fußbereich, Hoch- und Querformat |
-| `node leiste.js` | Die Vorschlagsleiste schwebt in „Heute" und „Plan" nicht mehr über Karten- bzw. Rasterinhalt, iPhone SE und iPhone 13 |
+| `node leiste.js` | Die Vorschlagsleiste schwebt in „Heute" und „Plan" nicht mehr über Karten- bzw. Rasterinhalt, iPhone SE und iPhone 13 — und umgekehrt: ihr Polster darf die sichtbare Höhe von `.gridwrap` nicht schrumpfen |
 | `node dialog.js` | Barrierefreiheit der Dialoge: Tab bleibt im offenen Blatt, Fokus kehrt beim Schließen zurück, `aria-labelledby`, `.app[inert]` |
 | `node haken.js` | Abhaken hängt am Paar Eintrag+Datum (`hakenKey`), nicht am Weg über den abgehakt wurde und nicht an der Serie; 44×44-Trefferfläche des Häkchens |
-| `node abbrechen.js` | Art-/Grob-/Ort-Chips im Ziele-Editor übernehmen erst bei „Speichern" — Abbrechen, Escape oder Klick auf den Hintergrund lassen sie unverändert |
+| `node abbrechen.js` | Ziele-Editor: Abbrechen, Escape oder Klick auf den Hintergrund stellen nicht nur Art-/Grob-/Ort-Chips zurück, sondern jedes getippte Feld (Zahl, Haken, Tage, Von/Bis) — über eine Sicherung von `a.plan`/`a.regeln` beim Öffnen; „Speichern" übernimmt weiterhin alles |
 
 ## Inhalt und Logik
 

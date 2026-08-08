@@ -11,7 +11,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
-`index.html` **ist** das Produkt — 8334 Zeilen, ~378 KB, Vanilla JS, kein Build, kein npm,
+`index.html` **ist** das Produkt — 8359 Zeilen, ~389 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
 wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
@@ -20,9 +20,9 @@ das gibt die aktuelle Landkarte der Abschnittsbanner.
 | Zeilen | Inhalt |
 |---|---|
 | 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
-| 32–1466 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
-| 1468–1594 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1595–8332 | Hauptskript unter `"use strict"` |
+| 32–1473 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
+| 1475–1601 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
+| 1602–8356 | Hauptskript unter `"use strict"` |
 
 `Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
 Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
@@ -80,9 +80,11 @@ Bedienung: `sicht.js`, `diag7.js`, `woche.js`, `tap2.js`, `wisch.js`, `drag.js`,
 Standardschrift, plus eigener Abschnitt für den Abend mit Tagesabschluss), `schrift.js`
 (derselbe Vertrag bei vergrößerter Systemschrift, dort nur noch: Antwort bleibt sichtbar),
 `fuss.js` (Stapelung von Tabbar, Vorschlagsleiste, FAB, Toast), `leiste.js` (Vorschlagsleiste
-darf Karten-/Rasterinhalt nicht verdecken), `dialog.js` (Barrierefreiheit der Dialoge),
-`haken.js` (Abhaken hängt am Paar Eintrag+Datum), `abbrechen.js` (Chips im Ziele-Editor
-übernehmen erst bei „Speichern").
+darf Karten-/Rasterinhalt nicht verdecken, und umgekehrt: ihr Polster darf die sichtbare
+Rasterhöhe nicht schrumpfen), `dialog.js` (Barrierefreiheit der Dialoge), `haken.js` (Abhaken
+hängt am Paar Eintrag+Datum), `abbrechen.js` (Ziele-Editor stellt bei Abbrechen, Escape oder
+Klick auf den Hintergrund nicht nur Chips zurück, sondern jedes getippte Feld — über eine
+Sicherung von `a.plan`/`a.regeln` beim Öffnen).
 
 Abgleich und PWA brauchen einen Server:
 
@@ -117,49 +119,49 @@ nicht im Repo — nicht danach suchen.
 
 ## Architektur
 
-**Zustand.** Ein einziges `state`-Objekt. `freshState()` (1887) legt es bei `version: 8` an,
-`migrate()` (1911) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
+**Zustand.** Ein einziges `state`-Objekt. `freshState()` (1894) legt es bei `version: 8` an,
+`migrate()` (1918) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
 `version: 9`. Felder: `areas` (seit v9 zusätzlich optional `area.regeln`, s. Verteiler), `blocks`,
-`tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. `Store` (1622) schreibt nach
+`tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. `Store` (1629) schreibt nach
 `localStorage["wochenplaner.<scope>"]` — **ein Speicherplatz je Konto**, damit sich zwei Leute an
 einem Rechner nicht überschreiben; Legacy-Schlüssel `wochenplaner.v1` wird einmal übernommen; ohne
 `localStorage` (Vorschau-Frames) fällt er auf Arbeitsspeicher zurück und blendet ein Banner ein.
-`Store.backupVorV9()` (1684) sichert **einmalig** den unveränderten Stand, bevor `migrate()` ihn
+`Store.backupVorV9()` (1691) sichert **einmalig** den unveränderten Stand, bevor `migrate()` ihn
 zum ersten Mal auf `version: 9` zieht — eigener Schlüssel neben dem Zustand, deshalb außerhalb von
 `snapshot()`/`mergeStates()` und nie mitsynchronisiert (Prüfung: `netz.js`).
 
-**Speichern.** `save()` (2189) → `stampChanges()` → `Store.save()` → `syncPush()`.
-`snapshot()`/`recHash()` (2149/2143) vergleichen den neuen Stand mit dem letzten: was sich geändert
+**Speichern.** `save()` (2196) → `stampChanges()` → `Store.save()` → `syncPush()`.
+`snapshot()`/`recHash()` (2156/2150) vergleichen den neuen Stand mit dem letzten: was sich geändert
 hat, bekommt `at`, was verschwunden ist, landet als Grabstein in `state.tombs`. Deshalb wird
 nirgends von Hand gestempelt. `undoLast()` hält den Stand vor der letzten Änderung.
 
-**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8189) ruft zehn
-`render*`-Funktionen, darunter `renderAgenda()` (5785, trägt seit Stufe 13 auch den
-Tagesabschluss ab Feierabend) und `renderRitual()` (6285, Zugang zum Wochenritual). `setView()`
-(7877) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
-(Tabbar, Markup 1568) — am Desktop stehen sie nebeneinander.
+**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8214) ruft zehn
+`render*`-Funktionen, darunter `renderAgenda()` (5810, trägt seit Stufe 13 auch den
+Tagesabschluss ab Feierabend) und `renderRitual()` (6310, Zugang zum Wochenritual). `setView()`
+(7902) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
+(Tabbar, Markup 1575) — am Desktop stehen sie nebeneinander.
 
-**Verteiler.** `buildSuggestions()` (3532) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
+**Verteiler.** `buildSuggestions()` (3547) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
 Vorschläge sind normale Blöcke mit `sug: true` — dadurch lassen sie sich ziehen wie alles andere.
 Seit v9 kann ein Bereich zusätzlich `area.regeln` tragen (Fenster: erlaubte Wochentage/Uhrzeit;
 Anker: Mindestabstand zu einem anderen Bereich) — der Verteiler prüft beides *vor* der
-Platzierung, most-constrained-first (Prüfung: `regeln.js`). `wochenKapazitaet()` (2850) fragt
-*vor* dem Verteilen, ob die Woche das überhaupt hergibt; `VERPLANT_GRENZE = 0.65` (2849), Ampel
-grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 2898). `istSerie()` (2513, `repeat ===
+Platzierung, most-constrained-first (Prüfung: `regeln.js`). `wochenKapazitaet()` (2865) fragt
+*vor* dem Verteilen, ob die Woche das überhaupt hergibt; `VERPLANT_GRENZE = 0.65` (2864), Ampel
+grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 2913). `istSerie()` (2528, `repeat ===
 "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine für Anzeige und
 Abhaken.
 
-**Wochenritual.** `ritualSheet()` (6312) führt am Montag durch drei Schritte —
-`schrittRueckblick()` (6338, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
-Zielanpassung über `rueckblickMuster()` 6679), Ziele, Verteilen. `renderRitual()` (6285) zeigt die
+**Wochenritual.** `ritualSheet()` (6337) führt am Montag durch drei Schritte —
+`schrittRueckblick()` (6363, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
+Zielanpassung über `rueckblickMuster()` 6704), Ziele, Verteilen. `renderRitual()` (6310) zeigt die
 Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
 
-**Abgleich.** `Sync` (7491) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
-bewusst im Klartext in `SUPABASE` (1613) — der anon key darf öffentlich sein, geschützt wird über
+**Abgleich.** `Sync` (7516) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
+bewusst im Klartext in `SUPABASE` (1620) — der anon key darf öffentlich sein, geschützt wird über
 Row Level Security. `GET`/`POST /rest/v1/plans` (Spalte `data`, Header
 `Prefer: resolution=merge-duplicates,return=minimal`), Session unter `wochenplaner.session`,
 Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
-`mergeStates()` (7409): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
+`mergeStates()` (7434): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
 
 **Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen. Cache-first wäre
 schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
@@ -172,20 +174,20 @@ schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung geze
   `s.version` am Ende mitziehen.
 - **Nie `at` von Hand setzen, nie Grabsteine löschen.** Sonst kehren gelöschte Einträge beim
   nächsten Abgleich vom anderen Gerät zurück.
-- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7344): alles, was hier existiert und
+- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7369): alles, was hier existiert und
   in der Sicherung fehlt, bekommt einen Grabstein — und den schiebt der Abgleich auf alle Geräte.
   Eine drei Monate alte Sicherung vom Handy hat so schon den Plan am PC gelöscht. Der Dialog mit
   „Zusammenführen" als Vorgabe bleibt.
 - **Grobe Blöcke** (`b.grob`, mit `teil` + `dauer` statt Uhrzeit) dürfen in den Kennzahlen von
   `realtest.js` nicht mitzählen. Sie haben keine echte Uhrzeit und erscheinen sonst als „Übergang
   ohne Lücke" — dieser Messfehler hat einmal eine Verschlechterung vorgetäuscht, die es nicht gab.
-- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()` 2659, nutzt `istSerie()` 2513), nicht an
+- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()` 2674, nutzt `istSerie()` 2528), nicht an
   der Serie — sonst gilt ein wöchentlicher oder zweiwöchentlicher Eintrag in allen Wochen als
   erledigt.
 - **Neue Felder gehören auf `area`, `task` oder `block` — nie an die `state`-Wurzel und nie in
   `area.plan`.**
-- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6229) schicken.
-- **`renderEnergy()` (6009) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
+- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6254) schicken.
+- **`renderEnergy()` (6034) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
   `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
 
@@ -211,7 +213,9 @@ bekommen. Sie gelten unabhängig davon, wie sich Zeilenzahlen oben verschieben.
   (`page.clock.setFixedTime`, `timezoneId: 'Europe/Berlin'`). Diese Fehlerklasse — ein Skript, das
   je nach Startzeitpunkt grün oder rot wird und dadurch falsches Vertrauen erzeugt — hat in diesem
   Projekt schon **viermal** zugeschlagen. Ein neues zeitkritisches Prüfskript ohne feste Uhr wird
-  nicht abgenommen.
+  nicht abgenommen. Das Zeit-Literal in `setFixedTime` muss dabei **zoniert** angegeben werden
+  (z. B. `'2026-08-05T10:00:00+02:00'`) — eine Uhrzeit ohne Zonen-Endung nimmt die Prozesszone der
+  jeweils ausführenden Maschine an und wird dadurch selbst wieder zu einer ungenagelten Uhr.
 - **Commit nur bei grüner Kette:** vorher `node alles.js` aus `werkzeug/` heraus laufen lassen.
 - **Screenshots werden angesehen, nicht nur gemessen.** Fünf echte Befunde dieses Projekts hat
   keine einzige Messung gefunden, nur der Blick aufs Bild.
