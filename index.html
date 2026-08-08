@@ -3489,15 +3489,23 @@ function placeArea(area, open) {
    Diese Funktion kannte weder die Nachtruhe noch überlappende Termine: sie
    dehnte Vorschläge in die Schlafenszeit hinein und quer über Arzttermine
    hinweg, weil `x.start >= b.end` einen Block, der schon vorher beginnt,
-   nicht findet. Beides ist jetzt Teil der Obergrenze. */
+   nicht findet. Beides ist jetzt Teil der Obergrenze.
+
+   Stufe 16: kannte auch kein "jetzt" — verlängerte am laufenden Tag auch
+   einen eigenen Vorschlag, dessen Zeit längst vorbei war (buildSuggestions()
+   räumt am laufenden Tag bewusst nichts weg, siehe clearSuggestions()). Ein
+   gerade laufender Block (start <= jetzt < end) wächst davon unberührt
+   weiter — nur ein bereits abgeschlossenes Ende wird nicht mehr verlängert. */
 function growSuggestions(area, rest) {
   const p = area.plan;
   const hi = Math.min(state.settings.dayEnd * 60, p.to == null ? 1440 : p.to);
   let used = 0;
+  const heuteKey = iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
 
   for (const day of weekDays()) {
     if (!p.days.includes(day.i)) continue;
-    if (day.key < iso(new Date())) continue;
+    if (day.key < heuteKey) continue;
 
     // area.regeln (Stufe 9) kann die Tagesobergrenze enger ziehen als hi —
     // Fenster-Ende und Anker-Ende+max. Ohne das wächst ein Vorschlag über
@@ -3525,6 +3533,12 @@ function growSuggestions(area, rest) {
       // kein offener Bereichs-Vorschlag — seine Länge ist die Dauer der
       // Aufgabe, nicht Verhandlungsmasse für übrig gebliebene Bereichszeit.
       if (!b.sug || b.areaId !== area.id || b.fix || b.taskId) continue;
+      // Kennt sonst kein "jetzt" (siehe Kommentar oben der Funktion): ein
+      // eigener Vorschlag von heute, dessen Ende schon erreicht oder
+      // überschritten ist, ist bewiesen vorbei — der Verteiler darf ihn
+      // nicht mehr verlängern. Ein gerade laufender Block (start <= jetzt
+      // < end) fällt nicht unter dieses Filter und wächst wie bisher.
+      if (day.key === heuteKey && b.end <= jetzt) continue;
 
       // Alles, was nach dem Ende dieses Blocks noch im Weg steht — auch wenn es
       // davor beginnt und ihn überlappt. Dazu die Nachtruhe.
@@ -3721,17 +3735,12 @@ function restDesTagesBauen() {
   });
 
   // Was nach dem Filter oben noch als eigener sug-Block von heute steht, ist
-  // damit bereits bewiesen vorbei. growSuggestions() (aufgerufen aus
-  // placeArea() weiter unten) kennt "jetzt" aber nicht und haengt beim
-  // Auffuellen des Feierabend-Rests trotzdem an bestehende sug-Bloecke an
-  // (b.end += grow) - auch an schon vergangene. Statt growSuggestions() dafuer
-  // anzufassen (das wuerde auch den woechentlichen Verteiler treffen, der
-  // dieselbe Funktion benutzt), wird hier nur der Stand gesichert und danach
-  // Feld fuer Feld zurueckgeschrieben.
-  const vergangeneSnapshot = state.blocks
-    .filter(b => b.sug && b.date === heuteKey && !b.taskId)
-    .map(b => ({ id: b.id, start: b.start, end: b.end, sug: b.sug }));
-
+  // damit bereits bewiesen vorbei — growSuggestions() (aufgerufen aus
+  // placeArea() weiter unten) laesst diese Bloecke seit Stufe 16 von selbst
+  // in Ruhe (kennt "jetzt", verlaengert kein Ende, das schon erreicht oder
+  // ueberschritten ist). Bis dahin brauchte es hier eine eigene Sicherung
+  // und Rueckschreibung dafuer — seit growSuggestions() die Regel selbst
+  // kennt, ist das ueberfluessig.
   const todo = state.areas
     .filter(a => !a.plan.keinVorschlag)
     .filter(a => a.plan.days.includes(day.i) && fensterErlaubtTag(a.regeln, day.i))
@@ -3746,17 +3755,6 @@ function restDesTagesBauen() {
     placed += got;
     missing += open - got;
     if (!got) { const h = mcsHinweis(a); if (h) hinweise.push(h); }
-  });
-
-  vergangeneSnapshot.forEach(s => {
-    const b = state.blocks.find(x => x.id === s.id);
-    if (!b) return;
-    // growSuggestions() zaehlt ein gewachsenes Ende als "placed" — wird das
-    // hier zurueckgenommen, muss die Minute auch aus der Zaehlung raus,
-    // sonst meldet der Knopf einen Erfolg, den es gar nicht gab.
-    const gewachsen = b.end - s.end;
-    if (gewachsen > 0) { placed -= gewachsen; missing += gewachsen; }
-    b.start = s.start; b.end = s.end; b.sug = s.sug;
   });
 
   return { placed, missing, hinweise };

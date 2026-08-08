@@ -192,8 +192,116 @@ function vergleiche(vorher, nachher) {
   ok(d.existiert2 && d.pos2.date === d.vor.date && d.pos2.start === d.vor.start,
     'd) fixierter Block unveraendert auch nach der zweiten Verteilung');
 
+  // -------------------------------------------------------------
+  // e) growSuggestions() kennt jetzt "jetzt" — der NORMALE Verteiler
+  //    (buildSuggestions(), nicht der Rest-des-Tages-Weg) darf einen
+  //    eigenen, bereits vergangenen Vorschlag von heute nicht mehr
+  //    verlaengern. Braucht eine feste, zonierte Uhr (anders als a)-d)
+  //    oben, wo "heute" bewusst keine Rolle spielt) — eigener Kontext,
+  //    eigene Seite, derselbe Vertrag wie restdestag.js.
+  //
+  //    e.1) und e.2) sind bis auf das Datum IDENTISCH aufgebaut: derselbe
+  //    Bereich, derselbe Block (9:00-9:45), dasselbe plan.from/plan.to-
+  //    Fenster (9:45-10:00, macht die Luecke fuer einen ganz NEUEN Block
+  //    leer und zwingt die restlichen 30 Minuten so in growSuggestions()
+  //    hinein — genau der Pfad, der den Fehler zeigt). Der einzige
+  //    Unterschied ist die Gegenprobe: e.1) heute (muss stehen bleiben),
+  //    e.2) ein kuenftiger Tag dieser Woche (muss weiter wachsen wie
+  //    bisher — sonst haette der Fix nur das Wachsen an sich abgeschaltet).
+  // -------------------------------------------------------------
+  const ctx2 = await br.newContext({ viewport: { width: 1400, height: 950 }, timezoneId: 'Europe/Berlin' });
+  const p2 = await ctx2.newPage();
+  const konsolenfehler2 = [];
+  p2.on('pageerror', e => konsolenfehler2.push('PAGEERROR: ' + e.message));
+  p2.on('console', m => { if (m.type() === 'error') konsolenfehler2.push('CONSOLE: ' + m.text()); });
+  // Mittwoch, 14:00 — mitten am Tag, weit nach dem 10-Uhr-Fenster unten.
+  await p2.clock.setFixedTime(new Date('2026-08-05T14:00:00+02:00'));
+  await p2.goto(F);
+  await p2.waitForTimeout(500);
+  await p2.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
+  await p2.waitForTimeout(250);
+
+  async function vergangenSetup(zukunft) {
+    return p2.evaluate((zukunft) => {
+      state = freshState(); migrate(state);
+      state.settings.dayStart = 7; state.settings.dayEnd = 22;
+      state.settings.sleep = { on: false };
+      anchor = new Date();
+      const heuteKey = iso(new Date());
+      const tag = zukunft ? weekDays().find(d => d.key > heuteKey) : weekDays().find(d => d.key === heuteKey);
+
+      const sport = state.areas.find(x => x.id === 'a3');
+      sport.plan.goal = 1.25; sport.plan.must = false; sport.plan.days = [tag.i];
+      // Fenster genau 15 Minuten ueber das Blockende hinaus — mit dem Block
+      // selbst als "busy" bleibt daraus keine Luecke fuer einen neuen Block
+      // (freeGaps() prueft das unten separat), die uebrigen 30 Minuten
+      // muessen also durch growSuggestions() ans bestehende Ende wachsen.
+      sport.plan.from = 9 * 60; sport.plan.to = 10 * 60;
+
+      const id = 'sug_' + (zukunft ? 'zukunft' : 'heute');
+      state.blocks = [{ id, title: 'Sport', areaId: 'a3', day: tag.i,
+        date: tag.key, repeat: 'none', start: 9 * 60, end: 9 * 60 + 45, frog: false, sug: true }];
+      save(); renderAll();
+
+      const vorher = { start: state.blocks[0].start, end: state.blocks[0].end, sug: state.blocks[0].sug };
+      const r = buildSuggestions();
+      const nachher = state.blocks.find(b => b.id === id);
+      return { tagKey: tag.key, vorher, r,
+        nachher: nachher ? { start: nachher.start, end: nachher.end, sug: nachher.sug } : null };
+    }, zukunft);
+  }
+
+  console.log('\n=== e.1) NORMALER Verteiler: eigener vergangener Vorschlag von HEUTE bleibt unangetastet ===');
+  const e1 = await vergangenSetup(false);
+  console.log(JSON.stringify(e1, null, 1));
+  ok(!!e1.nachher, 'e.1) der Vorschlag existiert nach buildSuggestions() noch');
+  ok(e1.nachher && e1.nachher.start === e1.vorher.start && e1.nachher.end === e1.vorher.end
+    && e1.nachher.sug === e1.vorher.sug,
+    'e.1) ...und bleibt Feld fuer Feld unveraendert (' + JSON.stringify(e1.vorher) + ' -> ' + JSON.stringify(e1.nachher) + ')');
+
+  console.log('\n=== e.2) Gegenprobe: derselbe Aufbau an einem KUENFTIGEN Tag waechst weiter wie bisher ===');
+  const e2 = await vergangenSetup(true);
+  console.log(JSON.stringify(e2, null, 1));
+  ok(!!e2.nachher, 'e.2) der Vorschlag existiert nach buildSuggestions() noch');
+  ok(e2.nachher && e2.nachher.start === e2.vorher.start,
+    'e.2) ...der Start bleibt gleich');
+  ok(e2.nachher && e2.nachher.end > e2.vorher.end,
+    'e.2) ...aber das Ende waechst weiterhin, wie es das vor diesem Auftrag auch tat (' +
+    e2.vorher.end + ' -> ' + (e2.nachher && e2.nachher.end) + ')');
+
+  console.log('\n=== e.3) Kalter Erstlauf ohne vorhandene Vorschlaege bleibt unveraendert ===');
+  const e3 = await p2.evaluate(() => {
+    state = freshState(); migrate(state);
+    state.settings.dayStart = 7; state.settings.dayEnd = 22;
+    state.settings.sleep = { on: true, from: 22 * 60 + 30, to: 6 * 60 + 30, wind: 30 };
+    const set = (id, h, must, pad) => { const a = state.areas.find(x => x.id === id);
+      a.plan.goal = h; a.plan.must = must; if (pad !== undefined) a.plan.pad = pad; };
+    set("a1", 20, true, 60); set("a2", 12, true); set("a3", 4, true); set("a6", 4, true); set("a5", 8, false);
+    anchor = new Date();   // die aktuelle (fixierte) Woche, "heute" ist Teil davon — anders als realtest.js
+    state.blocks = [];
+    save(); renderAll();
+    const r = buildSuggestions();
+    const schnappschuss = state.blocks.filter(b => b.sug && !b.grob)
+      .map(b => ({ areaId: b.areaId, date: b.date, start: b.start, end: b.end }))
+      .sort((a, b) => a.date === b.date ? a.start - b.start : (a.date < b.date ? -1 : 1));
+    return { r, anzahl: schnappschuss.length, schnappschuss };
+  });
+  console.log(JSON.stringify({ r: e3.r, anzahl: e3.anzahl }, null, 1));
+  // Festgenagelt am 2026-08-08 (siehe oben) vor der Aenderung an
+  // growSuggestions() gemessen — muss nach der Aenderung Zahl fuer Zahl
+  // gleich bleiben, weil ohne vorhandene Vorschlaege nichts da ist, das
+  // die neue Regel ueberhaupt uebergehen koennte.
+  const e3Erwartet = { r: { placed: 2880, missing: 0, areas: 5, hinweise: [] },
+    anzahl: 34 };
+  ok(JSON.stringify({ r: e3.r, anzahl: e3.anzahl }) === JSON.stringify(e3Erwartet),
+    'e.3) kalter Erstlauf liefert dieselben Kennzahlen wie vor der Aenderung (' +
+    JSON.stringify({ r: e3.r, anzahl: e3.anzahl }) + ' vs. erwartet ' + JSON.stringify(e3Erwartet) + ')');
+
+  console.log('\nKonsolenfehler (e):', konsolenfehler2.length ? konsolenfehler2 : 'keine');
+  await ctx2.close();
+
   console.log('\nKonsolenfehler:', konsolenfehler.length ? konsolenfehler : 'keine');
   console.log('\nFehler:', fehler.length ? fehler : 'keine');
   await br.close();
-  if (fehler.length || konsolenfehler.length) process.exit(1);
+  if (fehler.length || konsolenfehler.length || konsolenfehler2.length) process.exit(1);
 })();

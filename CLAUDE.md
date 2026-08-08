@@ -163,9 +163,9 @@ Abhaken.
 Wochenziel-Verteilen an, nur auf den laufenden Tag beschränkt. Zwei rote Linien, teuer erarbeitet,
 nicht versehentlich wieder aufweichen: auf einem freigehaltenen Tag schlägt auch dieser Weg nichts
 vor (`istFrei()`); und ein bereits vergangener eigener Vorschlag von heute wird nicht mehr
-angefasst — `growSuggestions()` kennt kein „jetzt" und würde ihn beim Auffüllen des
-Feierabend-Rests sonst verlängern, darum sichert der Weg die vergangenen Blöcke vorher lokal
-(`vergangeneSnapshot`) und schreibt sie danach Feld für Feld zurück.
+angefasst — seit Stufe 16 sorgt dafür `growSuggestions()` selbst (kennt „jetzt", verlängert kein
+Ende, das schon erreicht oder überschritten ist), die frühere lokale Sicherung/Rückschreibung
+(`vergangeneSnapshot`) ist damit entfallen.
 
 **Wochenritual.** `ritualSheet()` (6453) führt am Montag durch drei Schritte —
 `schrittRueckblick()` (6479, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
@@ -222,10 +222,12 @@ Geprüft in `werkzeug/pwatest.js`.
 - **`renderEnergy()` (6150) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
   `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
-- **`growSuggestions()` kennt generell kein „jetzt".** Bekannt, bewusst nicht behoben, außerhalb
-  des Auftrags, der `restDesTagesBauen()` brachte: auch der wöchentliche Verteiler kann daher
-  theoretisch einen längst vergangenen eigenen Vorschlag von heute verlängern, weil
-  `clearSuggestions(warm)` (3612) den laufenden Tag bewusst unberührt lässt.
+- **`growSuggestions()` kennt seit Stufe 16 „jetzt".** War bekannt, bewusst nicht behoben, solange
+  nur `restDesTagesBauen()` betroffen war (dort lokal umgangen über `vergangeneSnapshot`) — betraf
+  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (3612) den laufenden Tag
+  bewusst unberührt lässt. Jetzt verlängert `growSuggestions()` an keinem eigenen Vorschlag von
+  heute mehr ein Ende, das schon erreicht oder überschritten ist; ein gerade laufender Block
+  (start ≤ jetzt < end) wächst unverändert weiter.
 
 ## Verträge
 
