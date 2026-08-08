@@ -3686,6 +3686,96 @@ function acceptSuggestions() {
   return n;
 }
 
+/* Stufe 15: "Tag durcheinander?" — der Knopf in "Heute" fuer den Moment,
+   in dem der Plan mitten am Tag zerbricht. Wendet denselben Verteiler wie
+   das Wochenziel-Verteilen an (placeArea/placeGrob/growSuggestions), nur
+   auf den LAUFENDEN Tag beschraenkt: eine Kopie des Bereichsplans mit
+   plan.days = [heute] reicht dafuer, weil alle drei Funktionen ihre Tage
+   ausschliesslich ueber plan.days filtern — der Rest der Woche bleibt so
+   unberuehrt, ohne dass sie etwas von der Einschraenkung wissen muessen.
+
+   Nichts in der Vergangenheit: freeGaps() (2989 ff.) schneidet fuer den
+   heutigen Tag ohnehin schon bei jetzt+10min ab, placeGrob() laesst einen
+   schon vorbeigezogenen Abschnitt von sich aus aus. Keine festen Termine:
+   dieser Weg legt ausschliesslich NEUE sug:true-Bloecke in freie Luecken -
+   er verschiebt oder loescht nie etwas Bestehendes.
+
+   Ein zweiter Tipp auf denselben Knopf soll neu rechnen, nicht stapeln —
+   darum raeumt er zuerst seine eigenen, noch nicht angenommenen Vorschlaege
+   ab jetzt weg. Was schon vorbei ist, bleibt stehen (dieselbe Grenze wie
+   oben); Aufgaben-Vorschlaege (b.taskId) fasst dieser Knopf grundsaetzlich
+   nicht an — placeTask() kennt keine Tages-Einschraenkung, und ein schon
+   fuer heute stehender Aufgaben-Vorschlag soll dafuer nicht verschwinden. */
+function restDesTagesBauen() {
+  const heuteKey = iso(new Date());
+  const day = weekDays().find(d => d.key === heuteKey);
+  if (!day) return { placed: 0, missing: 0, hinweise: [] };
+  // Derselbe Vertrag wie ueberall sonst im Verteiler (istFrei, s. 2997/3217/
+  // 3649): auf einem freigehaltenen Tag schlaegt dieser Weg nichts vor.
+  if (istFrei(heuteKey)) return { placed: 0, missing: 0, hinweise: [] };
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+
+  state.blocks = state.blocks.filter(b => {
+    if (!(b.sug && b.date === heuteKey && !b.taskId)) return true;
+    return b.grob ? abschnittVon(b.teil).bis <= jetzt : b.end <= jetzt;
+  });
+
+  // Was nach dem Filter oben noch als eigener sug-Block von heute steht, ist
+  // damit bereits bewiesen vorbei. growSuggestions() (aufgerufen aus
+  // placeArea() weiter unten) kennt "jetzt" aber nicht und haengt beim
+  // Auffuellen des Feierabend-Rests trotzdem an bestehende sug-Bloecke an
+  // (b.end += grow) - auch an schon vergangene. Statt growSuggestions() dafuer
+  // anzufassen (das wuerde auch den woechentlichen Verteiler treffen, der
+  // dieselbe Funktion benutzt), wird hier nur der Stand gesichert und danach
+  // Feld fuer Feld zurueckgeschrieben.
+  const vergangeneSnapshot = state.blocks
+    .filter(b => b.sug && b.date === heuteKey && !b.taskId)
+    .map(b => ({ id: b.id, start: b.start, end: b.end, sug: b.sug }));
+
+  const todo = state.areas
+    .filter(a => !a.plan.keinVorschlag)
+    .filter(a => a.plan.days.includes(day.i) && fensterErlaubtTag(a.regeln, day.i))
+    .map(a => ({ a: { ...a, plan: { ...a.plan, days: [day.i] } },
+      open: a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true) }))
+    .filter(x => x.open >= 15)
+    .sort((x, y) => (y.a.plan.must - x.a.plan.must) || (y.open - x.open));
+
+  let placed = 0, missing = 0, hinweise = [];
+  todo.forEach(({ a, open }) => {
+    const got = placeArea(a, open);
+    placed += got;
+    missing += open - got;
+    if (!got) { const h = mcsHinweis(a); if (h) hinweise.push(h); }
+  });
+
+  vergangeneSnapshot.forEach(s => {
+    const b = state.blocks.find(x => x.id === s.id);
+    if (!b) return;
+    // growSuggestions() zaehlt ein gewachsenes Ende als "placed" — wird das
+    // hier zurueckgenommen, muss die Minute auch aus der Zaehlung raus,
+    // sonst meldet der Knopf einen Erfolg, den es gar nicht gab.
+    const gewachsen = b.end - s.end;
+    if (gewachsen > 0) { placed -= gewachsen; missing += gewachsen; }
+    b.start = s.start; b.end = s.end; b.sug = s.sug;
+  });
+
+  return { placed, missing, hinweise };
+}
+
+/* Nur fuer die Anzeige des Knopfs: derselbe Aufbau wie oben, aber auf
+   einer Kopie von state.blocks probiert — state.blocks wird kurz
+   umgehaengt (JS ist einstraengig, es laeuft nichts anderes dazwischen)
+   und danach wieder auf die echte Liste zurueckgestellt. So weiss der
+   Knopf, ob es heute noch etwas zu verteilen gibt, ohne selbst schon
+   etwas zu verteilen — ein Knopf, der nichts tun kann, ist Laerm. */
+function restDesTagesMoeglich() {
+  const echt = state.blocks;
+  state.blocks = echt.map(b => ({ ...b }));
+  const r = restDesTagesBauen();
+  state.blocks = echt;
+  return r.placed > 0;
+}
+
 /* Vorschlagsleiste ueber der Tabbar: dieselben drei Funktionen wie in
    "Ziele" (hasSuggestions/acceptSuggestions/clearSuggestions), nur auch
    in "Plan" und "Heute" sichtbar platziert — vorher musste man dafuer
@@ -5895,6 +5985,25 @@ function renderAgenda() {
     if (frei && frei.total >= 15) {
       html += "<div class='agenda__foot'>Danach frei · längster Block " + fmtDur(frei.longest) + "</div>";
     }
+
+    // Stufe 15: "Tag durcheinander?" — nur am heutigen Tag (sonst betrifft
+    // ein Antippen einen fremden Tag, den man gerade nur zum Nachsehen
+    // aufgeklappt hat), nur solange es dort ueberhaupt noch etwas gibt
+    // (sonst waere der Knopf blosses Rauschen), und nur VOR der
+    // Feierabendzeit — danach uebernimmt der Tagesabschluss direkt darunter
+    // dieselbe Rolle fuer den Tagesrest, zwei Angebote uebereinander waeren
+    // unruhig. "Durcheinander" setzt zudem voraus, dass fuer heute ueberhaupt
+    // schon etwas stand — bei einem komplett leeren Tag (Zweig oben) sagt das
+    // "Vorschlagen" dort bereits alles Noetige. Feierabend wie unten aus
+    // dayEnd und der Nachtruhe abgeleitet, hier bewusst noch einmal
+    // ausgeschrieben statt geteilt — dieselbe Dopplung wie schon zweimal
+    // in dieser Datei (s. Kommentar unten).
+    const feierabendJetzt = restSpans().filter(r => r.end >= 1440).map(r => r.start);
+    const feierabendGrenze = Math.min(state.settings.dayEnd * 60, ...(feierabendJetzt.length ? feierabendJetzt : [1440]));
+    if (heute && jetzt < feierabendGrenze && restDesTagesMoeglich()) {
+      html += "<button type='button' class='btn btn--sm btn--ghost' id='restTagBtn' style='width:100%;margin-top:10px'>" +
+        "Tag durcheinander? Rest neu vorschlagen</button>";
+    }
   }
 
   // Tagesabschluss (Stufe 13 Teil E): ab Feierabend jede heute offene Sache
@@ -5939,6 +6048,13 @@ function renderAgenda() {
     save(); renderAll();
     if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
     else toast("Vorschlag steht — schau, ob's dir passt");
+  };
+  const restTagBtn = $("#restTagBtn");
+  if (restTagBtn) restTagBtn.onclick = () => {
+    const r = restDesTagesBauen();
+    save(); renderAll();
+    if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
+    else toast("Rest des Tages neu vorgeschlagen — schau, ob's dir passt");
   };
   box.querySelectorAll(".agenda__check").forEach(cb => {
     cb.onchange = () => {
