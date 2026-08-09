@@ -29,6 +29,19 @@
    Ausgabe, Exit 1 bei Fehlern. timezoneId fest auf Europe/Berlin, sonst
    testet c) die Sommerzeitumstellung nur, wenn die Maschine zufällig in
    dieser Zeitzone läuft.
+
+   Nachbesserung: ein einzelner page.clock.setFixedTime()-Aufruf vor dem
+   allerersten goto() nagelt jetzt zusätzlich den Erststart-Assistenten fest
+   (Montagmorgen, 2026-08-03T08:00:00+02:00) — seit Stufe D kann der dort ein
+   Kapazitäts-Gate öffnen, ein ungenagelter Lauf wäre kalendertagabhängig
+   grün oder rot. Alles andere in diesem Skript bleibt bewusst unangetastet:
+   a)/b)/c) und der DST-Abschnitt rechnen ausschließlich mit expliziten
+   Datums-Literalen (new Date(since + 'T12:00:00')), nie mit new Date() ohne
+   Argument — von setFixedTime() unberührt. d)/e)/f) lesen dagegen bewusst
+   "jetzt" (anchor = new Date() bzw. addDays(mondayOf(new Date()), 7)) als
+   relative Basis für ihr eigenes Szenario, kein Test einer bestimmten
+   Zeitreise — sie werden durch die eine feste Uhr oben nur deterministisch
+   (immer dieselbe Woche), nicht falsch.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
@@ -45,6 +58,10 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  // Montagmorgen, s. Kopfkommentar — nagelt nur den Erststart fest, der Rest
+  // des Skripts rechnet entweder mit expliziten Datums-Literalen (unberührt)
+  // oder bewusst relativ zu "jetzt" (wird dadurch nur deterministisch).
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
   // Erststart-Assistent wegklicken (wie haken.js/dialog.js/audit.js).
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }

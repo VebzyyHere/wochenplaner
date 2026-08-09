@@ -32,6 +32,17 @@
       Blatt schliesst, die Woche weiterblaettert (KW-Label/anchor) und
       dort Vorschlaege erzeugt; Montagmorgen (dieselben Daten, Woche
       passt) zeigt weder Zeile noch Knopf.
+   g) Mini-Stufe D: der Erststart-Assistent (maybeWelcome()/anlegen())
+      laeuft seit Stufe D ebenfalls durch verteilenMitGate() — dritter
+      Verteil-Einstieg neben Ziele und Heute-Leerzustand (d). Frischer
+      Zustand, echte Klicks durch alle vier Schritte mit den
+      Assistenten-Standardwerten (Arbeit Mo-Fr 09-17, Wochenziele
+      START_ZIELE = 16h), Samstagabend: "Woche anlegen" oeffnet "Das wird
+      eng" statt still zu verteilen; die eingegebenen Daten (Ziele,
+      Arbeit-Bloecke) stehen trotzdem schon, nur noch keine sug-Bloecke;
+      "Naechste Woche planen" blaettert weiter und verteilt dort.
+      Gegenprobe Montagmorgen: kein Gate, sug-Bloecke entstehen sofort —
+      unveraendert gegenueber vor Stufe D.
 
    Mindestens eine Zusicherung ist bewusst so gebaut, dass sie unter der
    ALTEN Vollwochen-Rechnung nachweislich fehlschlaegt (siehe a): dort
@@ -43,6 +54,14 @@
    page.clock.setFixedTime() (zoniertes Literal) und timezoneId
    festgenagelt, NICHT ueber die echte Systemuhr — sonst haengt jedes
    Ergebnis hier davon ab, wann das Skript zufaellig laeuft.
+
+   Rot-Beweis fuer g): `git stash push -- index.html` gegen HEAD (vor
+   Stufe D), Skript erneut laufen lassen — g1) faellt, weil anlegen() dort
+   buildSuggestions() noch direkt aufruft, ohne verteilenMitGate() zu
+   fragen: "Das wird eng" erscheint nie. a)-f) bleiben gruen, die pruefen
+   ausschliesslich wochenKapazitaet()/verteilenMitGate() selbst (Stufe A,
+   von Stufe D unangetastet). `git stash pop` stellt den Stand danach
+   wieder her.
    ============================================================ */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -331,6 +350,117 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(f3.titel === 'Und wann?', 'f) Schritt 3 ist erreicht (Titel "Und wann?"), war ' + JSON.stringify(f3.titel));
   ok(!f3.warnzeile, 'f) im Montag-Szenario erscheint KEINE Zusatzzeile (die Woche passt noch)');
   ok(!f3.knopf, 'f) im Montag-Szenario erscheint der Knopf "Naechste Woche planen" NICHT');
+
+  // ==============================================================
+  // g) Mini-Stufe D: der Erststart-Assistent laeuft durch verteilenMitGate().
+  //    Anders als basisSetup() oben: WIRKLICH frischer Zustand (keine
+  //    Bloecke/Aufgaben/Profilname), damit maybeWelcome() ueberhaupt
+  //    ansteht, und WIRKLICH echte Klicks durch den Assistenten statt
+  //    direkter state-Manipulation — das ist der Pfad, den Stufe D aendert.
+  // ==============================================================
+  console.log('\n=== g) Erststart-Assistent durchs Gate (Mini-Stufe D) ===');
+
+  async function frischerZustand() {
+    return p.evaluate(() => {
+      if (typeof closeModal === 'function') closeModal();
+      // Toasts laufen ueber echte setTimeout()s (Realzeit, von setFixedTime()
+      // unberuehrt) — ohne Aufraeumen koennte hier ein Toast aus dem VORIGEN
+      // Szenario (z.B. g2s "Naechste Woche planen") noch stehen, wenn g3
+      // seinen eigenen Toast kurz danach abfragt.
+      document.querySelectorAll('#toasts .toast').forEach(t => t.remove());
+      state = freshState(); migrate(state);
+      anchor = new Date();
+      selectedDayIdx = (new Date().getDay() + 6) % 7;
+      save(); setView('heute'); renderAll();
+      return { heuteKey: iso(new Date()), montag: iso(mondayOf(anchor)) };
+    });
+  }
+
+  // Alle vier Schritte mit "Weiter"/"Los geht's"/"Woche anlegen" durchklicken,
+  // ohne ein einziges Feld anzufassen (Muster ob.js) — .btn--primary ist an
+  // jedem Schritt der einzige Treffer im Fuss.
+  async function assistentDurchklicken() {
+    await p.evaluate(() => maybeWelcome());
+    await p.waitForTimeout(250);
+    for (let i = 0; i < 3; i++) {
+      await p.click('.sheet__foot .btn--primary');
+      await p.waitForTimeout(200);
+    }
+    await p.click('.sheet__foot .btn--primary');   // schritt 3: "Woche anlegen"
+    await p.waitForTimeout(400);
+  }
+
+  // --- g1)+g2) Samstagabend: dieselbe Uhr wie a), aber ueber den echten
+  //     Erststart-Weg statt basisSetup(). ---------------------------------
+  await p.clock.setFixedTime(new Date('2026-08-08T20:00:00+02:00'));
+  const g0 = await frischerZustand();
+  await assistentDurchklicken();
+
+  const g1 = await p.evaluate(() => {
+    const t = document.querySelector('.sheet .sheet__title');
+    return {
+      titel: t ? t.textContent : null,
+      ziele: state.areas.filter(a => a.plan.goal > 0).map(a => a.id + ':' + a.plan.goal).sort(),
+      arbeitBloecke: state.blocks.filter(b => !b.sug && b.title === 'Arbeit').length,
+      sugBloecke: state.blocks.filter(b => b.sug).length,
+      kapaOk: wochenKapazitaet().ok
+    };
+  });
+  console.log('Nach "Woche anlegen" (Samstagabend):', JSON.stringify(g1));
+  ok(g1.kapaOk === false, 'g1) Voraussetzung: wochenKapazitaet().ok ist in diesem Szenario false');
+  ok(g1.titel === 'Das wird eng',
+    'g1) "Woche anlegen" oeffnet am Samstagabend "Das wird eng" statt still zu verteilen (Titel: ' + JSON.stringify(g1.titel) + ')');
+  ok(g1.ziele.length === 5 && g1.ziele.join(',') === 'a3:3,a4:2,a5:6,a6:3,a7:2',
+    'g1) alle Wochenziele aus dem Assistenten (START_ZIELE) sind trotz Gate schon gesetzt (' + JSON.stringify(g1.ziele) + ')');
+  ok(g1.arbeitBloecke === 5, 'g1) die fuenf Arbeit-Bloecke Mo-Fr sind trotz Gate schon angelegt (' + g1.arbeitBloecke + ')');
+  ok(g1.sugBloecke === 0, 'g1) solange das Gate offen ist, sind noch KEINE sug-Bloecke entstanden (' + g1.sugBloecke + ')');
+
+  const g2Btn = p.locator('.sheet button:has-text("Nächste Woche planen")');
+  const g2Da = await g2Btn.count() > 0;
+  ok(g2Da, 'g2) der Dialog bietet in der laufenden Woche "Naechste Woche planen" an');
+
+  // .count() statt direkt .click(): bleibt der Knopf aus (Regression), soll
+  // das als FEHLER-Zeile stehen bleiben statt das Skript per Timeout
+  // abzureissen — derselbe Kniff wie in Abschnitt d)/f) oben.
+  if (g2Da) await g2Btn.click();
+  await p.waitForTimeout(300);
+  const g2 = g2Da ? await p.evaluate((vorherMontag) => ({
+    modalOffen: !!document.querySelector('.scrim'),
+    montagNeu: iso(mondayOf(anchor)),
+    vorschlaegeVorhanden: state.blocks.some(b => b.sug),
+    toast: (document.querySelector('#toasts .toast span') || {}).textContent || null
+  }), g0.montag) : { modalOffen: true, montagNeu: g0.montag, vorschlaegeVorhanden: false, toast: null };
+  console.log('Nach "Naechste Woche planen" (Erststart):', JSON.stringify(g2));
+  ok(!g2.modalOffen, 'g2) der Dialog ist zu, nachdem "Naechste Woche planen" geklickt wurde');
+  ok(g2.montagNeu !== g0.montag, 'g2) die angezeigte Woche ist weitergeblaettert (' + g0.montag + ' -> ' + g2.montagNeu + ')');
+  ok(g2.vorschlaegeVorhanden, 'g2) in der neuen Woche sind Vorschlaege entstanden');
+  ok(g2.toast === 'Vorschlag für die nächste Woche steht',
+    'g2) derselbe Toast wie beim normalen "Naechste Woche"-Weg meldet das Ergebnis (' + JSON.stringify(g2.toast) + ')');
+
+  // --- g3) Gegenprobe Montagmorgen: derselbe Erststart-Ablauf, dieselben
+  //     Vorgaben — die Woche passt, kein Gate, sofort verteilt. -----------
+  console.log('\n--- g3) Gegenprobe: derselbe Erststart-Ablauf am Montagmorgen ---');
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
+  await frischerZustand();
+  await assistentDurchklicken();
+
+  const g3 = await p.evaluate(() => {
+    const t = document.querySelector('.sheet .sheet__title');
+    return {
+      dialogWeg: !document.querySelector('.sheet'),
+      titelFalls: t ? t.textContent : null,
+      sugBloecke: state.blocks.filter(b => b.sug).length,
+      kapaOk: wochenKapazitaet().ok,
+      toast: (document.querySelector('#toasts .toast span') || {}).textContent || null
+    };
+  });
+  console.log('Gegenprobe Montagmorgen:', JSON.stringify(g3));
+  ok(g3.kapaOk === true, 'g3) Voraussetzung: wochenKapazitaet().ok ist am Montagmorgen true');
+  ok(g3.dialogWeg,
+    'g3) kein Gate am Montagmorgen — der Assistent schliesst direkt, kein "Das wird eng" (stattdessen: ' + JSON.stringify(g3.titelFalls) + ')');
+  ok(g3.sugBloecke > 0, 'g3) sug-Bloecke entstehen sofort, ohne Umweg ueber ein Gate-Blatt (' + g3.sugBloecke + ')');
+  ok(g3.toast === 'Deine Woche steht.' || g3.toast === "Los geht's — trag ein, was fest ist",
+    'g3) einer der beiden Erststart-Toasts von vor Stufe D meldet das Ergebnis, kein Gate-Toast (' + JSON.stringify(g3.toast) + ')');
 
   console.log('\nKonsolenfehler:', konsolenfehler.length ? konsolenfehler : 'keine');
   console.log('\nFehler:', fehler.length ? fehler : 'keine');

@@ -1,3 +1,6 @@
+/* Feste Uhr (Montagmorgen, 2026-08-03T08:00:00+02:00): seit Stufe D kann der
+   Erststart-Assistent ("Woche anlegen") ein Kapazitaets-Gate oeffnen — ein
+   ungenagelter Lauf waere kalendertagabhaengig gruen oder rot. */
 const { chromium, devices } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'index.html');
@@ -37,11 +40,12 @@ const mess = () => {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
 
   const zeig = async (name, shot) => {

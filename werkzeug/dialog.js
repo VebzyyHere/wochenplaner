@@ -22,7 +22,9 @@
    "Abbrechen" legt nur die obere Ebene weg, nicht den ganzen Dialog.
 
    Stil wie haken.js: eine Chromium-Seite, deutsche Ausgabe, Exit 1 bei
-   Fehlern.
+   Fehlern. Feste Uhr (Montagmorgen, 2026-08-03T08:00:00+02:00): seit Stufe D
+   kann der Erststart-Assistent ein Kapazitaets-Gate oeffnen, ein
+   ungenagelter Lauf waere kalendertagabhaengig gruen oder rot.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
@@ -78,12 +80,13 @@ async function appIsInert(p) {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const konsolenfehler = [];
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
   // Erststart-Assistent wegklicken (wie haken.js/audit.js).
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }

@@ -8832,8 +8832,14 @@ function maybeWelcome() {
       w.textContent = schritt === 0 ? "Los geht's" : schritt < 3 ? "Weiter" : "Woche anlegen";
       w.onclick = () => {
         if (schritt < 3) { schritt++; malen(); return; }
-        anlegen();
+        // Erst schließen, dann anlegen(): anlegen() kann über
+        // verteilenMitGate() bei knapper Woche selbst ein Blatt öffnen
+        // ("Das wird eng") — bliebe der Assistent bis danach offen, würde
+        // dieses close() hier das frisch geöffnete Gate-Blatt treffen statt
+        // des Assistenten (modal() räumt beim Öffnen ohnehin das jeweils
+        // offene Blatt weg, ein echter Stapel ist dafür nicht nötig).
         close();
+        anlegen();
       };
       foot.appendChild(w);
     }
@@ -8869,17 +8875,23 @@ function maybeWelcome() {
       save();
       renderAll();
 
-      // Erst jetzt verteilen — der Verteiler braucht Schlaf, Feste und Ziele.
-      const r = buildSuggestions();
-      save();
-      renderAll();
-      // Der Knopf "Alle übernehmen" ist seit der dauerhaften Vorschlagsleiste
-      // (Stufe 6) redundant und verdeckt hier eine Agenda-Zeile — die
-      // Meldung bleibt, der Knopf fällt weg.
-      if (r && r.placed)
-        toast("Deine Woche steht.");
-      else
-        toast("Los geht's — trag ein, was fest ist");
+      // Erst jetzt verteilen — durchs selbe Tor wie die anderen beiden
+      // Verteil-Einstiege (Ziele, Heute-Leerzustand): der Erststart ist ein
+      // dritter Weg zu buildSuggestions() und verdient dieselbe
+      // Kapazitätsprüfung, sonst entsteht am Samstagabend ein vollgepacktes
+      // Rest-Wochenende ohne jede Warnung.
+      verteilenMitGate(() => {
+        const r = buildSuggestions();
+        save();
+        renderAll();
+        // Der Knopf "Alle übernehmen" ist seit der dauerhaften Vorschlagsleiste
+        // (Stufe 6) redundant und verdeckt hier eine Agenda-Zeile — die
+        // Meldung bleibt, der Knopf fällt weg.
+        if (r && r.placed)
+          toast("Deine Woche steht.");
+        else
+          toast("Los geht's — trag ein, was fest ist");
+      });
     }
 
     malen();

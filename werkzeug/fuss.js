@@ -15,7 +15,10 @@
 
    Stil wie audit.js/agenda.js: eine Chromium-Seite, deutsche Ausgabe,
    Exit 1 bei Fehlern. Screenshots landen daneben in werkzeug/ zur
-   Sichtpruefung von Hand.
+   Sichtpruefung von Hand. Feste Uhr (Montagmorgen, 2026-08-03T08:00:00+02:00)
+   in onboardingWeg(): seit Stufe D kann der Erststart-Assistent ein
+   Kapazitaets-Gate oeffnen, ein ungenagelter Lauf waere kalendertagabhaengig
+   gruen oder rot.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
@@ -33,6 +36,7 @@ function schnittflaeche(a, b) {
 
 // Skippt den Erststart-Assistenten wie audit.js/agenda.js.
 async function onboardingWeg(p) {
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
   await p.goto(F); await p.waitForTimeout(500);
   for (let i = 0; i < 3; i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(280); }
   await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(900);
@@ -175,13 +179,13 @@ async function pruefeFall(p, tag, quer) {
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
 
-  const ctxHoch = await br.newContext({ ...devices['iPhone SE'] });
+  const ctxHoch = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const pHoch = await ctxHoch.newPage();
   await onboardingWeg(pHoch);
   await pruefeFall(pHoch, 'hoch', false);
   await ctxHoch.close();
 
-  const ctxQuer = await br.newContext({ ...devices['iPhone SE landscape'] });
+  const ctxQuer = await br.newContext({ ...devices['iPhone SE landscape'], timezoneId: 'Europe/Berlin' });
   const pQuer = await ctxQuer.newPage();
   await onboardingWeg(pQuer);
   await pruefeFall(pQuer, 'quer', true);

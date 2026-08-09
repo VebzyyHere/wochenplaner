@@ -46,6 +46,16 @@
    nutzt bewusst 20 Uhr (die tatsaechlich berichtete Abendsituation),
    der Rest des Skripts bleibt bei den bestehenden 10 Uhr.
    Screenshots landen daneben in werkzeug/ zur Sichtpruefung von Hand.
+
+   Nachbesserung: onboardingWeg() ruft goto() und die Assistenten-Klicks auf
+   — in pruefeDoppelknopf() und pruefeGrosseSchrift() stand die eigene
+   setFixedTime()-Zeile bisher ERST danach, der Erststart selbst lief also
+   ungenagelt. Seit Stufe D kann der dort ein Kapazitaets-Gate oeffnen, ein
+   ungenagelter Lauf waere kalendertagabhaengig gruen oder rot — behoben
+   durch bloszes Vertauschen der Reihenfolge (setFixedTime() vor
+   onboardingWeg()), keine neue Zeitangabe noetig, anchor bleibt weiterhin
+   auf Mittwoch verankert. pruefeGeraet() war bereits sicher: der Aufrufer
+   setzt die Uhr schon vor dem Aufruf.
    ============================================================ */
 const { chromium, devices } = require('playwright');
 const path = require('path');
@@ -121,8 +131,11 @@ async function doppelknopfSzenario(p) {
 // frischer Kontext (s. Aufrufer) — 20 Uhr, die tatsaechlich berichtete
 // Abendsituation.
 async function pruefeDoppelknopf(p, tag) {
-  await onboardingWeg(p);
+  // Reihenfolge bewusst so (Nachbesserung, s. Kopfkommentar): onboardingWeg()
+  // ruft goto() auf, die Uhr muss also VOR diesem Aufruf stehen, sonst laeuft
+  // der Erststart-Assistent ungenagelt.
   await p.clock.setFixedTime(new Date('2026-08-05T20:00:00+02:00'));
+  await onboardingWeg(p);
   await doppelknopfSzenario(p);
 
   const bK = await betonteKnoepfe(p);
@@ -162,8 +175,11 @@ async function pruefeGrosseSchrift(br) {
   p.on('pageerror', e => konsolenfehler.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') konsolenfehler.push('CONSOLE: ' + m.text()); });
 
-  await onboardingWeg(p);
+  // Reihenfolge bewusst so (Nachbesserung, s. Kopfkommentar): onboardingWeg()
+  // ruft goto() auf, die Uhr muss also VOR diesem Aufruf stehen, sonst laeuft
+  // der Erststart-Assistent ungenagelt.
   await p.clock.setFixedTime(new Date('2026-08-05T10:00:00+02:00'));
+  await onboardingWeg(p);
   await p.evaluate(() => {
     const montag = mondayOf(anchor);
     const andererIdx = (selectedDayIdx + 1) % 7;

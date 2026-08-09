@@ -1,3 +1,6 @@
+// Feste Uhr (Montagmorgen, 2026-08-03T08:00:00+02:00): seit Stufe D kann der
+// Erststart-Assistent ein Kapazitaets-Gate oeffnen, ein ungenagelter Lauf
+// waere kalendertagabhaengig gruen oder rot.
 const { chromium, devices } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'index.html');
@@ -10,10 +13,11 @@ const FAELLE = [
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
   for (const [tag, dev, theme] of FAELLE) {
-    const ctx = await br.newContext(dev);
+    const ctx = await br.newContext({ ...dev, timezoneId: 'Europe/Berlin' });
     const p = await ctx.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
+    await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
     await p.goto(F); await p.waitForTimeout(450);
     // Erststart komplett durchklicken
     for (let i=0;i<4;i++) { await p.click('.sheet__foot .btn--primary'); await p.waitForTimeout(260); }

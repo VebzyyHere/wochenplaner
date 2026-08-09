@@ -1,11 +1,16 @@
+// Feste Uhr (Montagmorgen, 2026-08-03T08:00:00+02:00) auch fuer die erste,
+// hier lange vor dem SE/13-Teil unten entstandene Desktop-Seite: seit Stufe D
+// kann der Erststart-Assistent ein Kapazitaets-Gate oeffnen, ein
+// ungenagelter Lauf waere kalendertagabhaengig gruen oder rot.
 const { chromium, devices } = require('playwright');
 const path = require('path');
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const p = await br.newPage({ viewport: { width: 1400, height: 950 } });
+  const p = await br.newPage({ viewport: { width: 1400, height: 950 }, timezoneId: 'Europe/Berlin' });
   const errs = [];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+  await p.clock.setFixedTime(new Date('2026-08-03T08:00:00+02:00'));
   await p.goto('file://' + path.resolve(__dirname, '..', 'index.html'));
   await p.waitForTimeout(500);
   // Onboarding durchklicken
