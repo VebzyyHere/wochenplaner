@@ -421,6 +421,22 @@ button { cursor: pointer; }
 .agenda__title { font-size: var(--t-body); font-weight: 500; min-width: 0; }
 .agenda__time { margin-left: auto; font-size: var(--t-sm); color: var(--text-muted); flex: none; }
 .agenda__sub { font-size: var(--t-sm); color: var(--text-faint); margin-top: 2px; }
+/* Vorschlagszeilen (Stufe B1) — dieselbe .agenda__row, nur gedämpft und
+   gestrichelt wie die Vorschlagsblöcke im Raster (.block.is-sug, ~683):
+   border-left-STYLE wechselt auf dashed (die Farbe/Breite bleiben die von
+   .agenda__row — kein neuer Streifen, s. Impeccable-Deckel), der Inhalt
+   tritt zurück. Die Knöpfe bleiben voll deckend, sonst liest sich "Vorschlag
+   übernehmen" selbst wie deaktiviert. */
+.agenda__row.is-vorschlag { border-left-style: dashed; }
+.agenda__row.is-vorschlag .agenda__body { opacity: .82; }
+.agenda__sugacts { display: flex; align-items: flex-start; gap: 6px; flex: none; }
+.agenda__sugacts button {
+  width: 26px; height: 26px; padding: 0; border-radius: 6px;
+  border: 1px solid var(--area-edge); background: var(--surface);
+  color: var(--area-text); font-size: var(--t-xs); line-height: 1;
+  display: grid; place-items: center; position: relative; flex: none;
+}
+.agenda__sugacts button:hover { background: var(--area-bg-2); }
 .agenda__foot {
   margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
   font-size: var(--t-sm); color: var(--text-muted);
@@ -1288,7 +1304,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      beanspruchen, wie sie braucht; reicht der daneben nicht mehr, wandern
      "Übernehmen"/"×" dank flex-wrap oben in eine zweite Zeile, statt den
      Text zu quetschen. */
-  .sugbar__text { flex: 1; min-width: max-content; font-size: var(--t-sm); font-weight: 600; color: var(--text); }
+  /* Stufe B2: aus dem <span> wurde ein <button> (Weg zum frühesten
+     Vorschlag) — border/padding/margin auf 0, sonst wächst die Leiste über
+     die an zwei Stellen fest angenommenen 61px hinaus (s. Kommentar bei
+     body[data-sugbar="1"] oben). */
+  .sugbar__text {
+    flex: 1; min-width: max-content; font-size: var(--t-sm); font-weight: 600; color: var(--text);
+    border: 0; background: none; padding: 0; margin: 0; text-align: left; min-height: 44px;
+  }
   .sugbar__accept { min-height: 44px; padding: 0 var(--s-4); }
   .sugbar__close {
     flex: none; min-width: 44px; min-height: 44px;
@@ -1511,6 +1534,11 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .task__check { width: 24px; height: 24px; position: relative; }
   .task__check::before { content: ""; position: absolute; inset: -11px; border-radius: 8px; }
   .agenda__check::before { content: ""; position: absolute; inset: -14px; border-radius: 8px; }
+  /* Dieselbe 34px+(-5px)=44px-Rechnung wie .block__sug button unten —
+     Annehmen/Verwerfen duerfen in der Agenda nicht kleiner treffen als im
+     Raster. */
+  .agenda__sugacts button { width: 34px; height: 34px; font-size: var(--t-body); }
+  .agenda__sugacts button::before { content: ""; position: absolute; inset: -5px; }
   .task__del, .task__more, .task__go { min-width: 44px; min-height: 44px; }
   /* Auf einem Touchgerät gibt es kein Hover — ein Knopf, der erst beim
      Zeigen erscheint, existiert dort nicht. */
@@ -3988,6 +4016,41 @@ function restDesTagesMoeglich() {
   return r.placed > 0;
 }
 
+/* Stufe B2: der zeitlich früheste offene Vorschlag im GANZEN Zustand, nicht
+   nur der angezeigten Woche — nach Datum, bei Gleichstand nach Beginn.
+   Grobe zählen mit dem Beginn ihres Abschnitts, dasselbe Muster wie
+   tagesAgenda() (2750 ff.) beim Mischen von exakt und grob verwendet.
+   Grundlage für den Leisten-Link: "zeig mir den nächsten", auch wenn er in
+   einer anderen Woche liegt. */
+function fruehesterVorschlag() {
+  let best = null, bestStart = 0;
+  state.blocks.forEach(b => {
+    if (!b.sug) return;
+    const start = b.grob ? abschnittVon(b.teil).von : b.start;
+    if (!best || b.date < best.date || (b.date === best.date && start < bestStart)) {
+      best = b; bestStart = start;
+    }
+  });
+  return best;
+}
+
+/* Stufe B2: springt zum frühesten offenen Vorschlag — eigene Funktion statt
+   einer Handler-Inline-Funktion, damit Prüfskripte den Sprung auch dann
+   direkt auslösen können, wenn die Leiste selbst gerade nicht im Bild ist
+   (hasSuggestions() gilt nur für die angezeigte Woche; ein Vorschlag allein
+   in der Folgewoche zeigt die Leiste in der laufenden Woche folgerichtig
+   nicht — das ändert dieser Auftrag nicht). Muster wie planeNaechsteWoche()
+   unten: anchor auf den Montag der Zielwoche, dann rendern. */
+function springZumFruehestenVorschlag() {
+  const b = fruehesterVorschlag();
+  if (!b) return;
+  const zielMontag = mondayOf(new Date(b.date + "T12:00:00"));
+  if (iso(zielMontag) !== iso(mondayOf(anchor))) anchor = zielMontag;
+  selectedDayIdx = b.day;
+  setView("plan");
+  renderAll();
+}
+
 /* Vorschlagsleiste ueber der Tabbar: dieselben drei Funktionen wie in
    "Ziele" (hasSuggestions/acceptSuggestions/clearSuggestions), nur auch
    in "Plan" und "Heute" sichtbar platziert — vorher musste man dafuer
@@ -4004,9 +4067,15 @@ function renderSugBar() {
   const keys = new Set(weekDays().map(d => d.key));
   const n = state.blocks.filter(b => b.sug && keys.has(b.date)).length;
 
-  const text = document.createElement("span");
-  text.className = "sugbar__text";
+  // Stufe B2: das Label ist ein echter Weg, kein bloßer Text mehr — Tipp
+  // darauf springt zum frühesten offenen Vorschlag, auch wenn er in einer
+  // anderen Woche liegt (Muster wie planeNaechsteWoche() unten: anchor auf
+  // den Montag der Zielwoche, dann rendern).
+  const text = document.createElement("button");
+  text.type = "button"; text.className = "sugbar__text";
   text.textContent = n + (n === 1 ? " Vorschlag" : " Vorschläge");
+  text.setAttribute("aria-label", "Vorschläge im Plan ansehen");
+  text.onclick = () => springZumFruehestenVorschlag();
 
   const ok = document.createElement("button");
   ok.type = "button"; ok.className = "btn btn--primary sugbar__accept";
@@ -6159,12 +6228,50 @@ function renderAgenda() {
     return e.grob ? abschnittVon(e.block.teil).bis > jetzt : e.block.start > jetzt;
   });
 
+  // Stufe B1: die Vorschläge DIESES Tages, separat von tagesAgenda() (deren
+  // Stufe-4-Ausschluss von b.sug bleibt unangetastet — daran hängen
+  // freieZeitDanach() und die Danach-Logik oben). Dasselbe Misch-Muster wie
+  // tagesAgenda() selbst: exakte + grobe, nach Beginn sortiert, nur eben
+  // sug:true statt sug:false.
+  const heutigeVorschlaege = [
+    ...blocksFor(addDays(mondayOf(anchor), dayIdx), dayIdx).filter(b => b.sug)
+      .map(b => ({ block: b, grob: false, sortMin: b.start })),
+    ...grobeFor(dayKey, dayIdx).filter(b => b.sug)
+      .map(b => ({ block: b, grob: true, sortMin: abschnittVon(b.teil).von }))
+  ].sort((a, b) => a.sortMin - b.sortMin);
+  const vorschlagHtml = heutigeVorschlaege.length
+    ? "<div class='agenda__label'>Vorschläge</div><div class='agenda__list'>"
+      + heutigeVorschlaege.map(e => {
+          const b = e.block, a = areaById(b.areaId);
+          const zeit = e.grob ? abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer) : fmtTime(b.start);
+          return "<div class='agenda__row is-vorschlag' style='--h:" + a.hue + "' data-id='" + b.id + "'>"
+            + "<span class='agenda__body'><span class='agenda__line'>"
+            + "<span class='agenda__title'>" + escapeHtml(b.title || a.name) + "</span>"
+            + "<span class='agenda__time num'>" + zeit + "</span></span>"
+            + (b.grund ? "<span class='agenda__sub'>" + escapeHtml(b.grund) + "</span>" : "")
+            + "</span>"
+            + "<span class='agenda__sugacts'>"
+            + "<button type='button' data-vorschlag-ok='" + b.id + "' aria-label='Vorschlag übernehmen' title='Übernehmen'>✓</button>"
+            + "<button type='button' data-vorschlag-nein='" + b.id + "' aria-label='Vorschlag verwerfen' title='Verwerfen'>×</button>"
+            + "</span></div>";
+        }).join("")
+      + "</div>"
+    : "";
+
   if (!laufend && !danach.length) {
     // Ein bewusst freigehaltener Tag ohne Eintraege sieht sonst wortgleich
     // aus wie ein einfach vergessener — samt "Vorschlagen"-Knopf, der hier
     // ohnehin nichts ausloest (istFrei-Vertrag in buildSuggestions()).
     if (!eintraege.length && istFrei(dayKey)) {
       html += "<div class='empty'><b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten.</div>";
+    } else if (!eintraege.length && heutigeVorschlaege.length) {
+      // Stufe B1: der Tag ist nicht "leer" — es liegt schon etwas vor, nur
+      // noch nicht entschieden. "Vorschlagen" entfällt hier: die Leiste
+      // unten bietet Übernehmen/Verwerfen bereits an, ein zweiter Weg zum
+      // Verteiler würde nur weitere Vorschläge obendrauf erzeugen.
+      html += "<div class='empty'><b>Noch nichts fest</b>" + heutigeVorschlaege.length
+        + (heutigeVorschlaege.length === 1 ? " Vorschlag" : " Vorschläge") + " für diesen Tag.</div>"
+        + vorschlagHtml;
     } else {
       html += "<div class='empty'><b>" + (eintraege.length ? "Nichts mehr offen" : "Noch nichts geplant") + "</b>"
         + (eintraege.length ? "Für den Rest des Tages steht nichts mehr an." : "Für diesen Tag steht noch nichts im Plan.")
@@ -6220,6 +6327,11 @@ function renderAgenda() {
       });
       html += "</div>";
     }
+
+    // Stufe B1: eigener Abschnitt unterhalb von "Danach", vor der Fußzeile —
+    // dieselbe Sektion wie im Leerzustand oben, hier nur als Anschluss statt
+    // als Ersatz.
+    html += vorschlagHtml;
 
     const frei = freieZeitDanach(dayKey, dayIdx);
     if (frei && frei.total >= 15) {
@@ -6296,6 +6408,27 @@ function renderAgenda() {
     if (!r.placed) toast((r.hinweise && r.hinweise[0]) || "Kein Platz gefunden — Zeitfenster erweitern?");
     else toast("Rest des Tages neu vorgeschlagen — schau, ob's dir passt");
   };
+
+  // Vorschlagszeilen (Stufe B1): ✓/× rufen dieselben Funktionen wie die
+  // gleichnamigen Knöpfe im Raster (blockEl, ~4931 ff.) — acceptOne()/
+  // dropOne() erledigen dort schon save()+renderAll()+toast() und das
+  // Lösen der Aufgaben-Verknüpfung, kein zweiter Weg dafür nötig.
+  box.querySelectorAll("[data-vorschlag-ok]").forEach(btn => {
+    btn.onclick = e => { e.stopPropagation(); acceptOne(btn.dataset.vorschlagOk); };
+  });
+  box.querySelectorAll("[data-vorschlag-nein]").forEach(btn => {
+    btn.onclick = e => { e.stopPropagation(); dropOne(btn.dataset.vorschlagNein); };
+  });
+  // Die Zeile selbst (nicht die Knöpfe) öffnet das vorhandene Vorschlags-
+  // Blatt — kein Long-Press, kein Drag hier (s. Auftrag), darum ein eigener,
+  // schlichter Klick-Handler statt der Verschieben-Logik weiter unten.
+  box.querySelectorAll(".agenda__row.is-vorschlag").forEach(row => {
+    row.addEventListener("click", () => {
+      const b = state.blocks.find(x => x.id === row.dataset.id);
+      if (b) sugSheet(b);
+    });
+  });
+
   box.querySelectorAll(".agenda__check").forEach(cb => {
     cb.onchange = () => {
       const b = state.blocks.find(x => x.id === cb.dataset.id);
@@ -6344,8 +6477,10 @@ function renderAgenda() {
   // Verschieben aus der Agenda — ohne die Zeile mit einem eigenen Knopf
   // zuzustellen. Langes Drücken spricht dieselbe Sprache wie das Anlegen
   // im Raster (holdToCreate, HOLD_TIME). Der Haken bleibt unberührt: wer
-  // ihn trifft, will abhaken, nicht verschieben.
-  box.querySelectorAll(".agenda__row").forEach(row => {
+  // ihn trifft, will abhaken, nicht verschieben. Vorschlagszeilen haben
+  // weder Haken noch Long-Press (eigener Klick-Handler oben) — ausgenommen,
+  // sonst risse das querySelector(".agenda__check") unten ins Leere.
+  box.querySelectorAll(".agenda__row:not(.is-vorschlag)").forEach(row => {
     const id = row.querySelector(".agenda__check").dataset.id;
     row.title = "Lange drücken zum Verschieben";
     let timer = null, longPressed = false, move = null;
