@@ -4320,6 +4320,11 @@ function placeArea(area, open) {
   const p = area.plan;
   const tage = weekDays().filter(day => p.days.includes(day.i));
   if (!tage.length) return 0;
+  // Pruefer-Fix 2 (akzeptiert, nicht bekämpft): maxTage unten hängt an
+  // tage.length. Die erste Speicherung eines gefensterten Bereichs (Fix 1
+  // in goalsSheet) darf p.days neu falten — die Aufteilung fällt danach
+  // anders aus (z. B. 5 Blöcke über 3 statt 5 Tage), weil tage.length jetzt
+  // den wirklich belegbaren Tagen entspricht. Die Summe bleibt gleich.
 
   // Grob geplante Bereiche bekommen keine Uhrzeit, sondern einen Abschnitt.
   if (p.grob) return placeGrob(area, open, tage);
@@ -5074,7 +5079,12 @@ const ANKER_MAX_OPTS = [60, 90, 120, 180, 240, 360, 480];
    (siehe migrate), darum ein gemeinsamer Editor für goalsSheet und
    taskSheet. selbstId schließt den eigenen Bereich aus der Anker-Auswahl
    aus — an sich selbst ankern ergibt keinen Sinn. */
-function regelnEditor(wrap, obj, selbstId) {
+function regelnEditor(wrap, obj, selbstId, opts) {
+  // Ziele-Karte zeigt seit der Verschmelzungs-Runde keinen eigenen
+  // Fenster-Block mehr (Mo-So+Von/Bis geht in "Wann darf das stattfinden?"
+  // oben auf) — nur das Aufgaben-Blatt, das kein plan.days/from/to kennt,
+  // braucht ihn weiterhin. opts.fenster === false schaltet ihn ab.
+  const zeigeFenster = !opts || opts.fenster !== false;
   const alt = obj.regeln || null;
   const fAlt = (alt && alt.fenster && alt.fenster[0]) || null;
   const aAlt = (alt && alt.anker) || null;
@@ -5092,14 +5102,14 @@ function regelnEditor(wrap, obj, selbstId) {
   let ankerTageszeit = aAlt && aAlt.tageszeit ? aAlt.tageszeit : null;
 
   wrap.innerHTML =
-    "<p class='goalrow__sub'>Nur an bestimmten Tagen/Uhrzeiten möglich? " +
-      "(zusätzlich zum Zeitraum oben)</p>" +
-    "<div class='chipset rTage' style='margin-bottom:8px'></div>" +
-    "<div class='sheet__cols' style='margin-bottom:6px'>" +
-      "<div><label class='label'>Von</label><input class='field rVon' type='time' step='900'></div>" +
-      "<div><label class='label'>Bis</label><input class='field rBis' type='time' step='900'></div>" +
-    "</div>" +
-    "<p class='goalrow__sub' style='margin:0 0 14px' data-hint='f'></p>" +
+    (zeigeFenster ?
+      "<p class='goalrow__sub'>Nur an bestimmten Tagen/Uhrzeiten möglich?</p>" +
+      "<div class='chipset rTage' style='margin-bottom:8px'></div>" +
+      "<div class='sheet__cols' style='margin-bottom:6px'>" +
+        "<div><label class='label'>Von</label><input class='field rVon' type='time' step='900'></div>" +
+        "<div><label class='label'>Bis</label><input class='field rBis' type='time' step='900'></div>" +
+      "</div>" +
+      "<p class='goalrow__sub' style='margin:0 0 14px' data-hint='f'></p>" : "") +
     "<p class='goalrow__sub'>Wann? Nach einem anderen Bereich, mit Puffer.</p>" +
     "<div class='chipset rBereich' style='margin-bottom:8px'></div>" +
     "<div class='chipset rMin' style='margin-bottom:8px'></div>" +
@@ -5114,15 +5124,20 @@ function regelnEditor(wrap, obj, selbstId) {
   const minW = wrap.querySelector(".rMin");
   const maxW = wrap.querySelector(".rMax");
   const aHint = wrap.querySelector("[data-hint='a']");
-  vonIn.value = fmtTime(von);
-  bisIn.value = fmtTime(bis);
+
+  if (zeigeFenster) {
+    vonIn.value = fmtTime(von);
+    bisIn.value = fmtTime(bis);
+  }
 
   const paintFHint = () => {
+    if (!fHint) return;
     fHint.textContent = tage.size
       ? fmtTageListe([...tage].sort((x, y) => x - y)) + " " + fmtTime(von) + "–" + fmtTime(bis) + " Uhr"
       : "Ohne eigene Einschränkung.";
   };
   const paintTage = () => {
+    if (!tageW) return;
     tageW.innerHTML = "";
     for (let i = 0; i < 7; i++) {
       const c = document.createElement("button");
@@ -5133,9 +5148,11 @@ function regelnEditor(wrap, obj, selbstId) {
       tageW.appendChild(c);
     }
   };
-  paintTage(); paintFHint();
-  vonIn.oninput = () => { von = parseTime(vonIn.value); paintFHint(); };
-  bisIn.oninput = () => { bis = parseTime(bisIn.value); paintFHint(); };
+  if (zeigeFenster) {
+    paintTage(); paintFHint();
+    vonIn.oninput = () => { von = parseTime(vonIn.value); paintFHint(); };
+    bisIn.oninput = () => { bis = parseTime(bisIn.value); paintFHint(); };
+  }
 
   const paintAHint = () => {
     aHint.textContent = ankerRef
@@ -5198,12 +5215,20 @@ function regelnEditor(wrap, obj, selbstId) {
 
   return {
     commit() {
-      const fenster = (tage.size && bis > von)
-        ? [{ tage: [...tage].sort((x, y) => x - y), von, bis }] : [];
       // sonst: "aus" ist der einzige Weg, den diese Stufe anbietet — ein Tag
       // ohne Bezugsblock fällt weg, statt das Fenster ungebremst zu öffnen.
       const anker = ankerRef ? { ref: ankerRef, min: ankerMin, max: ankerMax, sonst: "aus" }
         : ankerTageszeit ? { tageszeit: ankerTageszeit } : null;
+      if (!zeigeFenster) {
+        // Ziele-Karte: das Fenster ist in "Wann darf das stattfinden?" oben
+        // aufgegangen (plan.days/from/to, der immer vorhandene, überall
+        // gefilterte Kanal) — ein hier übrig bleibendes area.regeln.fenster
+        // wäre eine unsichtbare Zusatzfessel, deshalb nie mitschreiben.
+        obj.regeln = anker ? { anker } : null;
+        return;
+      }
+      const fenster = (tage.size && bis > von)
+        ? [{ tage: [...tage].sort((x, y) => x - y), von, bis }] : [];
       obj.regeln = (fenster.length || anker) ? { fenster, anker } : null;
     }
   };
@@ -5270,12 +5295,13 @@ function goalsSheet() {
           // keinen Weg zurück, wenn "kein Sport mehr" doch nicht endgültig war.
           "<label class='switch' style='margin-bottom:14px'>" +
             "<input type='checkbox' class='gKeinVorschlag'> Keine Vorschläge für diesen Bereich</label>" +
-          "<p class='goalrow__sub'>Wann darf der Vorschlag das einplanen?</p>" +
+          "<p class='goalrow__sub'>Wann darf das stattfinden?</p>" +
           "<div class='chipset gDays' style='margin-bottom:14px'></div>" +
           "<div class='sheet__cols' style='margin-bottom:12px'>" +
             "<div><label class='label'>Frühestens</label><input class='field gFrom' type='time' step='900'></div>" +
             "<div><label class='label'>Spätestens</label><input class='field gTo' type='time' step='900'></div>" +
           "</div>" +
+          "<p class='goalrow__sub gKonflikt' style='margin:-6px 0 12px' hidden></p>" +
           "<p class='goalrow__sub'>Wo findet das statt? Daraus rechnet der Planer die Fahrzeit.</p>" +
           "<div class='chipset gOrte'></div>" +
           "<div class='gRegeln'></div>" +
@@ -5295,7 +5321,7 @@ function goalsSheet() {
       const artW  = row.querySelector(".goalrow__art");
       const artHint = row.querySelector(".goalrow__arthint");
       const orteW = row.querySelector(".gOrte");
-      const regeln = regelnEditor(row.querySelector(".gRegeln"), a, a.id);
+      const regeln = regelnEditor(row.querySelector(".gRegeln"), a, a.id, { fenster: false });
 
       // Stufe 3 hielt Art, Grob und Ort hier in einem eigenen Entwurf, weil sie
       // als einzige Felder sofort auf p schrieben. Seit der Sicherung/
@@ -5304,16 +5330,39 @@ function goalsSheet() {
       // direkt auf p, wie es ohne den Leck-Fall auch naheliegender wäre.
 
       const tags = row.querySelector(".goalrow__tags");
+      // Fix 3 (Pruefer-Runde): der Chip liest jetzt das Trio (plan.days/from/to),
+      // nicht mehr allein das alte area.regeln.fenster — das verschwand sonst
+      // nach dem ersten Speichern, weil fenster dabei geraeumt wird (s. u.).
+      // Existiert daneben noch ein ungeraeumtes Fenster, zeigt der Chip dessen
+      // effektive Schnittmenge mit dem Trio, im Konfliktfall das Trio plus "!".
       const paintTags = () => {
-        const f = a.regeln && a.regeln.fenster && a.regeln.fenster[0];
         const an = a.regeln && a.regeln.anker;
+        const tageAlle = p.days.length >= 7;
+        const zeitOffen = p.from == null && p.to == null;
+        let chipText = null;
+        if (!tageAlle || !zeitOffen) {
+          const vonZ = p.from == null ? state.settings.dayStart * 60 : p.from;
+          const bisZ = p.to   == null ? state.settings.dayEnd   * 60 : p.to;
+          chipText = fmtTageListe(p.days) + " " + fmtTime(vonZ) + "–" + fmtTime(bisZ) + " Uhr";
+        }
+        const fAlt = a.regeln && a.regeln.fenster && a.regeln.fenster[0];
+        if (fAlt) {
+          const vonBasis = p.from == null ? state.settings.dayStart * 60 : p.from;
+          const bisBasis = p.to   == null ? state.settings.dayEnd   * 60 : p.to;
+          const tageSchnitt = p.days.filter(i => fAlt.tage.includes(i));
+          const zeitKonflikt = Math.max(vonBasis, fAlt.von) >= Math.min(bisBasis, fAlt.bis);
+          const tageKonflikt = !tageSchnitt.length;
+          chipText = zeitKonflikt || tageKonflikt
+            ? (chipText || fmtTageListe(p.days) + " " + fmtTime(vonBasis) + "–" + fmtTime(bisBasis) + " Uhr") + " !"
+            : fmtTageListe(tageSchnitt) + " " + fmtTime(Math.max(vonBasis, fAlt.von)) +
+              "–" + fmtTime(Math.min(bisBasis, fAlt.bis)) + " Uhr";
+        }
         tags.innerHTML =
           (p.grob ? "<span class='tag'>ohne Uhrzeit</span>" : "") +
           (p.must ? "" : "<span class='tag tag--soft'>kann warten</span>") +
           (p.keinVorschlag ? "<span class='tag tag--soft'>keine Vorschläge</span>" : "") +
           (p.ortId ? "<span class='tag'>" + escapeHtml(ortName(p.ortId)) + "</span>" : "") +
-          (f ? "<span class='tag'>" + escapeHtml(fmtTageListe(f.tage) + " " +
-                fmtTime(f.von) + "–" + fmtTime(f.bis) + " Uhr") + "</span>" : "") +
+          (chipText ? "<span class='tag'>" + escapeHtml(chipText) + "</span>" : "") +
           (an ? "<span class='tag'>" + (an.ref
                 ? "nach " + escapeHtml((areaById(an.ref) || {}).name || "")
                 : (an.tageszeit === "morgen" ? "morgens" : "abends")) + "</span>" : "");
@@ -5361,10 +5410,41 @@ function goalsSheet() {
 
       mustIn.checked = p.must;
       hIn.value = p.goal || 0;
-      from.value = fmtTime(p.from == null ? state.settings.dayStart * 60 : p.from);
-      to.value   = fmtTime(p.to   == null ? state.settings.dayEnd * 60   : p.to);
+      // Saat = effektive Schnittmenge aus plan.days/from/to und einem noch
+      // nicht geräumten area.regeln.fenster — der Verteiler hat beide schon
+      // immer UND-verknüpft (freeGaps/placeGrob/kandidatentage), die Karte
+      // zeigt jetzt einfach, was ohnehin schon galt. Ohne Fenster darf die
+      // Saat keine härteren Werte erfinden, deshalb bleiben from/to dann bei
+      // ihrem alten Standard (dayStart/dayEnd).
+      const fensterAlt = a.regeln && a.regeln.fenster && a.regeln.fenster[0];
+      const planFrom = p.from == null ? state.settings.dayStart * 60 : p.from;
+      const planTo   = p.to   == null ? state.settings.dayEnd * 60   : p.to;
+      // Pruefer-Fix 1: eine leere Schnittmenge (Alt-Fenster liegt ganz außerhalb
+      // von planFrom/planTo, oder teilt sich keinen Tag mit plan.days) darf nie
+      // gefaltet werden — Math.max(von)/Math.min(bis) würde dann invertieren
+      // (von > bis), und der Wächter in row._commit() verwirft die Obergrenze
+      // danach still (t<1440 && t>f). Speichern schreibt exakt, was die Karte
+      // zeigt — eine unmögliche Schnittmenge wird gezeigt und benannt, nie
+      // stillschweigend aufgeweitet: im Konfliktfall bleibt das Trio unverändert.
+      const zeitKonflikt = !!fensterAlt &&
+        Math.max(planFrom, fensterAlt.von) >= Math.min(planTo, fensterAlt.bis);
+      from.value = fmtTime(fensterAlt && !zeitKonflikt ? Math.max(planFrom, fensterAlt.von) : planFrom);
+      to.value   = fmtTime(fensterAlt && !zeitKonflikt ? Math.min(planTo,   fensterAlt.bis) : planTo);
 
-      const days = new Set(p.days);
+      const tageSchnitt = fensterAlt ? p.days.filter(i => fensterAlt.tage.includes(i)) : p.days;
+      const tageKonflikt = !!fensterAlt && !tageSchnitt.length;
+      const days = new Set(tageKonflikt ? p.days : tageSchnitt);
+
+      const konfliktEl = row.querySelector(".gKonflikt");
+      if (zeitKonflikt || tageKonflikt) {
+        konfliktEl.hidden = false;
+        konfliktEl.textContent = "Eine ältere Zeitregel (" +
+          fmtTageListe([...fensterAlt.tage].sort((x, y) => x - y)) + " " +
+          fmtTime(fensterAlt.von) + "–" + fmtTime(fensterAlt.bis) +
+          ") passt nicht in diesen Zeitraum — beim Speichern gilt, was hier steht.";
+      } else {
+        konfliktEl.hidden = true;
+      }
       const paintDays = () => {
         dayW.innerHTML = "";
         for (let i = 0; i < 7; i++) {
