@@ -22,6 +22,12 @@ const path = require('path');
     set("a3", 4, true);        // Sport
     set("a6", 4, true);        // Menschen
     set("a5", 8, false);       // Freizeit als Kür
+    // Stufe C Punkt C1: freshState() setzt a5/a6 seither selbst auf
+    // plan.grob=true (Erholung plant ab jetzt grob). Diese Analyse misst
+    // aber ausdruecklich nur die EXAKTEN Bloecke (s. Kommentar unten,
+    // Invariante aus CLAUDE.md) — hier explizit auf false gepinnt, damit
+    // die Kennzahlen weiter das messen, wofuer dieses Skript gebaut wurde.
+    ["a5", "a6"].forEach(id => { state.areas.find(x => x.id === id).plan.grob = false; });
     // Woche komplett in der Zukunft, damit alle 7 Tage zaehlen
     anchor = addDays(mondayOf(new Date()), 7);
     state.blocks = [];

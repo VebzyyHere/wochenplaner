@@ -426,9 +426,18 @@ button { cursor: pointer; }
    border-left-STYLE wechselt auf dashed (die Farbe/Breite bleiben die von
    .agenda__row — kein neuer Streifen, s. Impeccable-Deckel), der Inhalt
    tritt zurück. Die Knöpfe bleiben voll deckend, sonst liest sich "Vorschlag
-   übernehmen" selbst wie deaktiviert. */
+   übernehmen" selbst wie deaktiviert.
+   Stufe C Punkt C8: die Dämpfung sitzt bewusst auf .agenda__line (Titel +
+   Zeit), NICHT auf .agenda__body — sonst geriet .agenda__sub (color:
+   var(--text-faint), ohnehin schon der leiseste Text) unter die
+   gemessenen 4,5:1 (hell 3,63:1, dunkel 4,59:1 — Kippgrenze, vorschlagzeilen.js
+   misst das dauerhaft nach). .agenda__sub ist ein Geschwister von
+   .agenda__line innerhalb .agenda__body (s. renderAgenda()-Markup), bleibt
+   also unangetastet bei voller Deckkraft — derselbe Wert wie in einer
+   normalen (nicht-Geister-)Zeile. Der Geist-Charakter bleibt: Titel/Zeit
+   treten weiter zurück, die Kante bleibt gestrichelt. */
 .agenda__row.is-vorschlag { border-left-style: dashed; }
-.agenda__row.is-vorschlag .agenda__body { opacity: .82; }
+.agenda__row.is-vorschlag .agenda__line { opacity: .82; }
 .agenda__sugacts { display: flex; align-items: flex-start; gap: 6px; flex: none; }
 .agenda__sugacts button {
   width: 26px; height: 26px; padding: 0; border-radius: 6px;
@@ -1981,7 +1990,10 @@ function defaultPlan() {
     // ortId: Standardort für diesen Bereich, leer erlaubt
     ortId: null,
     // grob: plant dieser Bereich ohne feste Uhrzeit? Für Erholung ist das
-    // der bessere Standard — siehe Kommentar oben.
+    // der bessere Standard — siehe Kommentar oben. Hier bleibt es bei
+    // false (gilt auch für neue, nutzer-angelegte Bereiche, die als
+    // "orga" starten) — die Startbereiche selbst bekommen den besseren
+    // Standard gezielt in freshState().
     grob: false,
     // keinVorschlag (Stufe 13 Teil F): der Verteiler lässt diesen Bereich
     // aus — gesetzt über das "×" im Vorschlags-Blatt, nicht hier.
@@ -2003,8 +2015,15 @@ function freshState() {
     profile: { id: uid(), name: "" },
     settings: { dayStart: 7, dayEnd: 22, theme: "auto", sleep: defaultSleep() },
     settingsAt: 0,
+    // Stufe C Punkt C1: die Startbereiche bekommen ihren grob-Standard schon
+    // hier passend zur Art gesetzt (a4/a5/a6 = "erholung" → grob:true) —
+    // defaultPlan() selbst bleibt bei false, siehe Kommentar dort. Ohne das
+    // hätte migrate()s v7-Migration (a.plan.grob = a.plan.art==="erholung")
+    // nie gegriffen: sie greift nur bei fehlendem Feld, das frisch angelegte
+    // Bereiche nie haben.
     areas: DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan(), })).map(a =>
-      ({ ...a, plan: { ...a.plan, art: ART_STANDARD[a.id] || "orga" } })),
+      ({ ...a, plan: { ...a.plan, art: ART_STANDARD[a.id] || "orga",
+                        grob: (ART_STANDARD[a.id] || "orga") === "erholung" } })),
     orte: [],        // { id, name } — Wegzeiten hängen an Ortspaaren, nicht an Bereichen
     wege: {},        // { "id1>id2": minuten }
     blocks: [],
@@ -2622,24 +2641,74 @@ function freizeitZeile(day, todayKey) {
 function freizeitSheet() {
   modal((s, close) => {
     const todayKey = iso(new Date());
-    let rows = "";
-    weekDays().forEach(day => {
-      const z = freizeitZeile(day, todayKey);
-      const heute = day.key === todayKey;
-      rows += "<div class='freizeitrow" + (z.art === "vorbei" ? " is-vorbei" : "")
-        + (heute ? " is-heute" : "") + "'>"
-        + "<span class='freizeitrow__tag'>" + DAY_SHORT[day.i] + (heute ? " · heute" : "") + "</span>"
-        + "<span class='freizeitrow__zeit'>" + z.text + "</span>"
-        + "</div>";
+    const heuteMon = mondayOf(new Date());
+    // Stufe C Punkt C6: Start-Woche ist die beim Öffnen angezeigte. "mon"
+    // ist lokal — der Umschalter unten ändert nur ihn, nie den globalen
+    // anchor (die Hauptansicht bleibt unberührt).
+    let mon = mondayOf(anchor);
+
+    const tageDerWoche = () => [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = addDays(mon, i);
+      return { i, d, key: iso(d) };
     });
+
+    // Titel relativ zu HEUTE, nicht zur angezeigten Woche — sonst läuft man
+    // ihm hinterher: navigiert man vorher im Hauptraster in eine andere
+    // Woche und öffnet dann dieses Blatt, wäre "Frei diese Woche" gelogen.
+    const titelText = () => {
+      const diff = Math.round((mon - heuteMon) / 604800000);
+      if (diff === 0) return "Frei diese Woche";
+      if (diff === 1) return "Frei nächste Woche";
+      if (diff === -1) return "Frei letzte Woche";
+      // Muster vom Topbar-Label (renderHeader(), ~2537).
+      const sun = addDays(mon, 6);
+      const sameMonth = mon.getMonth() === sun.getMonth();
+      const range = sameMonth
+        ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
+        : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
+      return "Frei in KW " + isoWeek(mon) + " (" + range + ")";
+    };
+
     s.innerHTML =
-      "<h2 class='sheet__title'>Frei diese Woche</h2>" +
+      "<div class='weeknav' style='margin-bottom:var(--s-4)'>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitPrev' aria-label='Vorherige Woche'>‹</button>" +
+        "<h2 class='sheet__title' id='freizeitTitel' style='margin:0;flex:1;text-align:center'></h2>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
+      "</div>" +
       // Die Nachtruhe nur nennen, wenn sie auch eingeschaltet ist — defaultSleep()
       // liefert on:false, und ein Blatt, aus dem man jemandem vorliest, darf nicht
       // behaupten, es rechne etwas ein, das gar nicht wirkt.
       "<p class='freizeithint'>ab " + FREIZEIT_MIN + " Min frei"
         + (state.settings.sleep && state.settings.sleep.on ? " · Nachtruhe zählt mit" : "") + "</p>" +
-      "<div class='freizeitlist'>" + rows + "</div>";
+      "<div class='freizeitlist' id='freizeitListe'></div>";
+
+    const titelEl = s.querySelector("#freizeitTitel");
+    const listeEl = s.querySelector("#freizeitListe");
+
+    // Zeichnet Titel + sieben Zeilen für die aktuell gewählte lokale Woche
+    // ("mon") neu — beim Öffnen und nach jedem Klick auf ‹/›.
+    const zeichnen = () => {
+      titelEl.textContent = titelText();
+      // Grau/"vorbei" und der "· heute"-Marker gelten nur in der echten
+      // aktuellen Woche (Auftrag C6). Ein Sentinel-Datum vor jedem
+      // möglichen Tag umgeht freizeitZeile()s eigenen Vergleich in jeder
+      // anderen Woche, ohne die Funktion selbst anzufassen.
+      const istEchteWoche = mon.getTime() === heuteMon.getTime();
+      listeEl.innerHTML = tageDerWoche().map(day => {
+        const z = freizeitZeile(day, istEchteWoche ? todayKey : "0000-00-00");
+        const heute = day.key === todayKey;
+        return "<div class='freizeitrow" + (z.art === "vorbei" ? " is-vorbei" : "")
+          + (heute ? " is-heute" : "") + "'>"
+          + "<span class='freizeitrow__tag'>" + DAY_SHORT[day.i] + (heute ? " · heute" : "") + "</span>"
+          + "<span class='freizeitrow__zeit'>" + z.text + "</span>"
+          + "</div>";
+      }).join("");
+    };
+    zeichnen();
+
+    s.querySelector("#freizeitPrev").onclick = () => { mon = addDays(mon, -7); zeichnen(); };
+    s.querySelector("#freizeitNext").onclick = () => { mon = addDays(mon, 7); zeichnen(); };
+
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
     foot.innerHTML = "<span class='spacer'></span>";
@@ -3512,6 +3581,12 @@ function placeGrob(area, open, tage) {
   return placed;
 }
 
+// Generischer Fallback-Grund (Stufe C Punkt C2): bei leerer Woche landet er
+// achtmal auf demselben Vorschlag — als Anzeige ist das Rauschen, auf der
+// Datenebene bleibt er trotzdem ein gültiger, nicht-leerer Grund (erklaer.js
+// prüft genau das). grundZumZeigen() unten filtert ihn nur für die Anzeige.
+const GRUND_GENERISCH = "Bester freier Platz diese Woche";
+
 /* Begründungszeile (Stufe 11) für den gewählten Platz: erst das härteste
    zutreffende Filter-Label (fällt in freeGaps() ohnehin an), sonst der
    Term, der in slotScore() am stärksten wiegt — die Tagesbalance (bis zu
@@ -3526,7 +3601,18 @@ function grundFuer(area, day, start, gruende, tage) {
   if (zielOrt && state.blocks.some(b => onDay(b, day.key, day.i) && ortOf(b) === zielOrt))
     return "Kein Ortswechsel nötig";
   if (artOf(area) === ARTEN.kopf && start >= 480 && start <= 780) return "Vormittags, beste Zeit für Kopfarbeit";
-  return "Bester freier Platz diese Woche";
+  return GRUND_GENERISCH;
+}
+
+// Grund für die ANZEIGE auf Block/Zeile (Stufe C Punkt C2) — der generische
+// Fallback beantwortet dort keine Frage, die spezifischen Gründe sind das
+// eigentliche Vertrauens-Feature. b.grund selbst bleibt unangetastet (Daten-
+// vertrag für erklaer.js); nur die Anzeige schweigt, wenn sie nichts zu
+// sagen hat. sugSheet()/blockSheet() rufen diese Funktion bewusst NICHT auf
+// — dort beantwortet auch der generische Grund noch die aktive Frage
+// "warum hier?".
+function grundZumZeigen(b) {
+  return (b.grund && b.grund !== GRUND_GENERISCH) ? b.grund : "";
 }
 
 /* Abzugsgrund einer verworfenen Alternative — dieselben Signale wie oben,
@@ -3942,6 +4028,30 @@ function acceptSuggestions() {
   return n;
 }
 
+// Stufe C Punkt C7: dieselbe Auswahl, die acceptSuggestions() gleich
+// annehmen wird — dort selbst nicht mehr abrufbar, weil die Funktion die
+// sug-Flags schon löscht. Wird VOR dem Aufruf gesammelt, für den Toast danach.
+function sugBlockeDieserWoche() {
+  const keys = new Set(weekDays().map(d => d.key));
+  return state.blocks.filter(b => b.sug && keys.has(b.date));
+}
+
+// Baut aus den gerade übernommenen Blöcken einen aussprechbaren Toast-Satz
+// (Stufe C Punkt C7) statt der bloßen Zahl: Gesamtdauer (dauerVon() zählt
+// grobe Blöcke über ihr .dauer, nicht über end-start), Zahl der Tage,
+// vollster Tag. Genau ein Tag betroffen — ob durch einen einzigen Vorschlag
+// oder mehrere am selben Tag — braucht kein "über 1 Tag", "am <Tag>" reicht.
+function toastUebernommenText(bloecke) {
+  if (!bloecke.length) return "0 Vorschläge übernommen";
+  const gesamt = bloecke.reduce((sum, b) => sum + dauerVon(b), 0);
+  const proTag = new Map();
+  bloecke.forEach(b => proTag.set(b.day, (proTag.get(b.day) || 0) + dauerVon(b)));
+  const tage = [...proTag.keys()];
+  if (tage.length <= 1) return "Übernommen: " + fmtDur(gesamt) + " am " + DAY_LONG[tage[0]] + ".";
+  const vollster = tage.reduce((a, b) => proTag.get(b) > proTag.get(a) ? b : a);
+  return "Übernommen: " + fmtDur(gesamt) + " über " + tage.length + " Tage — " + DAY_LONG[vollster] + " ist am vollsten.";
+}
+
 /* Stufe 15: "Tag durcheinander?" — der Knopf in "Heute" fuer den Moment,
    in dem der Plan mitten am Tag zerbricht. Wendet denselben Verteiler wie
    das Wochenziel-Verteilen an (placeArea/placeGrob/growSuggestions), nur
@@ -4081,9 +4191,12 @@ function renderSugBar() {
   ok.type = "button"; ok.className = "btn btn--primary sugbar__accept";
   ok.textContent = "Übernehmen";
   ok.onclick = () => {
-    const got = acceptSuggestions();
+    // Stufe C Punkt C7: die Blöcke VOR acceptSuggestions() sammeln — die
+    // Funktion selbst löscht gleich die sug-Flags, an denen die Auswahl hängt.
+    const bloecke = sugBlockeDieserWoche();
+    acceptSuggestions();
     save(); renderAll();
-    toast(got + (got === 1 ? " Vorschlag übernommen" : " Vorschläge übernommen"));
+    toast(toastUebernommenText(bloecke));
   };
 
   const close = document.createElement("button");
@@ -4246,9 +4359,12 @@ function renderGoals() {
     ok.className = "btn btn--primary btn--sm";
     ok.textContent = "Alle übernehmen";
     ok.onclick = () => {
-      const n = acceptSuggestions();
+      // Stufe C Punkt C7: dieselbe Reihenfolge wie in renderSugBar() — erst
+      // sammeln, dann übernehmen, dann den Satz aus der Sammlung bauen.
+      const bloecke = sugBlockeDieserWoche();
+      acceptSuggestions();
       save(); renderAll();
-      toast(n + (n === 1 ? " Vorschlag übernommen" : " Vorschläge übernommen"));
+      toast(toastUebernommenText(bloecke));
     };
     const no = document.createElement("button");
     no.className = "btn btn--sm";
@@ -4406,7 +4522,9 @@ function regelnEditor(wrap, obj, selbstId) {
     ANKER_MIN_OPTS.forEach(m => {
       const c = document.createElement("button");
       c.type = "button"; c.className = "chip num";
-      c.textContent = "+" + fmtDur(m);
+      // Stufe C Punkt C5: die "+0 h"-Chip trägt die falsche Einheit und sagt
+      // nichts — "direkt danach" beschreibt denselben Puffer (keiner) in Worten.
+      c.textContent = m === 0 ? "direkt danach" : "+" + fmtDur(m);
       c.setAttribute("aria-pressed", String(ankerMin === m));
       c.onclick = () => {
         ankerMin = m;
@@ -4962,9 +5080,11 @@ function blockEl({ b, col, of }, hourH, dayKey) {
   el.append(t, tm);
   // Begründungszeile (Stufe 11) — nur Vorschläge haben eine, das reicht als
   // Erkennungsmerkmal. In kurzen Blöcken (is-short) ist ohnehin kein Platz.
-  if (b.sug && b.grund && h >= 34) {
+  // Stufe C Punkt C2: die Anzeige schweigt beim generischen Grund.
+  const grundAnzeige = b.sug && h >= 34 ? grundZumZeigen(b) : "";
+  if (grundAnzeige) {
     const gr = document.createElement("div");
-    gr.className = "block__grund"; gr.textContent = b.grund;
+    gr.className = "block__grund"; gr.textContent = grundAnzeige;
     el.appendChild(gr);
   }
   const rz = document.createElement("div");
@@ -6214,7 +6334,10 @@ function renderAgenda() {
   const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
 
   const wichtig = state.tasks.find(t => t.frog && !t.done);
-  let html = "<div class='agenda__label'>Heute zählt</div>"
+  // Stufe C Punkt C3: das Hero-Label heißt nur am heutigen Tag "Heute
+  // zählt" — an einem anderen Tag im Tagesstreifen (der seine Tagesform
+  // korrekt "Sonntag, 9.8." nennt) wäre "Heute" schlicht falsch.
+  let html = "<div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
     + (wichtig ? escapeHtml(wichtig.title) : "—  antippen") + "</button>";
 
@@ -6244,11 +6367,16 @@ function renderAgenda() {
       + heutigeVorschlaege.map(e => {
           const b = e.block, a = areaById(b.areaId);
           const zeit = e.grob ? abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer) : fmtTime(b.start);
-          return "<div class='agenda__row is-vorschlag' style='--h:" + a.hue + "' data-id='" + b.id + "'>"
+          const grundAnzeige = grundZumZeigen(b);
+          // Stufe C Punkt C9: tastaturbedienbar wie ein Rasterblock
+          // (blockEl(), tabIndex/role/aria-label dort als Vorbild).
+          const ariaLabel = "Vorschlag: " + escapeHtml(b.title || a.name) + ", " + zeit + ", " + escapeHtml(a.name);
+          return "<div class='agenda__row is-vorschlag' style='--h:" + a.hue + "' data-id='" + b.id + "'"
+            + " tabindex='0' role='button' aria-label='" + ariaLabel + "'>"
             + "<span class='agenda__body'><span class='agenda__line'>"
             + "<span class='agenda__title'>" + escapeHtml(b.title || a.name) + "</span>"
             + "<span class='agenda__time num'>" + zeit + "</span></span>"
-            + (b.grund ? "<span class='agenda__sub'>" + escapeHtml(b.grund) + "</span>" : "")
+            + (grundAnzeige ? "<span class='agenda__sub'>" + escapeHtml(grundAnzeige) + "</span>" : "")
             + "</span>"
             + "<span class='agenda__sugacts'>"
             + "<button type='button' data-vorschlag-ok='" + b.id + "' aria-label='Vorschlag übernehmen' title='Übernehmen'>✓</button>"
@@ -6289,7 +6417,9 @@ function renderAgenda() {
     }
 
     if (danach.length) {
-      html += "<div class='agenda__label'>Danach</div><div class='agenda__list'>";
+      // Stufe C Punkt C4: "Danach" stimmt nur heute — an einem anderen Tag
+      // läuft nichts, die Liste ist dort schlicht der geplante Tag.
+      html += "<div class='agenda__label'>" + (heute ? "Danach" : "Geplant") + "</div><div class='agenda__list'>";
       // Woher kommt man? Ohne laufenden Eintrag wird der Heimatort
       // angenommen — sonst gäbe es beim ersten Eintrag nie eine Wegzeit.
       let vorherOrt = laufend ? ortOf(laufend.block) : (state.settings.heimOrt || null);
@@ -6297,9 +6427,10 @@ function renderAgenda() {
         const b = e.block, a = areaById(b.areaId);
         const fertig = istErledigt(b, dayKey);
         let zeit, sub = "";
+        const grundAnzeige = grundZumZeigen(b);
         if (e.grob) {
           zeit = abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer);
-          if (b.grund) sub = escapeHtml(b.grund);
+          if (grundAnzeige) sub = escapeHtml(grundAnzeige);
         } else {
           zeit = fmtTime(b.start);
           const ortId = ortOf(b);
@@ -6311,8 +6442,8 @@ function renderAgenda() {
           if (ortNaam) {
             const fahrt = weg(vorherOrt, ortId);
             sub = escapeHtml(ortNaam) + (fahrt > 0 ? " · " + fahrt + " min Weg" : "");
-          } else if (b.grund) {
-            sub = escapeHtml(b.grund);
+          } else if (grundAnzeige) {
+            sub = escapeHtml(grundAnzeige);
           }
           vorherOrt = ortId || vorherOrt;
         }
@@ -6424,6 +6555,13 @@ function renderAgenda() {
   // schlichter Klick-Handler statt der Verschieben-Logik weiter unten.
   box.querySelectorAll(".agenda__row.is-vorschlag").forEach(row => {
     row.addEventListener("click", () => {
+      const b = state.blocks.find(x => x.id === row.dataset.id);
+      if (b) sugSheet(b);
+    });
+    // Stufe C Punkt C9: Enter/Space wie am Rasterblock (blockEl(), ~4931 ff.).
+    row.addEventListener("keydown", e => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
       const b = state.blocks.find(x => x.id === row.dataset.id);
       if (b) sugSheet(b);
     });

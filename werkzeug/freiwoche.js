@@ -272,6 +272,90 @@ async function basiswocheAufbauen(p) {
 
   function DAY_KURZ(i) { return ['Mo','Di','Mi','Do','Fr','Sa','So'][i]; }
 
+  /* ---- i) Lokaler Wochen-Umschalter im Blatt (Stufe C, Punkt C6) ------
+     Das Blatt ist an dieser Stelle noch offen und zeigt die Basiswoche
+     (Mo 10.08.–So 16.08., "heute" = Donnerstag 13.08., fest genagelt). */
+  console.log('\n--- i) Lokaler Wochen-Umschalter: vor/zurueck, Titel, Inhalt, anchor unberuehrt ---');
+  const weekLabelVorher = await p.evaluate(() => document.getElementById('weekLabel').textContent);
+  const anchorVorher = await p.evaluate(() => iso(mondayOf(anchor)));
+
+  const hatPfeile = await p.evaluate(() => ({
+    prev: !!document.getElementById('freizeitPrev'), next: !!document.getElementById('freizeitNext')
+  }));
+  ok(hatPfeile.prev && hatPfeile.next, 'i) das Blatt hat lokale ‹/›-Knoepfe (#freizeitPrev/#freizeitNext)');
+
+  // Erwartungswert fuer den Montag der Folgewoche: dieselbe freizeitZeile()-
+  // Logik direkt berechnet (wie Test b) gegen freeGaps() gegengerechnet) --
+  // "anchor" wird dafuer kurz verschoben und sofort wiederhergestellt
+  // (Muster wie bei den isoliert zurueckgesetzten Faellen c)/f) oben).
+  const erwartungFolgewoche = await p.evaluate(() => {
+    const savedAnchor = anchor;
+    anchor = addDays(anchor, 7);
+    const montag = weekDays()[0];
+    anchor = savedAnchor;
+    // Sentinel statt echtem todayKey: die Folgewoche liegt real nie "vorbei".
+    return freizeitZeile(montag, '0000-00-00');
+  });
+
+  await p.click('#freizeitNext');
+  await p.waitForTimeout(150);
+  const nachVor = await p.evaluate(() => {
+    const rows = [...document.querySelectorAll('.freizeitrow')];
+    return {
+      titel: document.querySelector('.sheet__title').textContent,
+      montagText: rows[0].querySelector('.freizeitrow__zeit').innerHTML,
+      anzahlVorbei: rows.filter(el => el.className.includes('is-vorbei')).length,
+      anzahlHeute: rows.filter(el => el.className.includes('is-heute')).length,
+      anchorDanach: iso(mondayOf(anchor)),
+      weekLabelDanach: document.getElementById('weekLabel').textContent
+    };
+  });
+  console.log('   nach "vor": ' + JSON.stringify(nachVor));
+  ok(nachVor.titel === 'Frei nächste Woche', 'i) Titel wechselt auf "Frei nächste Woche" (' + nachVor.titel + ')');
+  ok(nachVor.montagText === erwartungFolgewoche.text,
+    'i) Montag der Folgewoche zeigt dieselbe Zeile wie freizeitZeile() direkt (' +
+    JSON.stringify(nachVor.montagText) + ' === ' + JSON.stringify(erwartungFolgewoche.text) + ')');
+  ok(!nachVor.montagText.includes('ganzer Tag frei'), 'i) ...und das ist NICHT "ganzer Tag frei" — die woechentliche Arbeit (Mo-Do) traegt also wirklich in die Folgewoche (' + nachVor.montagText + ')');
+  ok(nachVor.anzahlVorbei === 0, 'i) keine "vorbei"-Zeilen in einer anderen Woche als der echten aktuellen (' + nachVor.anzahlVorbei + ')');
+  ok(nachVor.anzahlHeute === 0, 'i) kein "· heute"-Marker in der Folgewoche (' + nachVor.anzahlHeute + ')');
+  ok(nachVor.anchorDanach === anchorVorher, 'i) globaler anchor bleibt unberuehrt (' + nachVor.anchorDanach + ' === ' + anchorVorher + ')');
+  ok(nachVor.weekLabelDanach === weekLabelVorher, 'i) das Topbar-Wochenlabel aendert sich NICHT mit (' + JSON.stringify(nachVor.weekLabelDanach) + ')');
+
+  await p.click('#freizeitPrev');
+  await p.waitForTimeout(150);
+  const zurueck = await p.evaluate(() => ({
+    titel: document.querySelector('.sheet__title').textContent,
+    montagKlasse: document.querySelectorAll('.freizeitrow')[0].className,
+    zeilenzahl: document.querySelectorAll('.freizeitrow').length
+  }));
+  console.log('   zurueck: ' + JSON.stringify(zurueck));
+  ok(zurueck.titel === 'Frei diese Woche', 'i) zurueck: Titel wieder "Frei diese Woche" (' + zurueck.titel + ')');
+  ok(zurueck.montagKlasse.includes('is-vorbei'), 'i) zurueck: Ausgangszustand -- Montag wieder "vorbei" wie am Anfang (' + zurueck.montagKlasse + ')');
+  ok(zurueck.zeilenzahl === 7, 'i) zurueck: weiterhin sieben Zeilen (' + zurueck.zeilenzahl + ')');
+
+  // Zwei Wochen zurueck: "Frei letzte Woche" gilt nur fuer -1, sonst "Frei in KW N".
+  await p.click('#freizeitPrev'); await p.waitForTimeout(150);
+  const letzte = await p.evaluate(() => document.querySelector('.sheet__title').textContent);
+  await p.click('#freizeitPrev'); await p.waitForTimeout(150);
+  const zweiZurueck = await p.evaluate(() => document.querySelector('.sheet__title').textContent);
+  console.log('   eine Woche zurueck: ' + JSON.stringify(letzte) + '  zwei Wochen zurueck: ' + JSON.stringify(zweiZurueck));
+  ok(letzte === 'Frei letzte Woche', 'i) genau eine Woche zurueck heisst es "Frei letzte Woche" (' + letzte + ')');
+  ok(/^Frei in KW \d+ \(/.test(zweiZurueck), 'i) zwei Wochen zurueck steht die KW-Form mit Datumsbereich (' + zweiZurueck + ')');
+  // Wieder zwei Klicks vor, um den Ausgangszustand fuer die Screenshots unten herzustellen.
+  await p.click('#freizeitNext'); await p.waitForTimeout(100);
+  await p.click('#freizeitNext'); await p.waitForTimeout(150);
+  const wiederDa = await p.evaluate(() => document.querySelector('.sheet__title').textContent);
+  ok(wiederDa === 'Frei diese Woche', 'i) zwei Klicks vor bringen wieder "Frei diese Woche" (' + wiederDa + ')');
+
+  // Trefferflaechen der lokalen Pfeile: >= 44 x 44 (iPhone SE, pointer:coarse).
+  const pfeile = await p.evaluate(() => {
+    const box = sel => { const r = document.querySelector(sel).getBoundingClientRect(); return { w: r.width, h: r.height }; };
+    return { prev: box('#freizeitPrev'), next: box('#freizeitNext') };
+  });
+  console.log('   Pfeil-Trefferflaechen: ' + JSON.stringify(pfeile));
+  ok(pfeile.prev.w >= 44 && pfeile.prev.h >= 44, 'i) "zurueck"-Pfeil erreicht 44x44 (' + JSON.stringify(pfeile.prev) + ')');
+  ok(pfeile.next.w >= 44 && pfeile.next.h >= 44, 'i) "vor"-Pfeil erreicht 44x44 (' + JSON.stringify(pfeile.next) + ')');
+
   /* ---- Screenshots: SE hell/dunkel, iPhone 13 hell/dunkel, drei Faelle - */
   console.log('\n--- Screenshots ---');
   await p.evaluate(() => { state.settings.theme = 'dark'; applyTheme(); });

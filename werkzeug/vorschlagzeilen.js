@@ -466,6 +466,172 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   });
 
   /* ==============================================================
+     h) Kontrast der Geisterzeilen-Unterzeile (Stufe C, Punkt C8) —
+     Befund aus der B-Prüfung: .agenda__row.is-vorschlag .agenda__body
+     { opacity:.82 } dämpfte Titel UND Unterzeile gemeinsam und drückte
+     .agenda__sub (color: --text-faint, ohnehin der leiseste Text) unter
+     AA (gemessen hell 3,63:1, dunkel 4,59:1 — Kippgrenze). Die Dämpfung
+     sitzt seither auf .agenda__line (Titel+Zeit) statt auf .agenda__body
+     — .agenda__sub ist ein Geschwister von .agenda__line und bleibt
+     dadurch voll deckend. "Messen statt schätzen" (CLAUDE.md): dieselbe
+     Canvas-Umrechnung wie hover.js, dazu die nötige manuelle Alpha-
+     Verrechnung — opacity komponiert als echtes Alpha-Blending über den
+     Hintergrund; hover.js braucht das nicht, weil sein Knopf eine eigene
+     deckende Hintergrundfarbe trägt, hier aber sitzt die Dämpfung auf
+     einem Vorfahren ohne eigenen Hintergrund (der nächste deckende
+     Hintergrund ist .panel/.card darüber).
+     ============================================================== */
+  console.log('\n=== h) Kontrast der Geisterzeilen-Unterzeile (AA, >= 4,5:1) ===');
+  const AA_SCHWELLE = 4.5;
+  function relLum([r, g, b]) {
+    const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const [R, G, B] = [f(r), f(g), f(b)];
+    return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  }
+  function kontrastVon(rgb1, rgb2) {
+    const L1 = relLum(rgb1), L2 = relLum(rgb2);
+    const [hi, lo] = L1 > L2 ? [L1, L2] : [L2, L1];
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function mischen(bg, fg, alpha) { return [0, 1, 2].map(i => bg[i] * (1 - alpha) + fg[i] * alpha); }
+
+  for (const theme of ['light', 'dark']) {
+    await p.evaluate((theme) => {
+      state = freshState(); migrate(state);
+      state.settings.theme = theme; applyTheme();
+      state.settings.dayStart = 7; state.settings.dayEnd = 22;
+      state.settings.sleep = { on: false };
+      anchor = new Date();
+      selectedDayIdx = (new Date().getDay() + 6) % 7;
+      const heuteI = selectedDayIdx, heuteKey = iso(anchor);
+      state.blocks = [{ id: 'kontrast-test', title: 'Testeintrag', areaId: 'a3', day: heuteI, date: heuteKey,
+        repeat: 'none', start: 11 * 60, end: 12 * 60, frog: false, grob: false, sug: true,
+        grund: 'Testgrund für Kontrastmessung' }];
+      save(); setView('heute'); renderAll();
+    }, theme);
+    await p.waitForTimeout(120);
+
+    const werte = await p.evaluate(() => {
+      const c = document.createElement('canvas'); c.width = 1; c.height = 1;
+      const g = c.getContext('2d');
+      const zuRgb = (farbe) => {
+        g.clearRect(0, 0, 1, 1); g.fillStyle = farbe; g.fillRect(0, 0, 1, 1);
+        return Array.from(g.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      };
+      // opacity kaskadiert über verschachtelte Vorfahren multiplikativ —
+      // getComputedStyle liefert je Element nur dessen EIGENEN Wert, darum
+      // hier die Kette hoch bis zum nächsten deckenden Hintergrund.
+      const cumulativeOpacity = (el) => {
+        let n = el, a = 1;
+        while (n && n !== document.body) { a *= parseFloat(getComputedStyle(n).opacity || '1'); n = n.parentElement; }
+        return a;
+      };
+      const findBg = (el) => {
+        let n = el;
+        while (n) {
+          const bc = getComputedStyle(n).backgroundColor;
+          if (bc && bc !== 'rgba(0, 0, 0, 0)' && bc !== 'transparent') return bc;
+          n = n.parentElement;
+        }
+        return null;
+      };
+      const row = document.querySelector('.agenda__row.is-vorschlag');
+      const titleEl = row.querySelector('.agenda__title');
+      const subEl = row.querySelector('.agenda__sub');
+      const bgRaw = findBg(row);
+      return {
+        bgRaw, bgRgb: zuRgb(bgRaw),
+        titleRaw: getComputedStyle(titleEl).color, titleRgb: zuRgb(getComputedStyle(titleEl).color), titleAlpha: cumulativeOpacity(titleEl),
+        subRaw: getComputedStyle(subEl).color, subRgb: zuRgb(getComputedStyle(subEl).color), subAlpha: cumulativeOpacity(subEl)
+      };
+    });
+
+    const titleEff = mischen(werte.bgRgb, werte.titleRgb, werte.titleAlpha);
+    const subEff = mischen(werte.bgRgb, werte.subRgb, werte.subAlpha);
+    const titleQ = kontrastVon(titleEff, werte.bgRgb);
+    const subQ = kontrastVon(subEff, werte.bgRgb);
+    console.log('   ' + theme.toUpperCase() + ': Hintergrund=' + werte.bgRaw +
+      '  Titel ' + werte.titleRaw + ' @alpha ' + werte.titleAlpha.toFixed(2) + ' -> ' + titleQ.toFixed(2) + ':1' +
+      '  Unterzeile ' + werte.subRaw + ' @alpha ' + werte.subAlpha.toFixed(2) + ' -> ' + subQ.toFixed(2) + ':1');
+    ok(subQ >= AA_SCHWELLE, 'h) [' + theme + '] Unterzeile der Geisterzeile erreicht AA (' + subQ.toFixed(2) + ':1 >= ' + AA_SCHWELLE + ':1)');
+    ok(titleQ >= AA_SCHWELLE, 'h) [' + theme + '] Titel der Geisterzeile bleibt ebenfalls über AA (' + titleQ.toFixed(2) + ':1)');
+  }
+  // Sauber hinterlassen: die folgenden Abschnitte erwarten Hell, wie zuvor.
+  await p.evaluate(() => { state.settings.theme = 'light'; applyTheme(); });
+
+  /* ==============================================================
+     i) Die Geisterzeile ist tastaturbedienbar (Stufe C, Punkt C9) —
+     dasselbe Muster wie der Rasterblock (blockEl(): tabIndex=0,
+     role="button", aria-label, Enter/Space öffnen). Tab wird hier
+     wirklich gedrückt (nicht nur tabIndex geprüft), damit belegt ist,
+     dass die Zeile im echten Tab-Fluss ankommt.
+     ============================================================== */
+  console.log('\n=== i) Geisterzeile ist tastaturbedienbar (Tab + Enter/Space) ===');
+  await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    state.settings.dayStart = 7; state.settings.dayEnd = 22;
+    state.settings.sleep = { on: false };
+    anchor = new Date();
+    selectedDayIdx = (new Date().getDay() + 6) % 7;
+    const heuteI = selectedDayIdx, heuteKey = iso(anchor);
+    state.blocks = [{ id: 'tab-test', title: 'Tastaturtest', areaId: 'a3', day: heuteI, date: heuteKey,
+      repeat: 'none', start: 11 * 60, end: 12 * 60, frog: false, grob: false, sug: true, grund: 'Testgrund' }];
+    save(); setView('heute'); renderAll();
+  });
+  await p.waitForTimeout(120);
+
+  const attrs = await p.evaluate(() => {
+    const row = document.querySelector('.agenda__row.is-vorschlag[data-id="tab-test"]');
+    return row ? { tabIndex: row.tabIndex, role: row.getAttribute('role'), ariaLabel: row.getAttribute('aria-label') } : null;
+  });
+  console.log('   Attribute: ' + JSON.stringify(attrs));
+  ok(!!attrs && attrs.tabIndex === 0, 'i) die Geisterzeile hat tabIndex=0 (' + (attrs && attrs.tabIndex) + ')');
+  ok(!!attrs && attrs.role === 'button', 'i) role="button" (' + (attrs && attrs.role) + ')');
+  ok(!!attrs && !!attrs.ariaLabel, 'i) ein sprechendes aria-label ist gesetzt (' + JSON.stringify(attrs && attrs.ariaLabel) + ')');
+
+  // Vom Seitenanfang aus so lange Tab drücken, bis entweder die Zeile
+  // fokussiert ist oder eine Obergrenze erreicht wird (Sicherheitsnetz
+  // gegen eine Endlosschleife, falls der Fokus nie ankommt).
+  await p.evaluate(() => document.body.focus());
+  let erreicht = false;
+  for (let i = 0; i < 40 && !erreicht; i++) {
+    await p.keyboard.press('Tab');
+    erreicht = await p.evaluate(() => {
+      const el = document.activeElement;
+      return !!el && !!el.classList && el.classList.contains('is-vorschlag') && el.dataset.id === 'tab-test';
+    });
+  }
+  ok(erreicht, 'i) Tab erreicht die Geisterzeile im normalen Tab-Fluss (innerhalb von 40 Schritten)');
+
+  if (erreicht) {
+    const vorEnter = await p.evaluate(() => !!document.querySelector('.sheet'));
+    ok(!vorEnter, 'i) Voraussetzung: vor Enter ist kein Blatt offen');
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(200);
+    const nachEnter = await p.evaluate(() => ({
+      offen: !!document.querySelector('.sheet'),
+      titel: (document.querySelector('.sheet__title') || {}).textContent
+    }));
+    console.log('   nach Enter: ' + JSON.stringify(nachEnter));
+    ok(nachEnter.offen, 'i) Enter auf der fokussierten Geisterzeile öffnet ein Blatt');
+    ok(nachEnter.titel === 'Vorschlag', 'i) ...und zwar das Vorschlags-Blatt (Titel: ' + JSON.stringify(nachEnter.titel) + ')');
+
+    // Gegenprobe: die Leertaste tut dasselbe (blockEl()-Muster: Enter ODER Space).
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(200);
+    await p.evaluate(() => document.querySelector('.agenda__row.is-vorschlag[data-id="tab-test"]').focus());
+    await p.keyboard.press(' ');
+    await p.waitForTimeout(200);
+    const nachSpace = await p.evaluate(() => ({
+      offen: !!document.querySelector('.sheet'),
+      titel: (document.querySelector('.sheet__title') || {}).textContent
+    }));
+    ok(nachSpace.offen && nachSpace.titel === 'Vorschlag', 'i) Leertaste öffnet dasselbe Blatt (' + JSON.stringify(nachSpace) + ')');
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(150);
+  }
+
+  /* ==============================================================
      Sichtprobe: 320x568 (aktuelle Ansicht) + 375x812.
      ============================================================== */
   console.log('\n=== Sichtproben ===');

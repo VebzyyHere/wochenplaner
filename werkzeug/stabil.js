@@ -277,6 +277,12 @@ function vergleiche(vorher, nachher) {
     const set = (id, h, must, pad) => { const a = state.areas.find(x => x.id === id);
       a.plan.goal = h; a.plan.must = must; if (pad !== undefined) a.plan.pad = pad; };
     set("a1", 20, true, 60); set("a2", 12, true); set("a3", 4, true); set("a6", 4, true); set("a5", 8, false);
+    // Stufe C Punkt C1: freshState() setzt a5/a6 seither selbst auf
+    // plan.grob=true. Diese Kennzahl (anzahl der EXAKTEN Bloecke, unten
+    // ueber !b.grob gefiltert) ist unten hart auf 34 gepinnt — hier
+    // explizit auf false zurueckgepinnt, damit sie weiter misst, wofuer
+    // sie gebaut wurde, statt am neuen Standard vorbeizulaufen.
+    ["a5", "a6"].forEach(id => { state.areas.find(x => x.id === id).plan.grob = false; });
     anchor = new Date();   // die aktuelle (fixierte) Woche, "heute" ist Teil davon — anders als realtest.js
     state.blocks = [];
     save(); renderAll();
