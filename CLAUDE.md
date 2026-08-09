@@ -103,7 +103,10 @@ Standardschrift, plus eigener Abschnitt für den Abend mit Tagesabschluss), `sch
 darf Karten-/Rasterinhalt nicht verdecken, und umgekehrt: ihr Polster darf die sichtbare
 Rasterhöhe nicht schrumpfen; stehen Vorschläge an, behält nur „Übernehmen" den Akzent,
 „Vorschlagen" weicht zurück; ihr Label bricht bei wenig Platz um, statt sich zu quetschen),
-`dialog.js` (Barrierefreiheit der Dialoge), `haken.js` (Abhaken
+`dialog.js` (Barrierefreiheit der Dialoge), `doppeltipp.js` (der hastige Doppeltipp auf
+„Woche anlegen": „Das wird eng" öffnet sich unter dem Finger — die Schonfrist in
+`verteilenMitGate()` muss den zweiten Tipp folgenlos machen, statt ihn „Ziele anpassen"
+oder den Scrim treffen zu lassen), `haken.js` (Abhaken
 hängt am Paar Eintrag+Datum), `abbrechen.js` (Ziele-Editor stellt bei Abbrechen, Escape oder
 Klick auf den Hintergrund nicht nur Chips zurück, sondern jedes getippte Feld — über eine
 Sicherung von `a.plan`/`a.regeln` beim Öffnen), `vorschlagzeilen.js` (Vorschläge stehen als
@@ -195,6 +198,12 @@ selben Codepfad auf die Vollwochen-Rechnung zurück; Ampeltext dann „Rest der 
 Alle **drei** Verteil-Einstiege — Ziele-„Vorschlagen", Heute-Leerzustand, Erststart-Assistent —
 laufen durch `verteilenMitGate()` (4234): bei `ok: false` erscheint „Das wird eng" mit dem
 Ausweg „Nächste Woche planen" (`planeNaechsteWoche()` 4220; Prüfung: `kapazitaet.js`).
+Das Gate-Blatt trägt eine 300-ms-Schonfrist (`pointer-events` am Scrim aus, echtes
+`setTimeout`, bewusst ohne `Date.now()`): es öffnet sich synchron unter dem Finger,
+und der zweite Tipp eines hastigen Doppeltipps traf sonst sofort „Ziele anpassen" oder
+wischte das Blatt über den Scrim ungelesen weg. Klicks mit Trefferprüfung (Playwright)
+warten die Frist von selbst ab — Bestandsskripte bleiben unverändert grün (Prüfung:
+`doppeltipp.js`).
 `VERPLANT_GRENZE = 0.65` (3150), Ampel
 grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 3217). Begründungen: der generische
 Fallback (`GRUND_GENERISCH` 3588) erscheint auf Blöcken und Agenda-Zeilen **nicht** mehr

@@ -4234,7 +4234,7 @@ function planeNaechsteWoche() {
 function verteilenMitGate(verteilen) {
   const k = wochenKapazitaet();
   if (k.ok) { verteilen(); return; }
-  modal((sh, close) => {
+  const blatt = modal((sh, close) => {
     sh.innerHTML =
       "<h2 class='sheet__title'>Das wird eng</h2>" +
       "<p style='margin:0 0 14px;color:var(--text-muted);font-size:var(--t-body);line-height:1.6'>" +
@@ -4270,6 +4270,25 @@ function verteilenMitGate(verteilen) {
     foot.appendChild(ziele);
     sh.appendChild(foot);
   });
+  // Schonfrist gegen den hastigen Doppeltipp: dieses Blatt öffnet sich
+  // synchron unter dem Finger, und sein Fuß liegt fast genau dort, wo
+  // eben noch der Auslöser saß ("Woche anlegen" im Assistenten,
+  // "Vorschlagen" in den Zielen). Der zweite Tipp eines Doppeltipps traf
+  // deshalb sofort "Ziele anpassen" — oder den Scrim, der schon auf
+  // pointerdown schließt: niemand hat "Das wird eng" je gesehen
+  // (werkzeug/doppeltipp.js). pointer-events statt Klick-Verschlucken,
+  // damit Klicks mit Trefferprüfung (Playwright) von selbst warten statt
+  // ins Leere zu laufen — so bleiben ob.js/kapazitaet.js unverändert
+  // grün; der Streutipp fällt auf die inerte App. Bewusst nur setTimeout,
+  // kein Date.now(): setFixedTime() in den Prüfskripten friert die Uhr
+  // ein, echte Timer laufen weiter. Bewusst NICHT mit eingefroren: Toasts
+  // mit Aktionsknopf (einziger Nachbar außerhalb der inerten .app) — ein
+  // none am #toasts-Elternknoten verlöre gegen deren eigene
+  // pointer-events-Regeln (.toast__act, :has()-Regel darüber), und der
+  // Fall braucht Toast, Gate und Deckungsgleichheit zugleich.
+  const scrim = blatt.parentElement;
+  scrim.style.pointerEvents = "none";
+  setTimeout(() => { scrim.style.pointerEvents = ""; }, 300);
 }
 
 function renderGoals() {
