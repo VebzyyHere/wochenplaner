@@ -316,6 +316,18 @@ button { cursor: pointer; }
    Test g). Klassen, IDs, Inhalt und Verhalten dieses Gesichts bleiben sonst
    exakt wie vorher — freiwoche.js prüft das hart, unverändert.
    ============================================================ */
+/* #freizeitTitel (Stufe M3.1) ist wie #weekLabel ein echter <button> --
+   Zoom-Ausstieg zum Monatsblatt. Dieselbe Formensprache: Browser-Chrome
+   zurückgesetzt, Caret-Hinweis (.weeknav__caret wird 1:1 wiederverwendet),
+   44px Mindesthöhe für die Trefferfläche -- bei flex:1 (Breite über die
+   ganze Kopfzeile des Blatts) reicht das ohne ::before-Kniff. Die
+   Typografie bleibt bei .sheet__title (font-size/-weight/letter-spacing),
+   diese Klasse setzt nur das Knopf-Drumherum zurück. */
+.freizeittitel {
+  min-height: 44px; background: none; border: none; color: inherit;
+  cursor: pointer; padding: 0; border-radius: var(--radius-sm);
+}
+@media (hover: hover) { .freizeittitel:hover { background: var(--surface-2); } }
 .freizeithint {
   margin: 0 0 var(--s-2); color: var(--text-muted); font-size: var(--t-xs);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1565,7 +1577,25 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .weeknav__label small::before { content: " · "; }
   /* Unter 360 Pixeln bricht das Datum mitten durch. Die Tage stehen
      ohnehin im Wechsler darunter — dann lieber nur die Kalenderwoche. */
-  @media (max-width: 360px) { .weeknav__label small { display: none; } }
+  @media (max-width: 360px) {
+    .weeknav__label small { display: none; }
+    /* Monatsblatt-Titel (Stufe M3.4): "<Monat> <Jahr>" bricht bei vier von
+       zwölf Monatsnamen mit sichtbarem "Heute"-Knopf zweizeilig um. Das
+       Jahr steht bei 320px ohnehin implizit fest (und beim
+       Jahreswechsel-Blättern zeigt der Monatsname selbst den Kontext) --
+       NICHT display:none (Fund bei der M3-Prüfung, s. Bericht): der Titel
+       ist per aria-labelledby der zugängliche Name des ganzen Dialogs
+       (modal()), und die Name-from-content-Berechnung schließt display:none
+       aus -- Screenreader hätten den Dialog unter 360px nur noch als
+       "August" statt "August 2026" gehört, obwohl textContent (und damit
+       jeder auf textContent prüfende Test) unverändert "August 2026" zeigt.
+       Dieselbe 1x1px-Technik wie .sr (171) hält das Jahr im zugänglichen
+       Namen, ohne der Zeile ihre Breite zurückzugeben. */
+    .monat__jahr {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+  }
   .topbar { padding: 4px var(--s-2); gap: 0; }
   .topbar { padding-top: max(4px, env(safe-area-inset-top)); }
   .sheet { max-width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
@@ -2831,14 +2861,16 @@ function klartextZeile(echt, day) {
   return { html: teile.join(" · ") + (rest > 0 ? " +" + rest : ""), leer: false };
 }
 
-function freizeitSheet() {
+function freizeitSheet(startMontag) {
   modal((s, close) => {
     const todayKey = iso(new Date());
     const heuteMon = mondayOf(new Date());
     // Stufe C Punkt C6: Start-Woche ist die beim Öffnen angezeigte. "mon"
     // ist lokal — der Umschalter unten ändert nur ihn, nie den globalen
-    // anchor (die Hauptansicht bleibt unberührt).
-    let mon = mondayOf(anchor);
+    // anchor (die Hauptansicht bleibt unberührt). Stufe M3.2 gibt der
+    // KW-Rinne im Monatsblatt (monatSheet()) einen eigenen Startpunkt mit
+    // (aktuelle/vergangene Woche antippen) — Vorgabe bleibt mondayOf(anchor).
+    let mon = mondayOf(startMontag || anchor);
 
     const tageDerWoche = () => [0, 1, 2, 3, 4, 5, 6].map(i => {
       const d = addDays(mon, i);
@@ -2874,7 +2906,13 @@ function freizeitSheet() {
     s.innerHTML =
       "<div class='weeknav' style='margin-bottom:var(--s-3)'>" +
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitPrev' aria-label='Vorherige Woche'>‹</button>" +
-        "<h2 class='sheet__title' id='freizeitTitel' style='margin:0;flex:1;text-align:center'></h2>" +
+        // Stufe M3.1: echter <button> -- Zoom-Ausstieg zum Monatsblatt. Das
+        // Blatt braucht trotzdem einen eigenen, vom aria-label dieses Knopfs
+        // unabhängigen Namen (sonst würde "Monatsübersicht öffnen" zur
+        // Bezeichnung des ganzen Dialogs) -- das übernimmt zeichnen() unten
+        // per aria-label direkt auf dem Sheet; modal() findet hier kein
+        // h2.sheet__title mehr und rührt aria-labelledby also gar nicht an.
+        "<button type='button' class='sheet__title freizeittitel' id='freizeitTitel' aria-label='Monatsübersicht öffnen' style='margin:0;flex:1;text-align:center'></button>" +
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
       "</div>" +
       "<div class='gesichtumschalter' id='gesichtUmschalter'></div>" +
@@ -2983,9 +3021,15 @@ function freizeitSheet() {
 
     // Zeichnet Titel + Inhalt der aktuell gewählten Fläche für die
     // angezeigte Woche ("mon") neu — beim Öffnen, nach ‹/› und nach jedem
-    // Umschalt-Klick.
+    // Umschalt-Klick. Stufe M3.1: das aria-label des Dialogs zieht hier
+    // mit -- #freizeitTitel selbst trägt sein EIGENES, konstantes
+    // aria-label ("Monatsübersicht öffnen", s.o.), das darf die
+    // Bezeichnung des Blatts nicht überschreiben (s. Kommentar oben).
     const zeichnen = () => {
-      titelEl.textContent = titelText();
+      const titel = titelText();
+      titelEl.innerHTML = titel
+        + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>";
+      s.setAttribute("aria-label", titel);
       if (freizeitGesicht === "frei") zeichnenFrei(); else zeichnenBelegt();
     };
     paintUmschalter();
@@ -3010,6 +3054,13 @@ function freizeitSheet() {
 
     s.querySelector("#freizeitPrev").onclick = () => { mon = addDays(mon, -7); zeichnen(); };
     s.querySelector("#freizeitNext").onclick = () => { mon = addDays(mon, 7); zeichnen(); };
+    // Stufe M3.1: Titel zoomt raus -- schließt dieses Blatt und öffnet
+    // monatSheet() im Monat der zuletzt HIER angezeigten Woche ("mon"),
+    // nicht stumpf im Monat von anchor (der bleibt unbewegt, s.
+    // Kerninvariante dieser Stufe). modal() ersetzt das offene Blatt
+    // ohnehin (closeModal() läuft als erstes in modal()) -- kein Stapel
+    // nötig, close() hier nur zur Klarheit, wie an den anderen Zoom-Wegen.
+    titelEl.onclick = () => { const zielMonat = mon; close(); monatSheet(zielMonat); };
 
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
@@ -3148,14 +3199,16 @@ function wochenBelegung(mon) {
   return wach ? belegt / wach : 0;
 }
 
-function monatSheet() {
+function monatSheet(startDatum) {
   modal((s, close) => {
     const heute = new Date();
     const todayIso = iso(heute);
     const heuteMon = mondayOf(heute);
-    // Start = Monat der Anzeige-Woche (anchor) — jahr/monatIdx sind rein
-    // lokal, das bloße Blättern hier fasst den globalen anchor nie an.
-    const start = mondayOf(anchor);
+    // Start = Monat der Anzeige-Woche — jahr/monatIdx sind rein lokal, das
+    // bloße Blättern hier fasst den globalen anchor nie an. Vorgabe bleibt
+    // anchor; Stufe M3.1 gibt dem Titel-Zoom aus freizeitSheet() einen
+    // eigenen Startpunkt mit (Monat der zuletzt DORT gezeigten Woche).
+    const start = mondayOf(startDatum || anchor);
     let jahr = start.getFullYear(), monatIdx = start.getMonth();
 
     s.innerHTML =
@@ -3176,7 +3229,12 @@ function monatSheet() {
     // Zeichnet Titel + Raster für den aktuell gewählten Monat (jahr/
     // monatIdx) neu — beim Öffnen und nach jedem Klick auf ‹/›/Heute.
     const zeichnen = () => {
-      titelEl.textContent = MONTHS[monatIdx] + " " + jahr;
+      // Stufe M3.4: die Jahreszahl steckt in einem eigenen <span>, das
+      // unter 360px verschwindet (Responsive-Regel, s. dort) — vier der
+      // zwölf Monatsnamen brechen sonst mit sichtbarem "Heute"-Knopf
+      // zweizeilig um. textContent bleibt für Prüfskripte unverändert
+      // "September 2026" (display:none entfernt keinen Text aus dem DOM).
+      titelEl.innerHTML = MONTHS[monatIdx] + " <span class='monat__jahr'>" + jahr + "</span>";
       heuteBtn.hidden = jahr === heute.getFullYear() && monatIdx === heute.getMonth();
 
       const montage = monatMontage(jahr, monatIdx);
@@ -3189,17 +3247,18 @@ function monatSheet() {
         const vergangeneWoche = monIso < iso(heuteMon);
         const kuenftigeWoche = monIso > iso(heuteMon);
         const belegung = wochenBelegung(mon);
-        const sun = addDays(mon, 6);
-        const kwLabel = "Kalenderwoche " + isoWeek(mon) + ", " + mon.getDate() + "." + (mon.getMonth() + 1)
-          + ". bis " + sun.getDate() + "." + (sun.getMonth() + 1) + "., "
-          + Math.round(belegung * 100) + " % belegt";
 
-        // Vergangene Wochen: gedimmt, ohne Aktion (disabled) — anders als
-        // Tage bleiben sie hier bewusst nicht antippbar, s. Bericht.
+        // Stufe M3.2: aktuelle und vergangene Wochen öffnen jetzt das
+        // Wochen-Blatt (freizeitSheet()) in genau dieser Woche — vergangene
+        // bleiben dabei optisch gedimmt (is-past), sind aber nicht mehr
+        // disabled (Rückblick möglich, s. Bericht). Künftige Wochen
+        // behalten ihr "+" (planeWoche() durchs Gate). aria-label nennt
+        // jetzt die Handlung statt der Auslastung — die % stehen sichtbar
+        // im Knopf selbst (.monatweek__pct).
+        const kwAria = kuenftigeWoche ? ("KW " + isoWeek(mon) + " planen") : ("KW " + isoWeek(mon) + " ansehen");
         html += "<button type='button' class='monatweek"
           + (vergangeneWoche ? " is-past" : "") + (kuenftigeWoche ? " is-future" : "") + "'"
-          + (vergangeneWoche ? " disabled" : "")
-          + " data-monday='" + monIso + "' aria-label='" + kwLabel + "'>"
+          + " data-monday='" + monIso + "' aria-label='" + kwAria + "'>"
           + "<b>" + isoWeek(mon) + "</b>"
           + "<span class='monatweek__pct'>" + Math.round(belegung * 100) + "%</span>"
           + (kuenftigeWoche ? "<span class='monatweek__plus' aria-hidden='true'>+</span>" : "")
@@ -3297,9 +3356,10 @@ function monatSheet() {
         setView("plan");
         planeWoche(montag);
       } else {
-        anchor = montag;
-        setView("plan");
-        renderAll();
+        // Stufe M3.2: aktuelle/vergangene Woche zoomt ins Wochen-Blatt statt
+        // in den Plan — anchor bleibt unangetastet (Kerninvariante dieser
+        // Stufe), in den Tag springt man von dort per Zeilen-Tipp.
+        freizeitSheet(montag);
       }
     });
 
@@ -4747,17 +4807,26 @@ function istDieseWoche() {
    Monatsblatt (monatSheet(), Stufe M1). Läuft seit dort durchs
    Kapazitäts-Gate wie die anderen drei Verteil-Einstiege (Stufe A/D) —
    vorher rief planeNaechsteWoche() buildSuggestions() direkt auf, ganz
-   ohne Nachfrage; das war die einzige Lücke im Gate. Die Toast-Texte
-   bleiben wörtlich "…nächste Woche…" (kapazitaet.js d)/f)/g) prüfen sie
-   so) — für eine weiter entfernte Zukunftswoche aus dem Monatsblatt ist
-   das eine kleine, bewusst in Kauf genommene Ungenauigkeit. */
+   ohne Nachfrage; das war die einzige Lücke im Gate.
+
+   Stufe M3.3: der Erfolgs-Toast richtet sich nach der Distanz der Zielwoche
+   zur ECHTEN Heute-Woche (nicht zu anchor, der hier schon auf montag
+   steht) — höchstens eine Woche entfernt bleibt es wörtlich "…nächste
+   Woche…" (kapazitaet.js d)/f)/g) prüfen genau diesen Fall: der Knopf
+   "Nächste Woche planen" erscheint nur, wenn die laufende Woche schon die
+   echte aktuelle ist, das Ziel ist dort also immer genau +1). Weiter
+   entfernt (z.B. der "+"-Tipp auf eine fernere KW im Monatsblatt) nennt
+   der Toast die Kalenderwoche statt zu lügen. */
 function planeWoche(montag) {
+  const heuteMon = mondayOf(new Date());
+  const distanzWochen = Math.round((montag - heuteMon) / 604800000);
   anchor = montag;
   verteilenMitGate(() => {
     const r = buildSuggestions();
     save(); renderAll();
     if (!r.placed) toast("Nichts zu verteilen — alle Ziele sind schon gedeckt");
-    else toast("Vorschlag für die nächste Woche steht");
+    else if (Math.abs(distanzWochen) <= 1) toast("Vorschlag für die nächste Woche steht");
+    else toast("Vorschlag für KW " + isoWeek(montag) + " steht");
   });
 }
 
@@ -8998,8 +9067,14 @@ function paintSyncBadge() {
 /* ============================================================ Navigation */
 $("#prevWeek").onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
 $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
-$("#weekLabel").onclick = freizeitSheet;
-$("#monthBtn").onclick = monatSheet;
+// Stufe M3: freizeitSheet()/monatSheet() haben seit dieser Stufe einen
+// optionalen Startparameter (Zoom-Wege aus dem jeweils anderen Blatt) --
+// als rohe onclick-Handler bekämen sie hier sonst das PointerEvent des
+// Klicks als ersten Parameter untergeschoben (deshalb der Event.getFullYear-
+// Absturz beim Bauen dieser Stufe, s. Bericht). Ohne Argument aufrufen,
+// damit beide auf ihre eigene Vorgabe (anchor) zurückfallen.
+$("#weekLabel").onclick = () => freizeitSheet();
+$("#monthBtn").onclick = () => monatSheet();
 $("#todayBtn").onclick = () => {
   anchor = new Date();
   selectedDayIdx = (new Date().getDay() + 6) % 7;

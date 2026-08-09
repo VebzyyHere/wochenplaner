@@ -44,6 +44,20 @@
       vermessen — hier ohne ::before-Kniff nötig, die Zeile ist ohnehin
       deutlich über 44px hoch).
 
+   Ab hier Stufe M3 ("Der Zoom schließt sich"):
+   h) Titel-Tipp (#freizeitTitel, jetzt ein echter <button>, 44px,
+      aria-label "Monatsübersicht öffnen") zoomt raus: schließt das
+      Wochen-Blatt, öffnet monatSheet() im Monat der ZULETZT HIER
+      gezeigten Woche (per ‹ vorher eigens in den Nachbarmonat Juli
+      geblättert — sonst wäre der Unterschied zum Monat von anchor, der
+      die ganze Zeit auf August/3.8. stehen bleibt, gar nicht zu sehen).
+   i) freizeitSheet(startMontag): öffnet direkt in der übergebenen Woche
+      (nicht der von anchor), ‹/› blättern von dort aus weiter, anchor
+      bleibt unbewegt.
+   j) Das Gesicht übersteht den ganzen Zoom-Rundweg: Belegt wählen →
+      Titel-Tipp (Monat) → KW-Tipp zurück (Woche) → weiterhin Belegt, kein
+      stiller Rücksprung auf Frei.
+
    Rot-Beweis: `git stash push -- index.html` gegen HEAD (vor Stufe M2),
    Skript erneut laufen lassen — a) findet keinen Umschalter/keine
    Chips, b) findet weder Belegt-Chip noch .wochenzeile (Klick auf ein
@@ -53,6 +67,16 @@
    das Skript beim alten Stand FEHLER-Zeilen schreibt statt an einer
    nicht abgefangenen Exception zu zerschellen (Stil wie monat.js).
    `git stash pop` stellt den Stand danach wieder her.
+
+   Stufe M3 (h–j): eigener Rot-Beweis gegen den NEUEN HEAD (68b0541 — M1/M2
+   schon enthalten, nur M3 fehlt noch). `git stash push -- index.html`,
+   Skript erneut laufen lassen: h) #freizeitTitel ist noch ein <h2>, kein
+   <button> — der Klick darauf tut nichts, das Monatsblatt bleibt zu; i)
+   freizeitSheet() kennt noch keinen Startparameter, öffnet immer bei
+   anchor statt bei der übergebenen Woche; j) ist ohne h)/i) hinfällig —
+   der KW-Tipp auf die aktuelle Woche springt im Monatsblatt noch in den
+   Plan statt zurück ins Wochen-Blatt, das Gesicht hat also gar keinen
+   Rundweg zu überstehen. `git stash pop` stellt den Stand danach wieder her.
 
    Stil wie freiwoche.js/monat.js: eine Chromium-Seite (iPhone SE),
    deutsche Ausgabe, Exit 1 bei Fehlern.
@@ -426,6 +450,115 @@ async function fixtureAufbauen(p) {
     ok(d1.selectedDayIdx === 4, 'd) selectedDayIdx zeigt auf Freitag (4), war ' + d1.selectedDayIdx);
     ok(d1.mview === 'plan', 'd) body[data-mview] ist "plan" (war ' + JSON.stringify(d1.mview) + ')');
   }
+
+  /* ---- h) Titel-Tipp zoomt raus: Monatsblatt im Monat der zuletzt ------
+     gezeigten Woche (Stufe M3.1) -------------------------------------- */
+  console.log('\n=== h) Titel-Tipp zoomt raus: Monatsblatt im Monat der zuletzt gezeigten Woche ===');
+  await fixtureAufbauen(p);
+  // Block f) davor lässt bewusst "Belegt" aktiv (prüft dort die Persistenz)
+  // — h)/i) drehen sich um den Zoom-Mechanismus, nicht ums Gesicht, darum
+  // hier explizit auf die Vorgabe "Frei" zurück (j) unten prüft "Belegt"
+  // gezielt und für sich).
+  await p.evaluate(() => { freizeitGesicht = 'frei'; });
+  await p.click('#weekLabel');
+  await p.waitForTimeout(300);
+  const h0 = await p.evaluate(() => {
+    const el = document.getElementById('freizeitTitel');
+    return { tag: el.tagName, ariaLabel: el.getAttribute('aria-label'), hoehe: el.getBoundingClientRect().height };
+  });
+  ok(h0.tag === 'BUTTON', 'h) #freizeitTitel ist ein echter <button> (' + h0.tag + ')');
+  ok(h0.ariaLabel === 'Monatsübersicht öffnen', 'h) aria-label "Monatsübersicht öffnen" (war ' + JSON.stringify(h0.ariaLabel) + ')');
+  ok(h0.hoehe >= 44, 'h) #freizeitTitel erreicht die 44px-Trefferfläche (' + Math.round(h0.hoehe) + 'px)');
+
+  // Erst in einen Nachbarmonat blättern (Juli) — sonst wäre "Monat der
+  // zuletzt gezeigten Woche" von "Monat von anchor" nicht zu unterscheiden,
+  // beide wären ja August. anchor bleibt die ganze Zeit auf Montag 3.8. stehen.
+  const prevDaH = await p.locator('#freizeitPrev').count() > 0;
+  ok(prevDaH, 'h) #freizeitPrev existiert');
+  if (prevDaH) { await p.click('#freizeitPrev'); await p.waitForTimeout(150); }
+  const titelVorZoom = await p.evaluate(() => document.querySelector('.sheet__title').textContent);
+  ok(titelVorZoom === 'Frei letzte Woche', 'h) eine Woche zurück (Juli-Woche): "Frei letzte Woche" (war ' + JSON.stringify(titelVorZoom) + ')');
+
+  await p.click('#freizeitTitel');
+  await p.waitForTimeout(300);
+  const h1 = await p.evaluate(() => ({
+    wochenBlattWeg: !document.getElementById('freizeitTitel'),
+    monatTitelDa: !!document.getElementById('monatTitel'),
+    monatTitelText: (document.getElementById('monatTitel') || {}).textContent || null,
+    anchorIso: iso(anchor)
+  }));
+  console.log('   ' + JSON.stringify(h1));
+  ok(h1.wochenBlattWeg, 'h) das Wochen-Blatt ist zu (modal() ersetzt es)');
+  ok(h1.monatTitelDa, 'h) stattdessen ist das Monatsblatt offen (#monatTitel existiert)');
+  ok(h1.monatTitelText === 'Juli 2026',
+    'h) Monatsblatt zeigt Juli 2026 — den Monat der zuletzt gezeigten Woche, NICHT August (Monat von anchor), war ' + JSON.stringify(h1.monatTitelText));
+  ok(h1.anchorIso === '2026-08-03', 'h) der globale anchor bleibt unbewegt (war ' + h1.anchorIso + ')');
+
+  /* ---- i) freizeitSheet(startMontag): öffnet in der übergebenen Woche --
+     (Stufe M3.2) -------------------------------------------------------- */
+  console.log('\n=== i) freizeitSheet(startMontag): öffnet in der übergebenen Woche, ‹/› arbeiten von dort weiter, anchor unbewegt ===');
+  await fixtureAufbauen(p);
+  const i0 = await p.evaluate(() => {
+    if (typeof closeModal === 'function') closeModal();
+    freizeitGesicht = 'frei'; // dieselbe Begründung wie bei h) oben
+    return iso(anchor); // 2026-08-03
+  });
+  const kwStart = await p.evaluate(() => isoWeek(new Date(2026, 6, 6))); // KW von Montag 6.7.2026
+  await p.evaluate(() => { freizeitSheet(new Date(2026, 6, 6)); }); // weit vor anchor
+  await p.waitForTimeout(300);
+  const i1 = await p.evaluate(() => ({
+    titel: (document.querySelector('.sheet__title') || {}).textContent || null,
+    anchorIso: iso(anchor)
+  }));
+  console.log('   ' + JSON.stringify(i1) + '  (erwartete KW: ' + kwStart + ')');
+  ok(i1.titel === 'Frei in KW ' + kwStart + ' (6.–12. Juli)',
+    'i) öffnet wortgleich in der übergebenen Woche (KW ' + kwStart + '), nicht in der Woche von anchor (war ' + JSON.stringify(i1.titel) + ')');
+  ok(i1.anchorIso === i0, 'i) anchor bleibt beim Öffnen mit Startparameter unbewegt (' + i0 + ' === ' + i1.anchorIso + ')');
+
+  const nextDaI = await p.locator('#freizeitNext').count() > 0;
+  if (nextDaI) { await p.click('#freizeitNext'); await p.waitForTimeout(150); }
+  const i2 = await p.evaluate(() => ({
+    titel: document.querySelector('.sheet__title').textContent,
+    anchorIso: iso(anchor)
+  }));
+  ok(i2.titel === 'Frei in KW ' + (kwStart + 1) + ' (13.–19. Juli)',
+    'i) › blättert von der ÜBERGEBENEN Woche aus eine weiter, nicht von anchor (war ' + JSON.stringify(i2.titel) + ')');
+  ok(i2.anchorIso === i0, 'i) anchor bleibt auch nach › unbewegt (' + i0 + ' === ' + i2.anchorIso + ')');
+
+  /* ---- j) Gesicht übersteht den Zoom-Rundweg (Stufe M3) ----------------- */
+  console.log('\n=== j) Gesicht (Belegt) übersteht Belegt -> Titel-Tipp -> Monat -> KW-Tipp zurück -> immer noch Belegt ===');
+  await fixtureAufbauen(p);
+  await p.click('#weekLabel');
+  await p.waitForTimeout(300);
+  const belegtChipRund = p.locator('#gesichtUmschalter .chip', { hasText: 'Belegt' });
+  const belegtDaJ = await belegtChipRund.count() > 0;
+  ok(belegtDaJ, 'j) "Belegt"-Chip existiert');
+  if (belegtDaJ) { await belegtChipRund.click(); await p.waitForTimeout(200); }
+  const j0 = belegtDaJ ? await p.evaluate(() => document.querySelectorAll('#gesichtUmschalter .chip')[1].getAttribute('aria-pressed')) : null;
+  ok(j0 === 'true', 'j) "Belegt" ist aktiv, bevor der Rundweg losgeht (' + j0 + ')');
+
+  const freizeitTitelDaJ = await p.locator('#freizeitTitel').count() > 0;
+  if (freizeitTitelDaJ) { await p.click('#freizeitTitel'); await p.waitForTimeout(300); } // Titel-Tipp -> Monat
+  const monatOffenJ = await p.evaluate(() => !!document.getElementById('monatTitel'));
+  ok(monatOffenJ, 'j) Monatsblatt ist nach dem Titel-Tipp offen');
+
+  if (monatOffenJ) {
+    const kw32DaJ = await p.locator('.monatweek[data-monday="2026-08-03"]').count() > 0;
+    if (kw32DaJ) { await p.click('.monatweek[data-monday="2026-08-03"]'); await p.waitForTimeout(300); } // KW-Tipp zurück (aktuelle Woche)
+  }
+  const j1 = await p.evaluate(() => {
+    const chips = [...document.querySelectorAll('#gesichtUmschalter .chip')];
+    return {
+      freizeitTitelDa: !!document.getElementById('freizeitTitel'),
+      zeigtBelegt: !(document.getElementById('wochenzeilenListe') || {}).hidden,
+      chipPressed: chips.map(c => c.getAttribute('aria-pressed'))
+    };
+  });
+  console.log('   ' + JSON.stringify(j1));
+  ok(j1.freizeitTitelDa, 'j) das Wochen-Blatt ist nach dem KW-Tipp wieder offen');
+  ok(j1.zeigtBelegt, 'j) das Belegt-Gesicht ist weiterhin aktiv — kein Rücksprung auf Frei (' + JSON.stringify(j1) + ')');
+  ok(j1.chipPressed[1] === 'true' && j1.chipPressed[0] === 'false',
+    'j) "Belegt"-Chip bleibt aria-pressed=true, "Frei" bleibt false (' + JSON.stringify(j1.chipPressed) + ')');
 
   /* ---- Screenshots: SE 320×568 + iPhone 13 375×812, je hell/dunkel, ----
      beide Gesichter -------------------------------------------------------- */

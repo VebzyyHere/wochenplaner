@@ -39,6 +39,25 @@
       irgendwo im gerenderten Monatsblatt — M1 zeigt sie gar nicht erst,
       also auch nichts zu escapen.
 
+   Ab hier Stufe M3 ("Der Zoom schließt sich") — dieselbe feste Uhr:
+   i) Monatstitel bei 320px einzeilig in allen zwölf Monatsnamen (Stufe
+      M3.4), jeweils MIT sichtbarem "Heute"-Knopf (der Bug trat nur dann
+      auf — er nimmt der Titelzeile die Breite); Titelhöhe ≤ 1,5
+      Zeilenhöhen. Bei 375px ist die Jahreszahl (.monat__jahr) wieder
+      sichtbar — die 320px-Lösung blendet sie nicht generell aus.
+   j) KW-Tipp auf die aktuelle Woche (Stufe M3.2): öffnet jetzt das
+      Wochen-Blatt (freizeitSheet()) in genau dieser Woche statt in den
+      Plan zu springen; #freizeitTitel nennt die richtige Woche, der
+      globale anchor bleibt unbewegt — auch wenn er beim Öffnen auf einer
+      anderen Woche stand (Kerninvariante dieser Stufe).
+   k) KW-Tipp auf eine vergangene Woche (Stufe M3.2): dieselbe Umzielung;
+      zusätzlich der frühere disabled-Zustand weg (Rückblick möglich),
+      aria-label "KW 31 ansehen", weiterhin optisch gedimmt (is-past).
+   l) "+" auf eine künftige Woche bleibt wie bisher (Regression) — und der
+      Erfolgs-Toast unterscheidet jetzt nach Distanz zur echten Heute-Woche
+      (Stufe M3.3): KW33 (+1 Woche) bleibt wörtlich "…nächste Woche…",
+      KW34 (+2 Wochen, dieselbe Zielwoche wie in e1 oben) heißt "…KW 34…".
+
    ACHTUNG KW-ZEILEN — Abweichung vom Auftragstext, hier bewusst:
    Der Auftrag nannte "KW-Zeilen 32–36" für August 2026. Nachgerechnet
    (isoWeek() direkt im Browser ausgeführt, nicht nur von Hand) gilt:
@@ -58,6 +77,21 @@
    Selektoren treffen). a)/b)/c)/f)/g) fallen ebenfalls, weil das Raster
    selbst fehlt. h) bleibt grün (nichts zu prüfen, wenn nichts da ist) —
    deshalb hängt der Rot-Beweis an d)/e), wie im Auftrag verlangt.
+   `git stash pop` stellt den Stand danach wieder her.
+
+   Stufe M3 (i–l): eigener Rot-Beweis gegen den NEUEN HEAD (68b0541 — M1/M2
+   sind darin schon enthalten, nur M3 fehlt noch). `git stash push --
+   index.html`, Skript erneut laufen lassen:
+     i) der Titel bricht bei vier der zwölf Monate weiterhin um (kein
+        .monat__jahr zum Ausblenden vorhanden); der 375px-Zusatzcheck
+        findet .monat__jahr gar nicht erst.
+     j) die aktuelle Woche springt weiterhin in den Plan statt ins
+        Wochen-Blatt (#freizeitTitel bleibt weg, anchor bewegt sich doch).
+     k) KW31 ist weiterhin disabled — die aria-/is-past-Zusicherungen
+        schlagen fehl, der Klick selbst bleibt darum aus (kein Hänger an
+        einem nicht-anklickbaren Knopf; s. "Defensiv" unten).
+     l) der Toast heißt für KW34 (+2 Wochen) weiterhin wörtlich "…nächste
+        Woche…", nicht "…KW 34…" (KW33/+1 bleibt ohnehin unverändert grün).
    `git stash pop` stellt den Stand danach wieder her.
 
    Stil wie freiwoche.js/serie.js: eine Chromium-Seite (iPhone SE),
@@ -314,7 +348,14 @@ async function fixtureAufbauen(p) {
   ok(e1.modalTitel !== 'Das wird eng', 'e) KW34 hat genug Luft -- kein "Das wird eng" (Titel: ' + JSON.stringify(e1.modalTitel) + ')');
   ok(e1.anchorMon === '2026-08-17', 'e) anchor steht auf KW34 (17.8., war ' + e1.anchorMon + ')');
   ok(e1.sugKw34 > 0, 'e) es sind Vorschläge genau in KW34 entstanden (' + e1.sugKw34 + ')');
-  ok(e1.toast === 'Vorschlag für die nächste Woche steht', 'e) Toast meldet das Ergebnis (' + JSON.stringify(e1.toast) + ')');
+  // Stufe M3.3 (Vertragspräzisierung): KW34 (17.8.) liegt von der echten
+  // aktuellen Woche (KW32, 3.8.) ZWEI Wochen entfernt, nicht eine — der
+  // Toast sagte hier vor dieser Stufe trotzdem wörtlich "nächste Woche"
+  // (dokumentierte, bewusst in Kauf genommene Ungenauigkeit, s.
+  // planeWoche()-Kopfkommentar vor der Stufe). Ab +2 Wochen nennt er jetzt
+  // die Kalenderwoche statt zu lügen; Block l) unten deckt den echten
+  // +1-Fall ("nächste Woche" bleibt wortgleich) frisch ab.
+  ok(e1.toast === 'Vorschlag für KW 34 steht', 'e) Toast meldet das Ergebnis, jetzt in KW-Form (' + JSON.stringify(e1.toast) + ')');
 
   // e2) KW35 -- zusätzliche Bloecke machen die Woche eng, "Das wird eng"
   //     statt still zu verteilen; kein "Nächste Woche planen" (KW35 ist
@@ -372,7 +413,10 @@ async function fixtureAufbauen(p) {
   ok(!reg1.modalOffen, 'e) planeNaechsteWoche() Richtung offener Woche: kein Gate-Blatt offen');
   ok(reg1.anchorMon === '2026-08-17', 'e) anchor ist auf die Zielwoche gewandert (' + reg1.anchorMon + ')');
   ok(reg1.sugVorhanden, 'e) Vorschläge sind wie vor der Stufe direkt entstanden');
-  ok(reg1.toast === 'Vorschlag für die nächste Woche steht', 'e) derselbe Toast wie vor der Stufe (' + JSON.stringify(reg1.toast) + ')');
+  // Stufe M3.3: derselbe Präzisions-Fix wie bei e1 oben -- anchor=KW33
+  // (10.8.) + 7 Tage = Ziel KW34 (17.8.), von der echten aktuellen Woche
+  // (KW32) ebenfalls zwei Wochen entfernt, also KW-Form statt "nächste Woche".
+  ok(reg1.toast === 'Vorschlag für KW 34 steht', 'e) dieselbe KW-Form wie beim regulären "+"-Weg (' + JSON.stringify(reg1.toast) + ')');
 
   await fixtureAufbauen(p);
   const reg2 = await p.evaluate(() => {
@@ -470,8 +514,180 @@ async function fixtureAufbauen(p) {
   ok(h1.sheetDa, 'h) Blatt ist offen (Voraussetzung für die Prüfung)');
   ok(h1.treffer.length === 0, 'h) keiner der Fixture-Titel taucht im Monatsblatt auf (' + JSON.stringify(h1.treffer) + ') — M1 zeigt sie gar nicht erst');
 
+  /* ---- i) Titel-Einzeiligkeit bei 320px, alle zwölf Monate (Stufe M3.4) - */
+  console.log('\n=== i) Monatstitel bei 320px einzeilig in allen zwölf Monatsnamen, "Heute"-Knopf sichtbar ===');
+  await fixtureAufbauen(p);
+  await p.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); });
+  await p.waitForTimeout(250);
+  // Zwölf Klicks ‹next› von August 2026 aus: September 2026 .. August 2027
+  // -- jeder der zwölf Monatsnamen genau einmal, und (wichtig für den Bug)
+  // nie der echte aktuelle Monat selbst, also bleibt "Heute" die ganze
+  // Schleife über sichtbar.
+  const i1 = [];
+  for (let m = 0; m < 12; m++) {
+    await p.click('#monatNext'); await p.waitForTimeout(70);
+    const r = await p.evaluate(() => {
+      const el = document.getElementById('monatTitel');
+      const heuteBtn = document.getElementById('monatHeute');
+      const rect = el.getBoundingClientRect();
+      return {
+        titel: el.textContent, hoehe: rect.height,
+        lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+        heuteSichtbar: !heuteBtn.hidden
+      };
+    });
+    i1.push(r);
+  }
+  console.log('   ' + JSON.stringify(i1));
+  const zwoelfNamen = new Set(i1.map(r => r.titel.replace(/\s*\d{4}$/, '')));
+  ok(zwoelfNamen.size === 12, 'i) alle zwölf Monatsnamen durchlaufen (' + JSON.stringify([...zwoelfNamen]) + ')');
+  ok(i1.every(r => r.heuteSichtbar), 'i) "Heute"-Knopf ist bei jedem der zwölf Monate sichtbar (Voraussetzung des Bugs)');
+  const zuHoch = i1.filter(r => r.hoehe > r.lineHeight * 1.5);
+  ok(zuHoch.length === 0,
+    'i) Titel bleibt bei 320px in allen zwölf Monaten einzeilig, Höhe ≤ 1,5 Zeilenhöhen (Ausreißer: ' + JSON.stringify(zuHoch) + ')');
+
+  // Zusatzcheck bei 375px: die Jahreszahl darf dort nicht verschwinden --
+  // die 320px-Lösung ist eine punktuelle Ausblendung, keine generelle.
+  const ctx375 = await br.newContext({ viewport: { width: 375, height: 812 }, timezoneId: 'Europe/Berlin' });
+  const p375 = await ctx375.newPage();
+  await p375.clock.setFixedTime(new Date(UHR));
+  await p375.goto(F);
+  await p375.waitForTimeout(500);
+  await fixtureAufbauen(p375);
+  await p375.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); });
+  await p375.waitForTimeout(250);
+  const jahrSichtbar375 = await p375.evaluate(() => {
+    const jahrEl = document.querySelector('#monatTitel .monat__jahr');
+    return !!jahrEl && getComputedStyle(jahrEl).display !== 'none' && jahrEl.getBoundingClientRect().width > 0;
+  });
+  ok(jahrSichtbar375, 'i) bei 375px ist die Jahreszahl (.monat__jahr) sichtbar (' + jahrSichtbar375 + ')');
+  await p375.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
+  await ctx375.close();
+
+  /* ---- j) KW-Tipp auf die aktuelle Woche -> Wochen-Blatt (Stufe M3.2) --- */
+  console.log('\n=== j) KW-Tipp auf die aktuelle Woche (KW32) öffnet das Wochen-Blatt, anchor bleibt stehen ===');
+  await fixtureAufbauen(p);
+  const j0 = await p.evaluate(() => {
+    // anchor bewusst auf eine ANDERE Woche als KW32 setzen (noch im
+    // August-Raster, kein Monatswechsel nötig) -- macht "anchor unbewegt"
+    // zu einer echten Probe statt einer zufälligen Übereinstimmung.
+    anchor = new Date(2026, 7, 26); // Mittwoch 26.8., KW35
+    return iso(anchor);
+  });
+  await p.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); });
+  await p.waitForTimeout(250);
+  const kw32Da = await p.locator('.monatweek[data-monday="2026-08-03"]').count() > 0;
+  ok(kw32Da, 'j) KW32-Knopf (echte aktuelle Woche) existiert im Raster');
+  if (kw32Da) {
+    const ariaKw32 = await p.evaluate(() =>
+      document.querySelector('.monatweek[data-monday="2026-08-03"]').getAttribute('aria-label'));
+    ok(ariaKw32 === 'KW 32 ansehen', 'j) aria-label "KW 32 ansehen" (war ' + JSON.stringify(ariaKw32) + ')');
+    await p.click('.monatweek[data-monday="2026-08-03"]');
+    await p.waitForTimeout(300);
+  }
+  const j1 = await p.evaluate(() => ({
+    monatBlattWeg: !document.getElementById('monatTitel'),
+    freizeitTitelDa: !!document.getElementById('freizeitTitel'),
+    freizeitTitelText: (document.getElementById('freizeitTitel') || {}).textContent || null,
+    anchorIso: iso(anchor)
+  }));
+  console.log('   ' + JSON.stringify(j1));
+  ok(j1.monatBlattWeg, 'j) das Monatsblatt ist zu (modal() ersetzt es)');
+  ok(j1.freizeitTitelDa, 'j) stattdessen ist das Wochen-Blatt offen (#freizeitTitel existiert)');
+  ok(j1.freizeitTitelText === 'Frei diese Woche',
+    'j) #freizeitTitel nennt die richtige Woche: "Frei diese Woche" (war ' + JSON.stringify(j1.freizeitTitelText) + ')');
+  ok(j1.anchorIso === j0, 'j) der globale anchor bleibt unbewegt, obwohl er auf einer anderen Woche stand (' + j0 + ' === ' + j1.anchorIso + ')');
+
+  /* ---- k) KW-Tipp auf eine vergangene Woche (Stufe M3.2) ---------------- */
+  console.log('\n=== k) KW-Tipp auf eine vergangene Woche (KW31) öffnet ebenfalls das Wochen-Blatt ===');
+  await fixtureAufbauen(p);
+  const k0 = await p.evaluate(() => iso(anchor)); // anchor = Mi 5.8. (aus fixtureAufbauen, KW32)
+  await p.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); });
+  await p.waitForTimeout(250);
+  const kw31Da = await p.locator('.monatweek[data-monday="2026-07-27"]').count() > 0;
+  ok(kw31Da, 'k) KW31-Knopf (vergangene Woche, Randüberstand im August-Raster) existiert');
+  if (kw31Da) {
+    const info = await p.evaluate(() => {
+      const btn = document.querySelector('.monatweek[data-monday="2026-07-27"]');
+      return { aria: btn.getAttribute('aria-label'), disabled: btn.disabled, klasse: btn.className };
+    });
+    ok(info.aria === 'KW 31 ansehen', 'k) aria-label "KW 31 ansehen" (war ' + JSON.stringify(info.aria) + ')');
+    ok(!info.disabled, 'k) KW31-Knopf ist NICHT mehr disabled (Rückblick jetzt möglich)');
+    ok(info.klasse.includes('is-past'), 'k) KW31 trägt weiterhin is-past -- optisch zurückhaltend (' + info.klasse + ')');
+    // Klick nur, wenn wirklich nicht disabled -- sonst wartet Playwright auf
+    // Actionability, die ein disabled-Knopf nie erreicht (Hänger statt
+    // FEHLER-Zeile). Auf altem Stand (Rot-Beweis) bleibt der Klick darum
+    // aus; die beiden Zusicherungen oben tragen den Rot-Beweis für k) allein.
+    if (!info.disabled) {
+      await p.click('.monatweek[data-monday="2026-07-27"]');
+      await p.waitForTimeout(300);
+    }
+  }
+  const k1 = await p.evaluate(() => ({
+    freizeitTitelText: (document.getElementById('freizeitTitel') || {}).textContent || null,
+    anchorIso: iso(anchor)
+  }));
+  console.log('   ' + JSON.stringify(k1));
+  ok(k1.freizeitTitelText === 'Frei letzte Woche', 'k) #freizeitTitel nennt "Frei letzte Woche" (war ' + JSON.stringify(k1.freizeitTitelText) + ')');
+  ok(k1.anchorIso === k0, 'k) der globale anchor bleibt unbewegt (' + k0 + ' === ' + k1.anchorIso + ')');
+
+  /* ---- l) "+" künftige Woche: Regression + Toast beider Distanz-Zweige - */
+  console.log('\n=== l) "+" auf eine künftige Woche bleibt wie bisher; Toast je nach Distanz (Stufe M3.3) ===');
+  // l1) KW33 (10.8.) -- genau EINE Woche von der echten aktuellen Woche
+  //     (KW32) entfernt -> Toast bleibt wörtlich "nächste Woche".
+  await fixtureAufbauen(p);
+  await p.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); document.querySelectorAll('#toasts .toast').forEach(t => t.remove()); });
+  await p.waitForTimeout(250);
+  const kw33Da = await p.locator('.monatweek[data-monday="2026-08-10"]').count() > 0;
+  ok(kw33Da, 'l) KW33-Knopf existiert');
+  if (kw33Da) {
+    const hatPlus33 = await p.evaluate(() => !!document.querySelector('.monatweek[data-monday="2026-08-10"] .monatweek__plus'));
+    ok(hatPlus33, 'l) KW33 trägt das "+"-Zeichen (künftige Woche, Regression)');
+    const aria33 = await p.evaluate(() => document.querySelector('.monatweek[data-monday="2026-08-10"]').getAttribute('aria-label'));
+    ok(aria33 === 'KW 33 planen', 'l) aria-label "KW 33 planen" (war ' + JSON.stringify(aria33) + ')');
+    await p.click('.monatweek[data-monday="2026-08-10"]');
+  }
+  await p.waitForTimeout(300);
+  const l1 = await p.evaluate(() => ({
+    modalTitel: (document.querySelector('.sheet .sheet__title') || {}).textContent || null,
+    anchorMon: iso(mondayOf(anchor)),
+    toast: (document.querySelector('#toasts .toast span') || {}).textContent || null
+  }));
+  console.log('   KW33 (+1): ' + JSON.stringify(l1));
+  ok(l1.modalTitel !== 'Das wird eng', 'l) KW33 hat genug Luft -- kein Gate (Titel: ' + JSON.stringify(l1.modalTitel) + ')');
+  ok(l1.anchorMon === '2026-08-10', 'l) anchor auf KW33 (war ' + l1.anchorMon + ')');
+  ok(l1.toast === 'Vorschlag für die nächste Woche steht',
+    'l) +1 Woche entfernt: Toast bleibt wörtlich "nächste Woche" (' + JSON.stringify(l1.toast) + ')');
+
+  // l2) KW34 (17.8.) -- ZWEI Wochen entfernt -> Toast nennt die KW (dieselbe
+  //     Zielwoche wie e1 oben, hier isoliert nur auf den Wortlaut fokussiert).
+  await fixtureAufbauen(p);
+  await p.evaluate(() => { if (typeof monatSheet === 'function') monatSheet(); document.querySelectorAll('#toasts .toast').forEach(t => t.remove()); });
+  await p.waitForTimeout(250);
+  const kw34DaL = await p.locator('.monatweek[data-monday="2026-08-17"]').count() > 0;
+  if (kw34DaL) await p.click('.monatweek[data-monday="2026-08-17"]');
+  await p.waitForTimeout(300);
+  const l2 = await p.evaluate(() => ({
+    toast: (document.querySelector('#toasts .toast span') || {}).textContent || null
+  }));
+  console.log('   KW34 (+2): ' + JSON.stringify(l2));
+  ok(l2.toast === 'Vorschlag für KW 34 steht',
+    'l) +2 Wochen entfernt: Toast nennt die Kalenderwoche statt "nächste Woche" zu sagen (' + JSON.stringify(l2.toast) + ')');
+
   /* ---- Screenshots: SE 320×568 + iPhone 13 375×812, je hell/dunkel ------ */
   console.log('\n--- Screenshots ---');
+  // Block l) davor lässt keine Zwischenablage/kein Blatt mehr offen (planeWoche()
+  // ohne Gate schließt still durch) -- die SE-Sichtprobe soll aber gezielt
+  // einen der vier Problem-Monate aus i) mit sichtbarem "Heute"-Knopf zeigen
+  // (Stufe M3.4), nicht einen beliebigen Zustand. Frisch aufbauen und auf
+  // September 2026 stellen.
+  await fixtureAufbauen(p);
+  await p.evaluate(() => {
+    document.querySelectorAll('#toasts .toast').forEach(t => t.remove()); // Rest von Block l) nicht mit ins Bild
+    if (typeof monatSheet === 'function') monatSheet();
+  });
+  await p.waitForTimeout(200);
+  await p.click('#monatNext'); await p.waitForTimeout(80); // August -> September 2026
   await p.evaluate(() => { state.settings.theme = 'light'; applyTheme(); });
   await p.waitForTimeout(120);
   await p.screenshot({ path: path.join(__dirname, 'monat-se-hell.png') });
