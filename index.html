@@ -3261,7 +3261,11 @@ function monatSheet(startDatum) {
           + " data-monday='" + monIso + "' aria-label='" + kwAria + "'>"
           + "<b>" + isoWeek(mon) + "</b>"
           + "<span class='monatweek__pct'>" + Math.round(belegung * 100) + "%</span>"
-          + (kuenftigeWoche ? "<span class='monatweek__plus' aria-hidden='true'>+</span>" : "")
+          + (kuenftigeWoche ? "<span class='monatweek__plus' aria-hidden='true'>+</span>"
+            // Symmetrie-Prinzip: ansehbare Wochen (aktuell + vergangen) sind seit M3
+            // ebenso antippbar wie künftige, trugen aber kein Zeichen dafür — jetzt
+            // ein dezentes "›" an derselben Stelle, gleiche Klasse/Dämpfung wie "+".
+            : "<span class='monatweek__plus' aria-hidden='true'>&rsaquo;</span>")
           + "</button>";
 
         for (let i = 0; i < 7; i++) {
@@ -4899,7 +4903,20 @@ function verteilenMitGate(verteilen) {
   // Fall braucht Toast, Gate und Deckungsgleichheit zugleich.
   const scrim = blatt.parentElement;
   scrim.style.pointerEvents = "none";
-  setTimeout(() => { scrim.style.pointerEvents = ""; }, 300);
+  // Die Schonfrist oben wehrt nur ZEIGER ab — auf dem Desktop setzt modal()
+  // aber nach 40ms einen Autofokus, und ein hastiges Doppel-Enter (Enter löst
+  // "Woche anlegen"/"Vorschlagen" aus, das zweite Enter trifft dann den schon
+  // fokussierten Gate-Knopf) kommt ganz ohne Zeiger aus. Deshalb dieselbe
+  // Frist auch für Tastatur-AKTIVIERUNGEN in der Capture-Phase: Enter und
+  // Leertaste werden geschluckt, Pfeiltasten/Tab/Escape bleiben frei.
+  const tastenSperre = e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); }
+  };
+  blatt.addEventListener("keydown", tastenSperre, true);
+  setTimeout(() => {
+    scrim.style.pointerEvents = "";
+    blatt.removeEventListener("keydown", tastenSperre, true);
+  }, 300);
 }
 
 function renderGoals() {
@@ -5408,6 +5425,7 @@ function goalsSheet() {
       wrap.querySelectorAll(".goalrow").forEach(r => r._commit());
       modalOnCancel = null;   // Speichern übernimmt — closeModal() soll nicht zurückstellen.
       save(); close(); renderAll();
+      toast("Ziele gespeichert"); // Einziger Ausgang mit Rückmeldung — Abbrechen/Escape/Hintergrund bleiben stumm.
     };
     foot.append(cancel, ok);
     s.appendChild(foot);

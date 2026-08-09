@@ -17,12 +17,10 @@ const path = require('path');
     const set = (id,h) => { const a = state.areas.find(x=>x.id===id); a.plan.goal=h; a.plan.must=true; };
     set("a1",20); set("a2",12); set("a5",8); set("a6",4);
     // placeArea() ruft placeGrob() nur auf, wenn plan.grob=true ist (index.html ~2928).
-    // Ein frischer Zustand setzt das nie von selbst: defaultPlan() legt grob:false fest,
-    // und die v7-Migration ("grob: p.grob === undefined ? ...") greift nur bei ALTEN
-    // Speicherstaenden, wo das Feld fehlte - nicht bei frisch angelegten Bereichen.
-    // Frueher verliess sich dieses Skript darauf, dass a5/a6 (Art "erholung") das
-    // automatisch bekommen, was bei einer frischen Seite nie zutrifft. Deshalb hier
-    // selbst erzwingen statt zu hoffen.
+    // Seit v1.22 setzt freshState() das fuer die Erholungs-Startbereiche a4–a6 automatisch
+    // auf true (grobstandard.js); selbst angelegte Bereiche starten exakt (defaultPlan() bleibt
+    // bei false). Das explizite Pinnen auf true hier ist ein bewusst behaltener Sicherheitsgurt:
+    // es schuetzt dieses Skript, falls sich der Standard je wieder aendert.
     ["a5", "a6"].forEach(id => { state.areas.find(x => x.id === id).plan.grob = true; });
     save(); renderAll(); clearSuggestions(); buildSuggestions(); acceptSuggestions(); save();
     // auf einen Tag mit grobem Block springen

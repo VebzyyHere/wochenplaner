@@ -582,6 +582,12 @@ async function fixtureAufbauen(p) {
     const ariaKw32 = await p.evaluate(() =>
       document.querySelector('.monatweek[data-monday="2026-08-03"]').getAttribute('aria-label'));
     ok(ariaKw32 === 'KW 32 ansehen', 'j) aria-label "KW 32 ansehen" (war ' + JSON.stringify(ariaKw32) + ')');
+    // Symmetrie-Affordanz: die aktuelle Woche ist ansehbar wie eine
+    // vergangene und trägt darum das "›"-Zeichen, kein "+" (das bleibt den
+    // künftigen Wochen vorbehalten, s. Abschnitt l).
+    const markerKw32 = await p.evaluate(() =>
+      document.querySelector('.monatweek[data-monday="2026-08-03"] .monatweek__plus').textContent);
+    ok(markerKw32 === '›', 'j) KW32 trägt das "›"-Symbol statt "+" (war ' + JSON.stringify(markerKw32) + ')');
     await p.click('.monatweek[data-monday="2026-08-03"]');
     await p.waitForTimeout(300);
   }
@@ -614,6 +620,13 @@ async function fixtureAufbauen(p) {
     ok(info.aria === 'KW 31 ansehen', 'k) aria-label "KW 31 ansehen" (war ' + JSON.stringify(info.aria) + ')');
     ok(!info.disabled, 'k) KW31-Knopf ist NICHT mehr disabled (Rückblick jetzt möglich)');
     ok(info.klasse.includes('is-past'), 'k) KW31 trägt weiterhin is-past -- optisch zurückhaltend (' + info.klasse + ')');
+    // Auch die vergangene Woche trägt den "›"-Marker -- und explizit KEIN
+    // "+", das bliebe eine falsche Zusage (Vorausplanen ist hier nicht der Weg).
+    const markerKw31 = await p.evaluate(() => {
+      const el = document.querySelector('.monatweek[data-monday="2026-07-27"] .monatweek__plus');
+      return el ? el.textContent : null;
+    });
+    ok(markerKw31 === '›', 'k) KW31 trägt das "›"-Symbol statt "+" (war ' + JSON.stringify(markerKw31) + ')');
     // Klick nur, wenn wirklich nicht disabled -- sonst wartet Playwright auf
     // Actionability, die ein disabled-Knopf nie erreicht (Hänger statt
     // FEHLER-Zeile). Auf altem Stand (Rot-Beweis) bleibt der Klick darum
