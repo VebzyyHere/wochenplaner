@@ -295,6 +295,13 @@ button { cursor: pointer; }
   fill: none; stroke: var(--text-muted); stroke-width: 2.2;
   stroke-linecap: round; stroke-linejoin: round;
 }
+/* #monthBtn (Monatsübersicht, Stufe M1) — gleiche Strichstärke wie das
+   Wolken-Icon in .syncbadge__ico, damit die Topbar-Icons einheitlich
+   wirken, obwohl sie an verschiedenen Stellen im Markup entstehen. */
+.monthbtn__ico {
+  width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 
 /* ============================================================
    Frei diese Woche (Auftrag A) — sieben Zeilen in Worten statt eines
@@ -319,6 +326,70 @@ button { cursor: pointer; }
 .freizeitrow.is-vorbei .freizeitrow__zeit { color: var(--text-faint); }
 .freizeitrow.is-vorbei .freizeitrow__zeit b { color: var(--text-faint); }
 .freizeitrow.is-heute { background: var(--surface-2); border-radius: var(--radius-sm); }
+
+/* ============================================================
+   Monatsübersicht (Stufe M1) — die Woche in Stunden beantwortet "was
+   mache ich heute"; "wann ist noch Luft" blieb offen, solange man sich
+   wochenweise durchklicken musste. Der Monats-Prototyp vom 2026-08-08
+   hat vermessen: eine ~40px-Zelle traegt weder Uhrzeit noch Titel — der
+   ehrliche Nutzen ist Navigation und Vorausplanen, kein Informations-
+   kalender. Zellen zeigen darum NUR Auslastung, "freigehalten", "heute",
+   "hat etwas" — alles andere bleibt der Wochenansicht vorbehalten.
+   Randlos wie beim Tagwechsler (.dayswitch), aus demselben Platzgrund:
+   acht Spalten (KW-Rinne + Mo-So) auf 320px lassen keine Fugen zu.
+   margin cancelt das Sheet-Padding (var(--s-5)), damit die Zellen die
+   volle Breite bekommen — dieselbe Technik wie .setmenu weiter oben. */
+.monatgrid {
+  display: grid; grid-template-columns: minmax(24px, .8fr) repeat(7, minmax(0, 1fr));
+  gap: 2px; margin: 0 calc(var(--s-5) * -1); padding: 0 6px;
+}
+.monatgrid__lab {
+  text-align: center; font-size: var(--t-xs); font-weight: 600; color: var(--text-faint);
+  padding: 2px 0 6px;
+}
+.monatweek, .monatcell {
+  min-height: 40px; border: none; border-radius: var(--radius-sm);
+  background: transparent; color: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 2px 0;
+}
+.monatcell--leer { min-height: 40px; }
+.monatweek b, .monatcell b {
+  font-size: var(--t-sm); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text);
+}
+.monatweek { color: var(--text-muted); }
+.monatweek__pct { font-size: var(--t-xs); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.monatweek__plus { font-size: var(--t-xs); font-weight: 700; color: var(--text-muted); margin-left: 2px; }
+.monatweek.is-past { opacity: .45; }
+@media (hover: hover) {
+  .monatweek:not(.is-past):hover, .monatcell:not(.monatcell--leer):hover { background: var(--surface-2); }
+}
+/* Auslastungsstrich — dieselbe Balken-Technik wie .dayswitch__btn i
+   (~1112): ein Hintergrund-Gradient, keine Kante (Impeccable-Deckel). */
+.monatcell__bar {
+  width: 18px; height: 3px; border-radius: 2px; flex: none;
+  background: linear-gradient(to right,
+    var(--last-farbe, var(--text-faint)) 0 var(--last, 0%),
+    var(--surface-3) var(--last, 0%) 100%);
+}
+.monatcell.is-voll .monatcell__bar { --last-farbe: var(--warn); }
+/* Freigehalten ersetzt den Strich durch einen Ring statt eine Kante zu
+   ziehen — box-shadow statt border, aus demselben Grund. */
+.monatcell.is-frei .monatcell__bar {
+  width: 7px; height: 7px; border-radius: 50%; background: transparent;
+  box-shadow: inset 0 0 0 1.4px var(--text-muted);
+}
+.monatcell.is-vergangen { opacity: .45; }
+/* "Heute" als gefuellter Kreis um die Nummer — Muster .dayswitch__btn.is-today b (~1096). */
+.monatcell.is-today b {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ink); color: var(--on-ink);
+}
+.monatfuss {
+  margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border);
+  font-size: var(--t-sm); color: var(--text-muted); text-align: center;
+}
 
 .main { display: flex; flex: 1; min-height: 0; }
 
@@ -1570,6 +1641,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     content: ""; position: absolute; inset: 50%;
     width: 46px; height: 46px; transform: translate(-50%, -50%);
   }
+  /* Acht Spalten (KW-Rinne + Mo-So) auf 320px lassen den Monatszellen
+     selbst keine 44px Breite — dieselbe Technik wie beim Tagwechsler
+     direkt darüber. */
+  .monatcell, .monatweek { position: relative; }
+  .monatcell::before, .monatweek::before {
+    content: ""; position: absolute; inset: 50%;
+    width: 46px; height: 46px; transform: translate(-50%, -50%);
+  }
   /* Annehmen und Verwerfen sind der Kern der Schleife — die dürfen nicht
      die kleinsten Knöpfe im Bild sein. */
   .block__sug { gap: 6px; right: 4px; top: 4px; }
@@ -1605,6 +1684,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
     </div>
 
+    <button type="button" class="btn btn--icon btn--ghost" id="monthBtn" aria-label="Monatsübersicht anzeigen" title="Monatsübersicht">
+      <svg class="monthbtn__ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13.5h2M12 13.5h2M17 13.5h1M7 17.5h2M12 17.5h2"/></svg>
+    </button>
     <button class="syncbadge" id="syncBadge" hidden></button>
     <button class="btn btn--sm" id="todayBtn">Heute</button>
     <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙</button>
@@ -2792,6 +2874,232 @@ function renderDaySwitch() {
   next.textContent = "›"; next.setAttribute("aria-label", "Woche vor");
   next.onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
   wrap.appendChild(next);
+}
+
+/* ============================================================
+   Monatsübersicht (Stufe M1) — die Woche in Stunden beantwortet "was
+   mache ich heute"; "wann ist noch Luft" blieb offen, solange man sich
+   wochenweise durchklicken musste. Der Monats-Prototyp vom 2026-08-08
+   hat vermessen: eine ~40px-Zelle trägt weder Uhrzeit noch Titel — der
+   ehrliche Nutzen ist Navigation und Vorausplanen, kein Informations-
+   kalender. Zellen zeigen darum NUR Auslastung, "freigehalten", "heute",
+   "hat etwas" — alles andere bleibt der Wochenansicht vorbehalten.
+   Kein zweites Datenmodell: state.blocks/onDay()/tagesAuslastung()/
+   istFrei() liefern schon alles, was die Zellen brauchen — nur die
+   Wochen-Belegung der KW-Rinne ist neu (wochenBelegung() unten).
+   ============================================================ */
+
+/* Welche Montage gehören ins Raster eines Monats — jede Woche, die
+   mindestens einen Tag des Monats trägt (Standard-Kalenderraster: die
+   erste Zeile beginnt am Montag der Woche, die den 1. enthält, die
+   letzte endet am Sonntag der Woche, die den letzten Tag enthält — eine
+   Woche kann also auch am jeweils anderen Ende überstehen). */
+function monatMontage(jahr, monatIdx) {
+  const gehoertDazu = d => d.getFullYear() === jahr && d.getMonth() === monatIdx;
+  const montage = [];
+  let mon = mondayOf(new Date(jahr, monatIdx, 1));
+  while (gehoertDazu(mon) || gehoertDazu(addDays(mon, 6))) {
+    montage.push(mon);
+    mon = addDays(mon, 7);
+  }
+  return montage;
+}
+
+/* Belegung einer Woche, billig gerechnet für die KW-Rinne: Summe
+   dauerVon() aller Blöcke (inkl. Serien über onDay(), auch Vorschläge —
+   wie tagesAuslastung()) geteilt durch die wachen Minuten der Woche.
+   BEWUSST kein Ersatz für wochenKapazitaet(): die zählt zusätzlich offene
+   Wochenziele/Aufgaben ein und klemmt die laufende Woche auf "ab jetzt"
+   (Stufe A) — hier reicht "wie voll ist die Woche schon", für jede Woche
+   (vergangen, laufend, künftig) gleich gerechnet, damit die Rinne beim
+   Blättern nicht plötzlich die Rechenart wechselt. */
+function wochenBelegung(mon) {
+  let wach = 0, belegt = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(mon, i), key = iso(d);
+    let tagWach = (state.settings.dayEnd - state.settings.dayStart) * 60;
+    restSpans().forEach(r => {
+      tagWach -= Math.max(0, Math.min(state.settings.dayEnd * 60, r.end)
+                        - Math.max(state.settings.dayStart * 60, r.start));
+    });
+    wach += Math.max(0, tagWach);
+    state.blocks.forEach(b => { if (onDay(b, key, i)) belegt += dauerVon(b); });
+  }
+  return wach ? belegt / wach : 0;
+}
+
+function monatSheet() {
+  modal((s, close) => {
+    const heute = new Date();
+    const todayIso = iso(heute);
+    const heuteMon = mondayOf(heute);
+    // Start = Monat der Anzeige-Woche (anchor) — jahr/monatIdx sind rein
+    // lokal, das bloße Blättern hier fasst den globalen anchor nie an.
+    const start = mondayOf(anchor);
+    let jahr = start.getFullYear(), monatIdx = start.getMonth();
+
+    s.innerHTML =
+      "<div class='weeknav' style='margin-bottom:var(--s-3)'>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='monatPrev' aria-label='Vorheriger Monat'>‹</button>" +
+        "<h2 class='sheet__title' id='monatTitel' style='margin:0;flex:1;text-align:center'></h2>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='monatNext' aria-label='Nächster Monat'>›</button>" +
+        "<button type='button' class='btn btn--sm' id='monatHeute' hidden>Heute</button>" +
+      "</div>" +
+      "<div class='monatgrid' id='monatGrid'></div>" +
+      "<div class='monatfuss' id='monatFuss' hidden></div>";
+
+    const titelEl = s.querySelector("#monatTitel");
+    const gridEl = s.querySelector("#monatGrid");
+    const fussEl = s.querySelector("#monatFuss");
+    const heuteBtn = s.querySelector("#monatHeute");
+
+    // Zeichnet Titel + Raster für den aktuell gewählten Monat (jahr/
+    // monatIdx) neu — beim Öffnen und nach jedem Klick auf ‹/›/Heute.
+    const zeichnen = () => {
+      titelEl.textContent = MONTHS[monatIdx] + " " + jahr;
+      heuteBtn.hidden = jahr === heute.getFullYear() && monatIdx === heute.getMonth();
+
+      const montage = monatMontage(jahr, monatIdx);
+
+      let html = "<div class='monatgrid__lab' aria-hidden='true'>KW</div>"
+        + DAY_SHORT.map(t => "<div class='monatgrid__lab'>" + t + "</div>").join("");
+
+      montage.forEach(mon => {
+        const monIso = iso(mon);
+        const vergangeneWoche = monIso < iso(heuteMon);
+        const kuenftigeWoche = monIso > iso(heuteMon);
+        const belegung = wochenBelegung(mon);
+        const sun = addDays(mon, 6);
+        const kwLabel = "Kalenderwoche " + isoWeek(mon) + ", " + mon.getDate() + "." + (mon.getMonth() + 1)
+          + ". bis " + sun.getDate() + "." + (sun.getMonth() + 1) + "., "
+          + Math.round(belegung * 100) + " % belegt";
+
+        // Vergangene Wochen: gedimmt, ohne Aktion (disabled) — anders als
+        // Tage bleiben sie hier bewusst nicht antippbar, s. Bericht.
+        html += "<button type='button' class='monatweek"
+          + (vergangeneWoche ? " is-past" : "") + (kuenftigeWoche ? " is-future" : "") + "'"
+          + (vergangeneWoche ? " disabled" : "")
+          + " data-monday='" + monIso + "' aria-label='" + kwLabel + "'>"
+          + "<b>" + isoWeek(mon) + "</b>"
+          + "<span class='monatweek__pct'>" + Math.round(belegung * 100) + "%</span>"
+          + (kuenftigeWoche ? "<span class='monatweek__plus' aria-hidden='true'>+</span>" : "")
+          + "</button>";
+
+        for (let i = 0; i < 7; i++) {
+          const d = addDays(mon, i);
+          const key = iso(d);
+          // Außermonatliche Tage bleiben leer statt gedimmt lesbar — bei
+          // 320px sind selbst die eigenen Zahlen schon knapp, zwei
+          // Monate gleichzeitig lesbar zu halten wäre unruhiger als
+          // hilfreich (Entscheidung dokumentiert im Bericht).
+          if (d.getFullYear() !== jahr || d.getMonth() !== monatIdx) {
+            // data-date auch hier, rein für Prüfskripte (haakelt an keiner
+            // Interaktion) — sonst ließe sich "beide Monatsränder korrekt"
+            // nur über die Position im Grid prüfen statt über das Datum.
+            html += "<div class='monatcell monatcell--leer' data-date='" + key + "'></div>";
+            continue;
+          }
+          const frei = istFrei(key);
+          const last = tagesAuslastung({ key, i });
+          const istHeute = key === todayIso;
+          const vergangen = key < todayIso;
+          // Dieselbe Formulierung wie im Tagwechsler (renderDaySwitch,
+          // ~2820) statt einer neu erfundenen Prozentzahl — last.quote
+          // ist relativ zur 65%-Planungsgrenze, nicht zum Tag selbst,
+          // eine daraus gebaute "NN% verplant"-Zeile wäre irreführend.
+          const wieVoll = frei ? "freigehalten"
+            : last.min < 15 ? "nichts geplant"
+            : fmtDur(last.min) + " geplant" + (last.quote > 1 ? " — das wird eng" : "");
+          const label = DAY_LONG[i] + ", " + d.getDate() + ". " + MONTHS[monatIdx] + " — " + wieVoll;
+
+          html += "<button type='button' class='monatcell"
+            + (frei ? " is-frei" : "") + (last.quote > 1 ? " is-voll" : "")
+            + (istHeute ? " is-today" : "") + (vergangen ? " is-vergangen" : "") + "'"
+            + " style='--last:" + Math.round(clamp(last.quote, 0, 1) * 100) + "%'"
+            + " data-date='" + key + "' aria-label='" + label + "'>"
+            + "<b>" + d.getDate() + "</b><i class='monatcell__bar'></i>"
+            + "</button>";
+        }
+      });
+      gridEl.innerHTML = html;
+
+      // Fußzeile: nur wenn der angezeigte Monat die Woche des echten
+      // Heute trägt UND der globale anchor selbst schon auf ihr steht —
+      // wochenKapazitaet() rechnet immer für die Woche von anchor, den
+      // dieses Blatt beim Blättern nie anfasst (s.o.). Stünde anchor
+      // anderswo, wäre die Zahl die einer anderen Woche, als die Zeile
+      // behauptet — dann lieber schweigen als falsch beschriften.
+      const zeigtHeuteWoche = montage.some(mon => iso(mon) === iso(heuteMon));
+      if (zeigtHeuteWoche && istDieseWoche()) {
+        const k = wochenKapazitaet();
+        const pct = Math.round(k.quote * 100);
+        // Dieselbe Deckelung wie ampelZeichnen() (~3519): über 200% ist im
+        // wach->0-Randfall (Sonntagabend, offenes Ziel) kein ehrlicher Wert
+        // mehr, nur noch Lärm.
+        fussEl.hidden = false;
+        fussEl.textContent = "KW " + isoWeek(heuteMon) + " · Rest der Woche zu "
+          + (pct > 200 ? "über 200" : pct) + " % verplant";
+      } else {
+        fussEl.hidden = true;
+      }
+    };
+    zeichnen();
+
+    // Ein Listener für das ganze Raster statt bis zu 48 einzelner — Klick
+    // delegiert über data-date/data-monday, dieselbe Zeichnen-Instanz
+    // bleibt bei ‹/›/Heute wiederverwendbar.
+    gridEl.addEventListener("click", e => {
+      // :not(.monatcell--leer): außermonatliche Füllzellen tragen data-date
+      // nur für Prüfskripte (s.o.) — sie sind <div>s ohne Tipp-Funktion.
+      const tagBtn = e.target.closest(".monatcell[data-date]:not(.monatcell--leer)");
+      if (tagBtn) {
+        const d = new Date(tagBtn.dataset.date + "T12:00:00");
+        close();
+        anchor = mondayOf(d);
+        selectedDayIdx = (d.getDay() + 6) % 7;
+        setView("plan");
+        renderAll();
+        return;
+      }
+      const kwBtn = e.target.closest(".monatweek[data-monday]");
+      if (!kwBtn) return;
+      const montag = new Date(kwBtn.dataset.monday + "T12:00:00");
+      const kuenftig = kwBtn.classList.contains("is-future");
+      // Blatt schließt VOR dem Wochenwechsel/Gate — dieselbe Begründung
+      // wie im Ritual und an anlegen() (Stufe D): planeWoche() kann über
+      // verteilenMitGate() selbst ein Blatt öffnen, und die Zeichnen-
+      // Funktion hier hängt an beim Öffnen eingefrorenen Werten.
+      close();
+      if (kuenftig) {
+        // setView() hier und nicht in planeWoche() selbst: die Funktion
+        // bedient auch planeNaechsteWoche() (die drei älteren Verteil-
+        // Einstiege), deren Aufrufer nie zur Planansicht wechseln sollten.
+        setView("plan");
+        planeWoche(montag);
+      } else {
+        anchor = montag;
+        setView("plan");
+        renderAll();
+      }
+    });
+
+    s.querySelector("#monatPrev").onclick = () => {
+      monatIdx--; if (monatIdx < 0) { monatIdx = 11; jahr--; } zeichnen();
+    };
+    s.querySelector("#monatNext").onclick = () => {
+      monatIdx++; if (monatIdx > 11) { monatIdx = 0; jahr++; } zeichnen();
+    };
+    heuteBtn.onclick = () => { jahr = heute.getFullYear(); monatIdx = heute.getMonth(); zeichnen(); };
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const okBtn = document.createElement("button");
+    okBtn.className = "btn btn--primary"; okBtn.type = "button"; okBtn.textContent = "Fertig";
+    okBtn.onclick = close;
+    foot.appendChild(okBtn);
+    s.appendChild(foot);
+  });
 }
 
 /* ============================================================ Blöcke einer Spalte */
@@ -4214,15 +4522,29 @@ function istDieseWoche() {
   return iso(mondayOf(anchor)) === iso(mondayOf(new Date()));
 }
 
-/* Blättert eine Woche vor und verteilt dort gleich.
-   Vorausplanen ging immer schon — man musste nur wissen, dass man
+/* Blättert zu einer Woche und verteilt dort gleich — gemeinsamer Kern von
+   planeNaechsteWoche() und dem "+"-Tipp auf eine künftige KW im
+   Monatsblatt (monatSheet(), Stufe M1). Läuft seit dort durchs
+   Kapazitäts-Gate wie die anderen drei Verteil-Einstiege (Stufe A/D) —
+   vorher rief planeNaechsteWoche() buildSuggestions() direkt auf, ganz
+   ohne Nachfrage; das war die einzige Lücke im Gate. Die Toast-Texte
+   bleiben wörtlich "…nächste Woche…" (kapazitaet.js d)/f)/g) prüfen sie
+   so) — für eine weiter entfernte Zukunftswoche aus dem Monatsblatt ist
+   das eine kleine, bewusst in Kauf genommene Ungenauigkeit. */
+function planeWoche(montag) {
+  anchor = montag;
+  verteilenMitGate(() => {
+    const r = buildSuggestions();
+    save(); renderAll();
+    if (!r.placed) toast("Nichts zu verteilen — alle Ziele sind schon gedeckt");
+    else toast("Vorschlag für die nächste Woche steht");
+  });
+}
+
+/* Vorausplanen ging immer schon — man musste nur wissen, dass man
    vorblättern kann. Genau das wusste niemand. */
 function planeNaechsteWoche() {
-  anchor = addDays(mondayOf(anchor), 7);
-  const r = buildSuggestions();
-  save(); renderAll();
-  if (!r.placed) toast("Nichts zu verteilen — alle Ziele sind schon gedeckt");
-  else toast("Vorschlag für die nächste Woche steht");
+  planeWoche(addDays(mondayOf(anchor), 7));
 }
 
 /* Stufe A: der Torwächter vor jedem Verteilen — vorher stand diese Prüfung
@@ -8457,6 +8779,7 @@ function paintSyncBadge() {
 $("#prevWeek").onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
 $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
 $("#weekLabel").onclick = freizeitSheet;
+$("#monthBtn").onclick = monatSheet;
 $("#todayBtn").onclick = () => {
   anchor = new Date();
   selectedDayIdx = (new Date().getDay() + 6) % 7;
