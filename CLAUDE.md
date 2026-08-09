@@ -11,7 +11,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
-`index.html` **ist** das Produkt — 8678 Zeilen, ~400 KB, Vanilla JS, kein Build, kein npm,
+`index.html` **ist** das Produkt — 9047 Zeilen, ~429 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
 wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
@@ -20,9 +20,9 @@ das gibt die aktuelle Landkarte der Abschnittsbanner.
 | Zeilen | Inhalt |
 |---|---|
 | 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
-| 32–1547 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
-| 1549–1675 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1676–8676 | Hauptskript unter `"use strict"` |
+| 32–1588 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
+| 1590–1716 | Markup: Topbar, Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
+| 1717–9045 | Hauptskript unter `"use strict"` |
 
 `Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
 Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
@@ -88,7 +88,12 @@ unveränderter Bestand außer bei „Ersetzen"), `zeitrand.js` (die Zeitrechnung
 Sommerzeitwechsel, zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und
 53-Wochen-Jahre, die doppelt vorkommende Stunde beim Herbstwechsel), `freiwoche.js`
 („Frei diese Woche": `#weekLabel` öffnet ein Blatt, das `freeGaps()` endlich zeigt — sieben
-Zeilen in Worten statt eines Rasters, aus dem man Lücken erst heraussuchen muss).
+Zeilen in Worten statt eines Rasters, aus dem man Lücken erst heraussuchen muss; seit der
+v1.22-Runde mit lokalem Wochen-Umschalter im Blatt und Titel relativ zu heute),
+`kapazitaet.js` (die Kapazität rechnet in der laufenden Woche ab jetzt; „Das wird eng"-Gate
+an allen drei Verteil-Einstiegen — Ziele, Heute-Leerzustand, Erststart — samt „Nächste Woche
+planen"-Ausweg), `grobstandard.js` (die Erholungs-Startbereiche a4–a6 planen ab Werk grob;
+neue, selbst angelegte Bereiche weiterhin exakt).
 
 Bedienung: `sicht.js`, `diag7.js`, `woche.js`, `tap2.js`, `wisch.js`, `drag.js`, `grob3.js`,
 `funktion.js`, `scroll.js` (Rasterposition je Tag), `agenda.js` (gestaffelter Falz-Vertrag,
@@ -101,7 +106,10 @@ Rasterhöhe nicht schrumpfen; stehen Vorschläge an, behält nur „Übernehmen"
 `dialog.js` (Barrierefreiheit der Dialoge), `haken.js` (Abhaken
 hängt am Paar Eintrag+Datum), `abbrechen.js` (Ziele-Editor stellt bei Abbrechen, Escape oder
 Klick auf den Hintergrund nicht nur Chips zurück, sondern jedes getippte Feld — über eine
-Sicherung von `a.plan`/`a.regeln` beim Öffnen).
+Sicherung von `a.plan`/`a.regeln` beim Öffnen), `vorschlagzeilen.js` (Vorschläge stehen als
+Geisterzeilen in der Heute-Agenda: Einzel-Übernehmen/-Verwerfen über dieselben
+`acceptOne()`/`dropOne()` wie im Raster, AA-Kontrast der gedämpften Zeile in Hell und Dunkel,
+Tastaturweg, und das Leisten-Label springt zum frühesten Vorschlag).
 
 Abgleich und PWA brauchen einen Server:
 
@@ -136,46 +144,67 @@ nicht im Repo — nicht danach suchen.
 
 ## Architektur
 
-**Zustand.** Ein einziges `state`-Objekt. `freshState()` (1968) legt es bei `version: 8` an,
-`migrate()` (1992) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
+**Zustand.** Ein einziges `state`-Objekt. `freshState()` (2012) legt es bei `version: 8` an,
+`migrate()` (2043) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
 `version: 9`. Felder: `areas` (seit v9 zusätzlich optional `area.regeln`, s. Verteiler), `blocks`,
-`tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. `Store` (1703) schreibt nach
+`tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. Die Erholungs-Startbereiche
+a4–a6 (Hobby, Freizeit & Pausen, Menschen) bekommen in `freshState()` `plan.grob = true` —
+`defaultPlan()` selbst bleibt bei `false`, damit selbst angelegte Bereiche exakt starten
+(Prüfung: `grobstandard.js`). `Store` (1744) schreibt nach
 `localStorage["wochenplaner.<scope>"]` — **ein Speicherplatz je Konto**, damit sich zwei Leute an
 einem Rechner nicht überschreiben; Legacy-Schlüssel `wochenplaner.v1` wird einmal übernommen; ohne
 `localStorage` (Vorschau-Frames) fällt er auf Arbeitsspeicher zurück und blendet ein Banner ein.
-`Store.backupVorV9()` (1765) sichert **einmalig** den unveränderten Stand, bevor `migrate()` ihn
+`Store.backupVorV9()` (1806) sichert **einmalig** den unveränderten Stand, bevor `migrate()` ihn
 zum ersten Mal auf `version: 9` zieht — eigener Schlüssel neben dem Zustand, deshalb außerhalb von
 `snapshot()`/`mergeStates()` und nie mitsynchronisiert (Prüfung: `netz.js`).
 
-**Speichern.** `save()` (2270) → `stampChanges()` → `Store.save()` → `syncPush()`.
-`snapshot()`/`recHash()` (2230/2224) vergleichen den neuen Stand mit dem letzten: was sich geändert
+**Speichern.** `save()` (2321) → `stampChanges()` → `Store.save()` → `syncPush()`.
+`snapshot()`/`recHash()` (2281/2275) vergleichen den neuen Stand mit dem letzten: was sich geändert
 hat, bekommt `at`, was verschwunden ist, landet als Grabstein in `state.tombs`. Deshalb wird
 nirgends von Hand gestempelt. `undoLast()` hält den Stand vor der letzten Änderung.
 
-**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8533) ruft zehn
-`render*`-Funktionen, darunter `renderAgenda()` (6072, trägt seit Stufe 13 auch den
-Tagesabschluss ab Feierabend) und `renderRitual()` (6605, Zugang zum Wochenritual). `setView()`
-(8221) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
-(Tabbar, Markup 1649) — am Desktop stehen sie nebeneinander.
+**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (8902) ruft zehn
+`render*`-Funktionen, darunter `renderAgenda()` (6322, trägt seit Stufe 13 auch den
+Tagesabschluss ab Feierabend; seit der v1.22-Runde zusätzlich die Vorschläge des angezeigten
+Tages als eigene „Vorschläge"-Sektion — Geisterzeilen mit Einzel-✓/× über dieselben
+`acceptOne()`/`dropOne()` wie im Raster, `tagesAgenda()` bleibt davon unberührt; Hero-Label
+und Listen-Label sind tagesabhängig: „Heute zählt"/„Danach" nur am heutigen Tag, sonst
+„<Wochentag> zählt"/„Geplant") und `renderRitual()` (6939, Zugang zum Wochenritual). `setView()`
+(8578) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
+(Tabbar, Markup 1690) — am Desktop stehen sie nebeneinander.
 
-**Frei diese Woche.** `freizeitSheet()` (2590), hinter `#weekLabel` im Kopf, beantwortet „hast du
+**Frei diese Woche.** `freizeitSheet()` (2641), hinter `#weekLabel` im Kopf, beantwortet „hast du
 diese Woche Zeit" in aussprechbaren Zeitfenstern statt im Raster — gespeist aus `freeGaps()`
-(3158), derselben Lückenberechnung, die es für den Verteiler schon gibt, statt sie neu zu
-erfinden. `FREIZEIT_MIN = 30` (2551) blendet Kurzlücken aus, die am Telefon niemand zusagt. Zum
+(3300), derselben Lückenberechnung, die es für den Verteiler schon gibt, statt sie neu zu
+erfinden. `FREIZEIT_MIN = 30` (2602) blendet Kurzlücken aus, die am Telefon niemand zusagt.
+Seit der v1.22-Runde hat das Blatt einen eigenen ‹ ›-Wochen-Umschalter (lokal — der globale
+`anchor` bleibt unberührt) und einen Titel relativ zu heute („Frei diese/nächste/letzte
+Woche", sonst KW-Form); „vorbei"-Grau und „· heute" erscheinen nur in der echten aktuellen
+Woche (Prüfung: `freiwoche.js`). Zum
 Widerspruch mit `tagesAuslastung()` bei groben Blöcken siehe Invarianten.
 
-**Verteiler.** `buildSuggestions()` (3730) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
+**Verteiler.** `buildSuggestions()` (3889) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
 Vorschläge sind normale Blöcke mit `sug: true` — dadurch lassen sie sich ziehen wie alles andere.
 Seit v9 kann ein Bereich zusätzlich `area.regeln` tragen (Fenster: erlaubte Wochentage/Uhrzeit;
 Anker: Mindestabstand zu einem anderen Bereich) — der Verteiler prüft beides *vor* der
-Platzierung, most-constrained-first (Prüfung: `regeln.js`). `wochenKapazitaet()` (3034) fragt
-*vor* dem Verteilen, ob die Woche das überhaupt hergibt; `VERPLANT_GRENZE = 0.65` (3033), Ampel
-grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 3082). `istSerie()` (2697, `repeat ===
-"weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine für Anzeige und
-Abhaken.
+Platzierung, most-constrained-first (Prüfung: `regeln.js`). `wochenKapazitaet()` (3151) fragt
+*vor* dem Verteilen, ob die Woche das überhaupt hergibt — und rechnet in der **laufenden**
+Woche seit der v1.22-Runde **ab jetzt** (vergangene Tage zählen weder in `wach` noch in
+`fest`, der laufende Block nur mit Restanteil; zukünftige und vergangene Wochen fallen im
+selben Codepfad auf die Vollwochen-Rechnung zurück; Ampeltext dann „Rest der Woche zu X %").
+Alle **drei** Verteil-Einstiege — Ziele-„Vorschlagen", Heute-Leerzustand, Erststart-Assistent —
+laufen durch `verteilenMitGate()` (4234): bei `ok: false` erscheint „Das wird eng" mit dem
+Ausweg „Nächste Woche planen" (`planeNaechsteWoche()` 4220; Prüfung: `kapazitaet.js`).
+`VERPLANT_GRENZE = 0.65` (3150), Ampel
+grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 3217). Begründungen: der generische
+Fallback (`GRUND_GENERISCH` 3588) erscheint auf Blöcken und Agenda-Zeilen **nicht** mehr
+(`grundZumZeigen()` 3614) — nur die Blätter (`sugSheet`/`blockSheet`) zeigen ihn weiterhin;
+das Datenfeld `b.grund` bleibt immer gesetzt (Prüfung: `erklaer.js`). `istSerie()` (2802,
+`repeat === "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine
+für Anzeige und Abhaken.
 
-**Rest des Tages.** `restDesTagesBauen()` (3892), aufrufbar über den Knopf in „Heute"
-(Sichtbarkeit über `restDesTagesMoeglich()` 3938), wendet denselben Verteiler wie das
+**Rest des Tages.** `restDesTagesBauen()` (4075), aufrufbar über den Knopf in „Heute"
+(Sichtbarkeit über `restDesTagesMoeglich()` 4121), wendet denselben Verteiler wie das
 Wochenziel-Verteilen an, nur auf den laufenden Tag beschränkt. Zwei rote Linien, teuer erarbeitet,
 nicht versehentlich wieder aufweichen: auf einem freigehaltenen Tag schlägt auch dieser Weg nichts
 vor (`istFrei()`); und ein bereits vergangener eigener Vorschlag von heute wird nicht mehr
@@ -183,17 +212,20 @@ angefasst — seit Stufe 16 sorgt dafür `growSuggestions()` selbst (kennt „je
 Ende, das schon erreicht oder überschritten ist), die frühere lokale Sicherung/Rückschreibung
 (`vergangeneSnapshot`) ist damit entfallen.
 
-**Wochenritual.** `ritualSheet()` (6632) führt am Montag durch drei Schritte —
-`schrittRueckblick()` (6658, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
-Zielanpassung über `rueckblickMuster()` 6999), Ziele, Verteilen. `renderRitual()` (6605) zeigt die
-Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
+**Wochenritual.** `ritualSheet()` (6966) führt am Montag durch drei Schritte —
+`schrittRueckblick()` (6992, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
+Zielanpassung über `rueckblickMuster()` 7356), Ziele, Verteilen. Schritt 3 nennt bei
+`wochenKapazitaet().ok === false` den wahren Grund („Der Rest passt nicht mehr in diese
+Woche.") und bietet „Nächste Woche planen" an — das Blatt schließt vor dem Wochenwechsel, weil
+seine Schritte 1/2 an beim Öffnen eingefrorenen Wochenwerten hängen. `renderRitual()` (6939)
+zeigt die Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
 
-**Abgleich.** `Sync` (7834) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
-bewusst im Klartext in `SUPABASE` (1694) — der anon key darf öffentlich sein, geschützt wird über
+**Abgleich.** `Sync` (8191) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
+bewusst im Klartext in `SUPABASE` (1735) — der anon key darf öffentlich sein, geschützt wird über
 Row Level Security. `GET`/`POST /rest/v1/plans` (Spalte `data`, Header
 `Prefer: resolution=merge-duplicates,return=minimal`), Session unter `wochenplaner.session`,
 Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
-`mergeStates()` (7752): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
+`mergeStates()` (8109): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
 
 **Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen. Cache-first wäre
 schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
@@ -217,7 +249,7 @@ Geprüft in `werkzeug/pwatest.js`.
   `s.version` am Ende mitziehen.
 - **Nie `at` von Hand setzen, nie Grabsteine löschen.** Sonst kehren gelöschte Einträge beim
   nächsten Abgleich vom anderen Gerät zurück.
-- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 7664): alles, was hier existiert und
+- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 8021): alles, was hier existiert und
   in der Sicherung fehlt, bekommt einen Grabstein — und den schiebt der Abgleich auf alle Geräte.
   Eine drei Monate alte Sicherung vom Handy hat so schon den Plan am PC gelöscht. Der Dialog mit
   „Zusammenführen" als Vorgabe bleibt — diese Semantik ist unverändert. Was sich geändert hat: eine
@@ -230,25 +262,25 @@ Geprüft in `werkzeug/pwatest.js`.
   `realtest.js` nicht mitzählen. Sie haben keine echte Uhrzeit und erscheinen sonst als „Übergang
   ohne Lücke" — dieser Messfehler hat einmal eine Verschlechterung vorgetäuscht, die es nicht gab.
 - **`freeGaps()` und `tagesAuslastung()` widersprechen sich bei groben Blöcken — beide zu Recht,
-  nicht anfassen.** `freeGaps()` (3158) blendet grobe Blöcke aus, weil sie keine Uhrzeit haben, die
-  es aussparen könnte; `tagesAuslastung()` (2629) zählt dieselben Blöcke trotzdem mit, weil ihre
+  nicht anfassen.** `freeGaps()` (3300) blendet grobe Blöcke aus, weil sie keine Uhrzeit haben, die
+  es aussparen könnte; `tagesAuslastung()` (2734) zählt dieselben Blöcke trotzdem mit, weil ihre
   Dauer real verplante Zeit ist, nur ihre Uhrzeit nicht. „Frei diese Woche" (`freizeitSheet()`,
-  2590) macht diesen Unterschied absichtlich sichtbar, statt ihn aufzulösen: hinter den echten
+  2641) macht diesen Unterschied absichtlich sichtbar, statt ihn aufzulösen: hinter den echten
   Zeitfenstern nennt sie zusätzlich, was an groben Blöcken an dem Tag noch offen liegt, ohne ihm
   eine erfundene Uhrzeit anzudichten. Wer hier „aufräumt" und eine der beiden Funktionen an die
   andere anpasst, macht die jeweils andere falsch.
-- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()` 2843, nutzt `istSerie()` 2697), nicht an
+- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()` 2948, nutzt `istSerie()` 2802), nicht an
   der Serie — sonst gilt ein wöchentlicher oder zweiwöchentlicher Eintrag in allen Wochen als
   erledigt.
 - **Neue Felder gehören auf `area`, `task` oder `block` — nie an die `state`-Wurzel und nie in
   `area.plan`.**
-- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6549) schicken.
-- **`renderEnergy()` (6329) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
+- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (6883) schicken.
+- **`renderEnergy()` (6663) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
   `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
 - **`growSuggestions()` kennt seit Stufe 16 „jetzt".** War bekannt, bewusst nicht behoben, solange
   nur `restDesTagesBauen()` betroffen war (dort lokal umgangen über `vergangeneSnapshot`) — betraf
-  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (3795) den laufenden Tag
+  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (3954) den laufenden Tag
   bewusst unberührt lässt. Jetzt verlängert `growSuggestions()` an keinem eigenen Vorschlag von
   heute mehr ein Ende, das schon erreicht oder überschritten ist; ein gerade laufender Block
   (start ≤ jetzt < end) wächst unverändert weiter.
@@ -281,10 +313,16 @@ bekommen. Sie gelten unabhängig davon, wie sich Zeilenzahlen oben verschieben.
 - **Alle zeitkritischen Prüfskripte nageln Uhrzeit, Datum und Zeitzone fest**
   (`page.clock.setFixedTime`, `timezoneId: 'Europe/Berlin'`). Diese Fehlerklasse — ein Skript, das
   je nach Startzeitpunkt grün oder rot wird und dadurch falsches Vertrauen erzeugt — hat in diesem
-  Projekt schon **viermal** zugeschlagen. Ein neues zeitkritisches Prüfskript ohne feste Uhr wird
+  Projekt schon **sechsmal** zugeschlagen. Ein neues zeitkritisches Prüfskript ohne feste Uhr wird
   nicht abgenommen. Das Zeit-Literal in `setFixedTime` muss dabei **zoniert** angegeben werden
   (z. B. `'2026-08-05T10:00:00+02:00'`) — eine Uhrzeit ohne Zonen-Endung nimmt die Prozesszone der
   jeweils ausführenden Maschine an und wird dadurch selbst wieder zu einer ungenagelten Uhr.
+  Die sechste Ausprägung kam von der anderen Seite: **eine Produktänderung kann Bestandsskripte
+  rückwirkend zeitkritisch machen.** Als der Erststart das Kapazitäts-Gate bekam (v1.22-Runde),
+  wurden acht Skripte rot bzw. kalendertagabhängig, die bis dahin gefahrlos ohne Uhr durch den
+  Assistenten klickten. Wer einen neuen zeit- oder zustandsabhängigen Dialog in einen Weg
+  einbaut, den Prüfskripte betreten, prüft danach alle Skripte auf diesem Weg — nicht nur die
+  neuen.
 - **Commit nur bei grüner Kette:** vorher `node alles.js` aus `werkzeug/` heraus laufen lassen.
 - **Screenshots werden angesehen, nicht nur gemessen.** Fünf echte Befunde dieses Projekts hat
   keine einzige Messung gefunden, nur der Blick aufs Bild.

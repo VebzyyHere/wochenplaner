@@ -83,6 +83,7 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node dialog.js` | Barrierefreiheit der Dialoge: Tab bleibt im offenen Blatt, Fokus kehrt beim Schließen zurück, `aria-labelledby`, `.app[inert]` |
 | `node haken.js` | Abhaken hängt am Paar Eintrag+Datum (`hakenKey`), nicht am Weg über den abgehakt wurde und nicht an der Serie; 44×44-Trefferfläche des Häkchens |
 | `node abbrechen.js` | Ziele-Editor: Abbrechen, Escape oder Klick auf den Hintergrund stellen nicht nur Art-/Grob-/Ort-Chips zurück, sondern jedes getippte Feld (Zahl, Haken, Tage, Von/Bis) — über eine Sicherung von `a.plan`/`a.regeln` beim Öffnen; „Speichern" übernimmt weiterhin alles |
+| `node vorschlagzeilen.js` | Vorschläge als Geisterzeilen in der Heute-Agenda: eigene Sektion unter „Danach", Einzel-Übernehmen/-Verwerfen über dieselben `acceptOne()`/`dropOne()` wie im Raster (Feldgleichheit beider Wege), Leerzustand „Noch nichts fest", das Leisten-Label springt zum frühesten Vorschlag, 44px-Trefferflächen, AA-Kontrast der gedämpften Zeile in Hell und Dunkel, Tastaturweg (Tab + Enter/Leertaste öffnet das Vorschlags-Blatt) |
 
 ## Inhalt und Logik
 
@@ -95,7 +96,7 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node ob.js` | Erststart-Assistent auf Rechner und iPhone SE bis zum fertigen Plan |
 | `node tk.js` | Aufgabenblatt: Titel, Bereich, Dauer, Stern, in den Plan legen, löschen |
 | `node regeln.js` | Der kontextbewusste Verteiler: Fenster (erlaubte Wochentage/Uhrzeit) und Anker (Mindestabstand zu einem anderen Bereich) in `area.regeln`, most-constrained-first |
-| `node erklaer.js` | Die Begründungszeile jedes Vorschlags: nicht-leer, lesbarer deutscher Satz, Handlungsanweisung bei unlösbaren Fällen, Alternativen samt Abzugsgrund |
+| `node erklaer.js` | Die Begründungszeile jedes Vorschlags: nicht-leer, lesbarer deutscher Satz, Handlungsanweisung bei unlösbaren Fällen, Alternativen samt Abzugsgrund. Prüft die **Datenebene** — auf Blöcken und Agenda-Zeilen wird der generische Fallback seit der v1.22-Runde bewusst nicht mehr angezeigt (nur in den Blättern) |
 | `node stabil.js` | Der Verteiler bleibt ruhig: zweimal verteilen ohne Änderung bewegt nichts, ein neuer Termin ändert nur seinen Tag, heute und von Hand gezogene Blöcke bleiben unberührt |
 | `node wunsch.js` | Median der Vorschlag-Startzeiten je Art gegen den bevorzugten „Wunschpunkt" der Art, verglichen vorher/nachher aus echten Kopien von `index.html` |
 | `node serie.js` | Zweiwöchentliche Termine: Parität zur `since`-Woche über die Sommerzeitumstellung hinweg, eigener Haken-Schlüssel je Woche, Serien-Rückfrage bei Löschen/Verschieben |
@@ -108,7 +109,9 @@ erscheinen als "übersprungen" statt rot; der Exit-Code bleibt dann trotzdem 0.
 | `node restdestag.js` | Der Rest-des-Tages-Knopf in „Heute": Sichtbarkeit nur unter allen Bedingungen zugleich (heutiger Tag, schon Belegtes, offene Minuten, vor Feierabend, `istFrei()`), Vorschläge erst ab der festgenagelten Uhrzeit, feste Termine und Serien bleiben unverändert, ein bereits vergangener eigener Vorschlag von heute bleibt Feld für Feld unangetastet, ohne Antippen passiert nichts |
 | `node importfuzz.js` | Fuzzing des einzigen Wegs, auf dem fremde Daten in den Zustand kommen (`importData()`), über den echten Weg Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`: Oberfläche bleibt bedienbar, keine Konsolenfehler, bestehender Zustand bleibt byte-identisch außer bei ausdrücklichem „Ersetzen" |
 | `node zeitrand.js` | Die Zeitrechnung an ihren Rändern: Sommerzeitwechsel bleiben ein lückenloser Wochenanker (2026–2030), zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und echte 53-Wochen-Jahre, die beim Herbstwechsel doppelt vorkommende lokale Stunde verschiebt „Heute" nicht |
-| `node freiwoche.js` | „Frei diese Woche": `#weekLabel` öffnet ein Blatt, das `freeGaps()` endlich zeigt — sieben Zeilen in Worten statt eines Rasters, aus dem man Lücken erst heraussuchen muss |
+| `node freiwoche.js` | „Frei diese Woche": `#weekLabel` öffnet ein Blatt, das `freeGaps()` endlich zeigt — sieben Zeilen in Worten statt eines Rasters, aus dem man Lücken erst heraussuchen muss. Seit der v1.22-Runde zusätzlich: der lokale ‹ ›-Wochen-Umschalter im Blatt (der globale `anchor` bleibt unberührt), Titel relativ zu heute, „vorbei"/„· heute" nur in der echten aktuellen Woche |
+| `node kapazitaet.js` | Die Kapazität rechnet in der laufenden Woche **ab jetzt**: vergangene Tage zählen weder in `wach` noch in `fest`, der laufende Block nur mit Restanteil; zukünftige/vergangene Wochen wie bisher. „Das wird eng"-Gate an allen drei Verteil-Einstiegen (Ziele, Heute-Leerzustand, Erststart-Assistent), „Nächste Woche planen" als Ausweg im Gate und in Ritual-Schritt 3, Anzeige ohne NaN im `wach = 0`-Randfall |
+| `node grobstandard.js` | Die Erholungs-Startbereiche a4–a6 (Hobby, Freizeit & Pausen, Menschen) starten mit `plan.grob = true` und bekommen grobe Vorschläge (`teil` + `dauer` statt Uhrzeit); `migrate()` bleibt idempotent, ein selbst angelegter neuer Bereich startet weiterhin exakt |
 
 Wichtig bei `realtest.js`: **grobe Blöcke dürfen in den Kennzahlen nicht
 mitzählen.** Sie haben keine echte Uhrzeit und liegen im Band unter dem Raster —
