@@ -123,7 +123,7 @@ html[data-theme="dark"] {
 /* Bereichsfarben: gleiche Helligkeit/Chroma, nur der Hue (--h) wechselt.
    Muss auf dem Element selbst deklariert werden — auf :root wäre --h leer. */
 .block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow, .wochenzeile__seg {
   --area-bg:     oklch(0.950 0.048 var(--h));
   --area-bg-2:   oklch(0.900 0.075 var(--h));
   --area-edge:   oklch(0.870 0.070 var(--h));
@@ -132,7 +132,7 @@ html[data-theme="dark"] {
   --area-dot:    oklch(0.605 0.150 var(--h));
 }
 html[data-theme="dark"] :is(.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow) {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow, .wochenzeile__seg) {
   --area-bg:     oklch(0.320 0.060 var(--h));
   --area-bg-2:   oklch(0.400 0.085 var(--h));
   --area-edge:   oklch(0.430 0.080 var(--h));
@@ -308,15 +308,23 @@ button { cursor: pointer; }
    Rasters, aus dem man Lücken heraussuchen muss. Komplett achromatisch:
    freie Zeit gehört keinem Bereich, im Gegensatz zu jedem Block sonst in
    dieser App — hier darf die Oberfläche also wirklich farblos bleiben.
+
+   Stufe M2: Hinweiszeile und Zeilenabstand hier unten sind gegenüber der
+   M1-Fassung leicht gestrafft (Margin s-3->s-2, Zeilenpolster 8px->4px),
+   damit unter dem Kopf Platz für den neuen Frei/Belegt-Umschalter entsteht,
+   ohne dass das Blatt auf dem iPhone SE zu scrollen anfängt (freiwoche.js,
+   Test g). Klassen, IDs, Inhalt und Verhalten dieses Gesichts bleiben sonst
+   exakt wie vorher — freiwoche.js prüft das hart, unverändert.
    ============================================================ */
 .freizeithint {
-  margin: 0 0 var(--s-3); color: var(--text-muted); font-size: var(--t-xs);
+  margin: 0 0 var(--s-2); color: var(--text-muted); font-size: var(--t-xs);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .freizeitlist { display: flex; flex-direction: column; }
+.freizeitlist[hidden] { display: none; }
 .freizeitrow {
   display: flex; align-items: baseline; gap: var(--s-3);
-  padding: 8px 2px; border-bottom: 1px solid var(--border);
+  padding: 4px 2px; border-bottom: 1px solid var(--border);
 }
 .freizeitrow:last-child { border-bottom: none; }
 .freizeitrow__tag { flex: none; width: 6em; font-weight: 700; font-size: var(--t-body); }
@@ -326,6 +334,62 @@ button { cursor: pointer; }
 .freizeitrow.is-vorbei .freizeitrow__zeit { color: var(--text-faint); }
 .freizeitrow.is-vorbei .freizeitrow__zeit b { color: var(--text-faint); }
 .freizeitrow.is-heute { background: var(--surface-2); border-radius: var(--radius-sm); }
+
+/* ============================================================
+   Wochenübersicht: Frei/Belegt-Umschalter (Stufe M2) — dieselbe Frage von
+   der Gegenseite: nicht "wann hab ich Zeit" (oben), sondern "was liegt
+   an". Zwei Chips wie überall sonst in der App (.chip/[aria-pressed]),
+   keine neue Formensprache. "Frei" bleibt Vorgabe beim Öffnen — welche
+   Fläche zuletzt gewählt war, merkt sich nur eine Modulvariable fürs
+   laufende Tab (freizeitGesicht, bei freizeitZeile weiter unten im
+   Skript) — kein state-Feld, nichts synchronisiert.
+   ============================================================ */
+.gesichtumschalter { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
+.gesichtumschalter .chip { flex: 1; justify-content: center; min-height: 44px; }
+
+/* Belegt-Gesicht: sieben Zeilen "was liegt an" statt Spalten — ein
+   7-Spalten-Wochenraster am Handy wurde am 2026-08-08 als Prototyp gebaut
+   und ist gescheitert (Spaltenteilung macht Titel unlesbar). Rechts je Tag
+   eine Segmentleiste über die Tagesachse (dayStart..dayEnd), Farbton wie
+   überall über --h auf dem Segment selbst (Muster .block/.chip__dot).
+   Grobe/Vorschlag-Segmente sind komplett umrandet gestrichelt (border,
+   alle vier Seiten — Muster .block__ghost), NICHT nur links: ein weiterer
+   farbiger border-left wäre ein vierter side-tab-Treffer, der Impeccable-
+   Deckel steht bei genau drei (CLAUDE.md). */
+.wochenzeilen { display: flex; flex-direction: column; }
+.wochenzeilen[hidden] { display: none; }
+.wochenzeile {
+  display: block; width: 100%; min-height: 44px;
+  padding: 8px 2px; border: none; border-bottom: 1px solid var(--border);
+  background: transparent; color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+}
+.wochenzeile:last-child { border-bottom: none; }
+@media (hover: hover) { .wochenzeile:hover { background: var(--surface-2); } }
+.wochenzeile.is-heute { background: var(--surface-2); border-radius: var(--radius-sm); }
+.wochenzeile__top { display: flex; align-items: center; gap: var(--s-3); }
+.wochenzeile__tag {
+  flex: none; min-width: 4.6em; font-weight: 700; font-size: var(--t-body);
+  white-space: nowrap;
+}
+.wochenzeile__bar {
+  position: relative; flex: 1; height: 20px; min-width: 0;
+  border-radius: 4px; background: var(--surface-3); overflow: hidden;
+}
+.wochenzeile__seg { position: absolute; top: 2px; bottom: 2px; min-width: 3px; border-radius: 2px; background: var(--area-line); }
+.wochenzeile__seg--grob, .wochenzeile__seg--sug {
+  background: var(--area-bg-2); border: 1px dashed var(--area-line); opacity: .7;
+}
+.wochenzeile__seg--sug { opacity: .4; }
+.wochenzeile__txt {
+  display: block; margin: 4px 0 0; font-size: var(--t-sm); color: var(--text-muted); line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wochenzeile__txt b { color: var(--text); font-weight: 700; }
+.wochenzeile__txt.is-leer { color: var(--text-faint); }
+.wochenzeile.is-vorbei .wochenzeile__tag,
+.wochenzeile.is-vorbei .wochenzeile__txt { color: var(--text-faint); }
+.wochenzeile.is-vorbei .wochenzeile__bar { opacity: .5; }
 
 /* ============================================================
    Monatsübersicht (Stufe M1) — die Woche in Stunden beantwortet "was
@@ -1680,7 +1744,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
     <div class="weeknav">
       <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück">‹</button>
-      <button type="button" class="weeknav__label" id="weekLabel" aria-label="Frei diese Woche anzeigen"></button>
+      <button type="button" class="weeknav__label" id="weekLabel" aria-label="Wochenübersicht anzeigen"></button>
       <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
     </div>
 
@@ -2683,6 +2747,13 @@ function renderHeader() {
    ohne ihm eine erfundene Uhrzeit anzudichten. */
 const FREIZEIT_MIN = 30;
 
+// Stufe M2: welche Fläche des Blatts zuletzt gewählt war ("Frei" oder
+// "Belegt") — reine Sitzungsvariable fürs laufende Tab, bewusst KEIN
+// state-Feld (nichts, was über den Abgleich auf ein zweites Gerät
+// wandern müsste). "frei" ist die Vorgabe beim allerersten Öffnen; jeder
+// weitere Öffnungsvorgang im selben Tab merkt sich die letzte Wahl.
+let freizeitGesicht = "frei";
+
 function freizeitZeile(day, todayKey) {
   // Vergangene Tage: freeGaps() gibt hier [] zurück, aber OHNE .gruende
   // (die Eigenschaft fehlt ganz, Zeile ~3028) — gaps.gruende.length würde
@@ -2720,6 +2791,46 @@ function freizeitZeile(day, todayKey) {
   return { text: teile.join(", ") + hinweis, art: "teil" };
 }
 
+/* ============================================================
+   Wochenübersicht: Belegt-Gesicht (Stufe M2) — dieselbe Frage von der
+   Gegenseite: nicht "wann hab ich Zeit" (freizeitZeile oben), sondern
+   "was liegt an". Dieselben Tages-Helfer wie tagesAgenda()/blocksFor()
+   (KEIN eigenes Datenmodell) — aber NICHT tagesAgenda() selbst: deren
+   "exakt"-Teil hängt am globalen anchor (blocksFor(addDays(mondayOf(
+   anchor), dayIdx), dayIdx), ~3160), nicht am übergebenen dayKey. Im
+   Hauptraster fällt das nie auf, weil dort immer die Woche von anchor
+   steht — dieses Blatt kann per lokalem ‹›-Umschalter aber eine ANDERE
+   Woche zeigen als anchor (genau wie freizeitZeile/freeGaps oben). Darum
+   hier eine eigene, schlanke Zusammenführung über dieselben Bausteine,
+   parametrisiert über "day" (i/d/key aus tageDerWoche()) statt anchor.
+   ============================================================ */
+function wochenzeileEintraege(day) {
+  const roh = [...blocksFor(day.d, day.i), ...grobeFor(day.key, day.i)];
+  const eingeordnet = b => ({ block: b, grob: !!b.grob, sug: !!b.sug, sortMin: b.grob ? abschnittVon(b.teil).von : b.start });
+  const echt = roh.filter(b => !b.sug).map(eingeordnet).sort((a, b) => a.sortMin - b.sortMin);
+  const sug = roh.filter(b => b.sug).map(eingeordnet);
+  return { echt, sug };
+}
+
+/* Klartextzeile unter der Segmentleiste: bis zu zwei Titel, Rest als
+   "+N" — dieselbe Kappung wie an anderen engen Stellen der App. Vorschläge
+   zählen nicht mit (wie in tagesAgenda(): die Zeile zeigt, was gilt, nicht,
+   was der Verteiler anbietet). Ein exakter Eintrag nennt seine Uhrzeit,
+   ein grober nur den Titel — er hat keine echte Uhrzeit, die man nennen
+   könnte (dieselbe Zurückhaltung wie bei freizeitZeile()/ABSCHNITTE). */
+function klartextZeile(echt, day) {
+  if (istFrei(day.key)) return { html: "<b>bewusst frei</b>", leer: false };
+  if (!echt.length) return { html: "nichts geplant", leer: true };
+  const KAPPUNG = 2;
+  const teile = echt.slice(0, KAPPUNG).map(e => {
+    const a = areaById(e.block.areaId);
+    const titel = escapeHtml(e.block.title || a.name);
+    return e.grob ? titel : titel + " " + fmtTime(e.block.start);
+  });
+  const rest = echt.length - KAPPUNG;
+  return { html: teile.join(" · ") + (rest > 0 ? " +" + rest : ""), leer: false };
+}
+
 function freizeitSheet() {
   modal((s, close) => {
     const todayKey = iso(new Date());
@@ -2737,47 +2848,66 @@ function freizeitSheet() {
     // Titel relativ zu HEUTE, nicht zur angezeigten Woche — sonst läuft man
     // ihm hinterher: navigiert man vorher im Hauptraster in eine andere
     // Woche und öffnet dann dieses Blatt, wäre "Frei diese Woche" gelogen.
+    // Stufe M2: dasselbe fürs Belegt-Gesicht, nur ohne "Frei" davor — der
+    // Frei-Zweig bleibt wortgleich zu vorher (freiwoche.js prüft das hart).
     const titelText = () => {
       const diff = Math.round((mon - heuteMon) / 604800000);
-      if (diff === 0) return "Frei diese Woche";
-      if (diff === 1) return "Frei nächste Woche";
-      if (diff === -1) return "Frei letzte Woche";
+      if (freizeitGesicht === "frei") {
+        if (diff === 0) return "Frei diese Woche";
+        if (diff === 1) return "Frei nächste Woche";
+        if (diff === -1) return "Frei letzte Woche";
+      } else {
+        if (diff === 0) return "Diese Woche";
+        if (diff === 1) return "Nächste Woche";
+        if (diff === -1) return "Letzte Woche";
+      }
       // Muster vom Topbar-Label (renderHeader(), ~2537).
       const sun = addDays(mon, 6);
       const sameMonth = mon.getMonth() === sun.getMonth();
       const range = sameMonth
         ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
         : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
-      return "Frei in KW " + isoWeek(mon) + " (" + range + ")";
+      const kw = "KW " + isoWeek(mon) + " (" + range + ")";
+      return freizeitGesicht === "frei" ? "Frei in " + kw : kw;
     };
 
     s.innerHTML =
-      "<div class='weeknav' style='margin-bottom:var(--s-4)'>" +
+      "<div class='weeknav' style='margin-bottom:var(--s-3)'>" +
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitPrev' aria-label='Vorherige Woche'>‹</button>" +
         "<h2 class='sheet__title' id='freizeitTitel' style='margin:0;flex:1;text-align:center'></h2>" +
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
       "</div>" +
+      "<div class='gesichtumschalter' id='gesichtUmschalter'></div>" +
       // Die Nachtruhe nur nennen, wenn sie auch eingeschaltet ist — defaultSleep()
       // liefert on:false, und ein Blatt, aus dem man jemandem vorliest, darf nicht
-      // behaupten, es rechne etwas ein, das gar nicht wirkt.
-      "<p class='freizeithint'>ab " + FREIZEIT_MIN + " Min frei"
+      // behaupten, es rechne etwas ein, das gar nicht wirkt. Gehört nur zum
+      // Frei-Gesicht (Stufe M2) — zeichnen() blendet sie im Belegt-Gesicht aus.
+      "<p class='freizeithint' id='freizeitHint'>ab " + FREIZEIT_MIN + " Min frei"
         + (state.settings.sleep && state.settings.sleep.on ? " · Nachtruhe zählt mit" : "") + "</p>" +
-      "<div class='freizeitlist' id='freizeitListe'></div>";
+      "<div class='freizeitlist' id='freizeitListe'></div>" +
+      "<div class='wochenzeilen' id='wochenzeilenListe' hidden></div>";
 
     const titelEl = s.querySelector("#freizeitTitel");
+    const hintEl = s.querySelector("#freizeitHint");
     const listeEl = s.querySelector("#freizeitListe");
+    const wochenEl = s.querySelector("#wochenzeilenListe");
+    const umschalterEl = s.querySelector("#gesichtUmschalter");
 
-    // Zeichnet Titel + sieben Zeilen für die aktuell gewählte lokale Woche
-    // ("mon") neu — beim Öffnen und nach jedem Klick auf ‹/›.
-    const zeichnen = () => {
-      titelEl.textContent = titelText();
-      // Grau/"vorbei" und der "· heute"-Marker gelten nur in der echten
-      // aktuellen Woche (Auftrag C6). Ein Sentinel-Datum vor jedem
-      // möglichen Tag umgeht freizeitZeile()s eigenen Vergleich in jeder
-      // anderen Woche, ohne die Funktion selbst anzufassen.
-      const istEchteWoche = mon.getTime() === heuteMon.getTime();
+    // "echte" aktuelle Woche: dieselbe Bedingung, die vorher inline in
+    // zeichnen() stand — jetzt eine Funktion, weil sie ab Stufe M2 in zwei
+    // Zeichenfunktionen (Frei/Belegt) gebraucht wird, nicht mehr nur einer.
+    const istEchteWoche = () => mon.getTime() === heuteMon.getTime();
+
+    // ---- Frei-Gesicht — UNVERÄNDERT gegenüber vorher, nur in eine eigene
+    // Funktion gezogen: gleiche Zeichenkette, gleiche Klassen/IDs, gleicher
+    // Sentinel-Kniff gegen freizeitZeile()s .gruende-Falle in fremden Wochen.
+    const zeichnenFrei = () => {
+      hintEl.hidden = false;
+      wochenEl.hidden = true; wochenEl.innerHTML = "";
+      listeEl.hidden = false;
+      const echteWoche = istEchteWoche();
       listeEl.innerHTML = tageDerWoche().map(day => {
-        const z = freizeitZeile(day, istEchteWoche ? todayKey : "0000-00-00");
+        const z = freizeitZeile(day, echteWoche ? todayKey : "0000-00-00");
         const heute = day.key === todayKey;
         return "<div class='freizeitrow" + (z.art === "vorbei" ? " is-vorbei" : "")
           + (heute ? " is-heute" : "") + "'>"
@@ -2786,7 +2916,97 @@ function freizeitSheet() {
           + "</div>";
       }).join("");
     };
+
+    // ---- Belegt-Gesicht (Stufe M2) — sieben Zeilen "was liegt an".
+    // Segmentleiste: links%/breite% linear über dayStart..dayEnd, auf den
+    // sichtbaren Bereich geklemmt (ein Block außerhalb der Tagesgrenzen
+    // läuft sonst aus der Leiste heraus statt nur abgeschnitten zu
+    // wirken). Die Mindestbreite von 3px kommt aus der CSS-Regel
+    // (.wochenzeile__seg min-width), nicht von hier.
+    const zeichnenBelegt = () => {
+      hintEl.hidden = true;
+      listeEl.hidden = true; listeEl.innerHTML = "";
+      wochenEl.hidden = false;
+      const vonMin = state.settings.dayStart * 60, bisMin = state.settings.dayEnd * 60;
+      const spanMin = Math.max(1, bisMin - vonMin);
+      const echteWoche = istEchteWoche();
+
+      const segment = e => {
+        const a = e.grob ? abschnittVon(e.block.teil) : null;
+        const start = e.grob ? a.von : e.block.start;
+        const ende = e.grob ? a.von + (e.block.dauer || 0) : e.block.end;
+        const links = clamp((start - vonMin) / spanMin * 100, 0, 100);
+        const breite = Math.max(0, clamp((ende - vonMin) / spanMin * 100, 0, 100) - links);
+        const klasse = e.sug ? " wochenzeile__seg--sug" : (e.grob ? " wochenzeile__seg--grob" : "");
+        const ar = areaById(e.block.areaId);
+        return "<i class='wochenzeile__seg" + klasse + "' style='left:" + links.toFixed(2)
+          + "%;width:" + breite.toFixed(2) + "%;--h:" + ar.hue + "'></i>";
+      };
+
+      wochenEl.innerHTML = tageDerWoche().map(day => {
+        const { echt, sug } = wochenzeileEintraege(day);
+        const heute = echteWoche && day.key === todayKey;
+        const vorbei = echteWoche && day.key < todayKey;
+        const segmente = echt.map(segment).join("") + sug.map(segment).join("");
+        const kt = klartextZeile(echt, day);
+
+        return "<button type='button' class='wochenzeile" + (vorbei ? " is-vorbei" : "") + (heute ? " is-heute" : "") + "'"
+          + " data-date='" + day.key + "'>"
+          + "<span class='wochenzeile__top'>"
+            + "<span class='wochenzeile__tag'>" + DAY_SHORT[day.i] + " " + day.d.getDate() + "." + (heute ? " · heute" : "") + "</span>"
+            + "<span class='wochenzeile__bar'>" + segmente + "</span>"
+          + "</span>"
+          + "<span class='wochenzeile__txt" + (kt.leer ? " is-leer" : "") + "'>" + kt.html + "</span>"
+          + "</button>";
+      }).join("");
+    };
+
+    // ---- Umschalter (Stufe M2.1) — Muster wie paintGenau()/paintRepeat()
+    // im Block-Editor: zwei Chips aus einem Array, aria-pressed trägt den
+    // Zustand, ein Klick auf den schon aktiven Chip tut nichts.
+    const paintUmschalter = () => {
+      umschalterEl.innerHTML = "";
+      [["frei", "Frei"], ["belegt", "Belegt"]].forEach(([wert, text]) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(freizeitGesicht === wert));
+        c.textContent = text;
+        c.onclick = () => {
+          if (freizeitGesicht === wert) return;
+          freizeitGesicht = wert;
+          paintUmschalter();
+          zeichnen();
+        };
+        umschalterEl.appendChild(c);
+      });
+    };
+
+    // Zeichnet Titel + Inhalt der aktuell gewählten Fläche für die
+    // angezeigte Woche ("mon") neu — beim Öffnen, nach ‹/› und nach jedem
+    // Umschalt-Klick.
+    const zeichnen = () => {
+      titelEl.textContent = titelText();
+      if (freizeitGesicht === "frei") zeichnenFrei(); else zeichnenBelegt();
+    };
+    paintUmschalter();
     zeichnen();
+
+    // Zeilen-Tipp (nur Belegt-Gesicht) — dasselbe Muster wie der Tages-Tipp
+    // im Monatsblatt (monatSheet(), ~3054): anchor auf die angezeigte
+    // (u.U. per ‹/› vorgeblätterte) Woche, selectedDayIdx auf den Tag,
+    // Blatt zu, Ansicht "plan". Ein Listener für die ganze Liste statt
+    // sieben — Frei-Zeilen bleiben wie bisher ohne Tipp (eigenes Gesicht,
+    // eigener Container, kein Listener dort).
+    wochenEl.addEventListener("click", e => {
+      const btn = e.target.closest(".wochenzeile[data-date]");
+      if (!btn) return;
+      const d = new Date(btn.dataset.date + "T12:00:00");
+      close();
+      anchor = mondayOf(d);
+      selectedDayIdx = (d.getDay() + 6) % 7;
+      setView("plan");
+      renderAll();
+    });
 
     s.querySelector("#freizeitPrev").onclick = () => { mon = addDays(mon, -7); zeichnen(); };
     s.querySelector("#freizeitNext").onclick = () => { mon = addDays(mon, 7); zeichnen(); };
