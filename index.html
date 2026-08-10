@@ -1207,6 +1207,13 @@ html[data-theme="dark"] .rest {
   display: none; grid-template-columns: 22px repeat(7, minmax(0, 1fr)) 22px; gap: 2px;
   padding: 4px 2px; border-bottom: 1px solid var(--border);
   background: var(--surface); overflow: hidden;
+  /* pinch-zoom dazu wie beim Raster (.daycol, Kommentar dort) -- "none"
+     wuerde auch senkrechtes Seitenscrollen kapern, das der Streifen selbst
+     gar nicht braucht, aber die Seite drumherum vielleicht. Das
+     Streifen-Wischen (streifenwischenEinrichten) greift nur ein, wenn es
+     selbst dx/dy als waagerecht erkennt -- touch-action blockiert nichts
+     per se. */
+  touch-action: pan-y pinch-zoom;
 }
 /* Randpfeile fuer den Wochensprung, links und rechts der sieben Chips. Bei
    320px ist selbst mit 2px-Fugen kein Platz fuer zwei volle 44px-Knoepfe
@@ -1564,6 +1571,15 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .dayswitch { order: 2; }
   .tabbar { order: 3; }
   .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
+  /* Ab 390px (13/14 Pro Max, nicht das SE) darf die Stunde etwas hoeher
+     werden -- --gutter bleibt unangetastet, das ist ein reiner
+     Lesbarkeits-Gewinn fuer die groesseren Formate. Aendert die Zahl der
+     ohne Scrollen sichtbaren Stunden auf diesen Geraeten (dev.js/diag7.js
+     zeigen das, ohne es zu pruefen -- s. Bericht); die Falz-Vertraege
+     selbst haengen am SE-Format und bleiben unberuehrt. */
+  @media (min-width: 390px) {
+    .grid { --hourh: 60px; }
+  }
   .block__title { top: 0; }
   .brand { display: none; }
   .weeknav { margin-right: auto; min-width: 0; }
@@ -1595,6 +1611,20 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
     }
+  }
+  /* Ab 360px ist der 22px-Pfeilkompromiss (Kommentar an .dayswitch__nav,
+     ~1211) nicht mehr noetig -- der galt fuer 320px, wo 2*44px-Knoepfe UND
+     sieben ordentlich breite Chips nicht gleichzeitig Platz haben. Ab 360px
+     reicht die Rechnung mit 34px-Pfeilen und einer Idee mehr Luecke (3px):
+       360px: 2*34 (Pfeile) + 8*3 (Luecken) + 4 (Padding) = 96px fix,
+              7 Chips teilen sich 360-96=264px  -> 37,7px/Chip
+       375px: fix bleibt 96px, 375-96=279px     -> 39,9px/Chip
+       393px: fix bleibt 96px, 393-96=297px     -> 42,4px/Chip
+     Alle drei liegen komfortabel ueber den 36,6px/Chip von 320px vorher,
+     und 96px fix + 7*37,7px passt bei 360px noch mit Rest zusammen. */
+  @media (min-width: 360px) {
+    .dayswitch { grid-template-columns: 34px repeat(7, minmax(0, 1fr)) 34px; gap: 3px; }
+    .dayswitch__nav { width: 34px; }
   }
   .topbar { padding: 4px var(--s-2); gap: 0; }
   .topbar { padding-top: max(4px, env(safe-area-inset-top)); }
@@ -1749,6 +1779,15 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .block__sug button { width: 34px; height: 34px; font-size: var(--t-body); position: relative; }
   .block__sug button::before { content: ""; position: absolute; inset: -5px; }
   .block__resize { height: 14px; }
+  /* Ab 360px darf die sichtbare Box der Vorschlags-Checkknoepfe wachsen --
+     die effektiven 44px standen ueber die ::before-Trefferflaeche (5px/
+     -5px-Rechnung oben) schon vorher, hier geht es nur um die wahrgenommene
+     Groesse. ::before-Mechanik und alles andere in diesem Block bleiben
+     unangetastet. */
+  @media (min-width: 360px) {
+    .agenda__sugacts button { width: 40px; height: 40px; }
+    .block__sug button { width: 40px; height: 40px; }
+  }
   .goalrow__more { min-width: 44px; min-height: 44px; }
   .loosechip { min-height: 44px; }
   .toast__act { padding: 13px 6px; margin: -13px 0; }
@@ -9290,6 +9329,55 @@ function wischenEinrichten() {
   wrap.addEventListener("pointercancel", ende, { passive: true });
 }
 
+/* Derselbe Wisch auch auf dem Tagesstreifen selbst -- bisher liess sich
+   dort nur tippen (Chips, Randpfeile), nicht wischen. Dieselbe Achsen-,
+   Schwellen- und Geschwindigkeitslogik wie wischenEinrichten() oben (10px
+   Achsentscheid, |dx|>|dy|*1.7, Ausloesung ab 25% Breite oder 0,4px/ms),
+   bewusst dieselben Zahlen -- keine zweite Konstante fuer dieselbe Geste.
+   tagWechseln() traegt den Wochenrand schon (i>6/i<0 -> anchor +-7 Tage,
+   Idx 0/6), deshalb reicht hier ein einziger Aufruf fuer den nahtlosen
+   Wochenuebergang, denselben wie beim Inhalts-Wischen. Kein
+   Transform-Vorschau -- der Streifen ist keine einzelne verschiebbare
+   Flaeche wie #grid, sondern sieben einzelne Chips plus zwei Pfeile;
+   „schlichter Wechsel" (Auftrag W1) statt einer erfundenen Animation. */
+function streifenwischenEinrichten() {
+  const wrap = $("#daySwitch");
+  if (!wrap || wrap.dataset.wisch) return;
+  wrap.dataset.wisch = "1";
+
+  let x0 = 0, y0 = 0, t0 = 0, aktiv = false, achse = null;
+
+  wrap.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse") return;   // Maus tippt nur, wischt nicht
+    x0 = e.clientX; y0 = e.clientY; t0 = e.timeStamp;
+    aktiv = true; achse = null;
+  }, { passive: true });
+
+  wrap.addEventListener("pointermove", e => {
+    if (!aktiv) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+
+    if (achse === null) {
+      if (Math.hypot(dx, dy) < 10) return;
+      achse = Math.abs(dx) > Math.abs(dy) * 1.7 ? "x" : "y";
+      if (achse === "y") { aktiv = false; return; }   // senkrecht: nicht unseres
+    }
+    if (achse !== "x") return;
+
+    const breite = wrap.clientWidth || 1;
+    const t = e.timeStamp - t0;
+    const v = t > 0 ? Math.abs(dx) / t : 0;   // px/ms
+    if (Math.abs(dx) / breite >= 0.25 || v >= 0.4) {
+      aktiv = false;
+      tagWechseln(dx < 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
+  const ende = () => { aktiv = false; achse = null; };
+  wrap.addEventListener("pointerup", ende, { passive: true });
+  wrap.addEventListener("pointercancel", ende, { passive: true });
+}
+
 /* Einen Tag weiter oder zurück — über den Wochenrand hinweg. */
 function tagWechseln(richtung) {
   let i = selectedDayIdx + richtung;
@@ -9652,6 +9740,7 @@ function maybeWelcome() {
 function renderAll() {
   renderHeader();
   wischenEinrichten();
+  streifenwischenEinrichten();
   renderLoose();
   renderDaySwitch();
   renderGrid();
