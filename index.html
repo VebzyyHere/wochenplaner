@@ -2608,6 +2608,21 @@ function setAppInert(on) {
   }
 }
 
+// Ghost-Click-Schutz fuer den Scrim: der Scrim schliesst bewusst auf
+// pointerdown (s. Kommentar an den scrim-Listenern unten, NICHT aendern) --
+// der nachfolgende click desselben Tipps trifft dann den durch das
+// Schliessen freigelegten Ausloeser darunter (z.B. #monthBtn/#weekLabel)
+// und oeffnet das Blatt sofort wieder; ein Tipp daneben kann ebenso ein
+// anderes Topbar-Icon treffen. Ein einmaliger Capture-Listener schluckt
+// darum genau den naechsten click irgendwo im Dokument, hoechstens 400ms
+// lang, und raeumt sich danach selbst ab -- ein normaler naechster Tipp
+// (>400ms) bleibt unberuehrt; Escape-, Fuss-Knopf- und programmatische
+// Schliesswege rufen dies nicht auf, ihr Klick ist schon verbraucht.
+function schluckeNaechstenClick() {
+  const schlucker = e => { e.preventDefault(); e.stopPropagation(); };
+  document.addEventListener("click", schlucker, { capture: true, once: true });
+  setTimeout(() => document.removeEventListener("click", schlucker, { capture: true }), 400);
+}
 function modal(builder, opts = {}) {
   closeModal();
   modalOpener = document.activeElement && document.activeElement !== document.body
@@ -2625,7 +2640,7 @@ function modal(builder, opts = {}) {
     if (!titleEl.id) titleEl.id = "modalTitle";
     sheet.setAttribute("aria-labelledby", titleEl.id);
   }
-  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeModal(); });
+  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) { closeModal(); schluckeNaechstenClick(); } });
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
   setAppInert(true);
@@ -2698,7 +2713,7 @@ function modalPush(builder, opts = {}) {
     if (!titleEl.id) titleEl.id = "modalTitle";
     sheet.setAttribute("aria-labelledby", titleEl.id);
   }
-  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) closeThis(); });
+  scrim.addEventListener("pointerdown", e => { if (e.target === scrim) { closeThis(); schluckeNaechstenClick(); } });
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
   const focusable = sheet.querySelector("input, select, textarea, button");
