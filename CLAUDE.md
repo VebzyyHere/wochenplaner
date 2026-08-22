@@ -11,7 +11,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
-`index.html` **ist** das Produkt — 9886 Zeilen, ~476 KB, Vanilla JS, kein Build, kein npm,
+`index.html` **ist** das Produkt — 9915 Zeilen, ~478 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
 wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
@@ -22,7 +22,7 @@ das gibt die aktuelle Landkarte der Abschnittsbanner.
 | 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
 | 32–1800 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
 | 1802–1930 | Markup: Topbar (inkl. `#monthBtn`), Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1932–9884 | Hauptskript unter `"use strict"` |
+| 1932–9913 | Hauptskript unter `"use strict"` |
 
 `Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
 Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
@@ -75,7 +75,8 @@ Logik und Inhalt: `realtest.js` (Verteiler-Kennzahlen), `rt.js` (Wochenritual, M
 `tk.js` (Aufgabenblatt), `regeln.js` (kontextbewusster Verteiler: Fenster/Anker in
 `area.regeln`), `erklaer.js` (Begründungszeile jedes Vorschlags), `stabil.js` (Verteiler bleibt
 bei erneutem Lauf ruhig), `wunsch.js` (Startzeiten je Art gegen ihren Wunschpunkt), `serie.js`
-(zweiwöchentliche Termine, Parität über die Sommerzeit), `aufgabenverteiler.js`/`aufgaben.js`
+(zweiwöchentliche Termine, Parität über die Sommerzeit; seit der Einzellöschungs-Runde auch
+`b.ausnahmen`: Drei-Wege-Rückfrage, mergeStates-Duell, verwaister Haken, freeGaps-Freigabe), `aufgabenverteiler.js`/`aufgaben.js`
 (Aufgaben werden ohne Datenkorruption verplant), `netz.js` (Sicherheitsnetz vor der
 v9-Migration, `Store.backupVorV9()`), `rueckblick.js` (Wochenrückblick: geplant gegen
 tatsächlich), `schleife.js` ("die Schleife schließt sich": Grund/Ort in der Agenda, Anker-Chips,
@@ -248,7 +249,10 @@ Fallback (`GRUND_GENERISCH` 4234) erscheint auf Blöcken und Agenda-Zeilen **nic
 (`grundZumZeigen()` 4260) — nur die Blätter (`sugSheet`/`blockSheet`) zeigen ihn weiterhin;
 das Datenfeld `b.grund` bleibt immer gesetzt (Prüfung: `erklaer.js`). `istSerie()` (3448,
 `repeat === "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine
-für Anzeige und Abhaken.
+für Anzeige und Abhaken. Serien können einzelne Tage auslassen: `b.ausnahmen` (ISO-Daten,
+wertbasiert in `migrate()` gesichert) wird **nur** in `onDay()` geprüft — dadurch wirkt eine
+Ausnahme automatisch überall; der `erledigt`-Schlüssel des Datums bleibt bewusst verwaist
+liegen (Löschen ohne Grabstein käme per Sync zurück). Prüfung: `serie.js` Abschnitt h.
 
 **Rest des Tages.** `restDesTagesBauen()` (4726), aufrufbar über den Knopf in „Heute"
 (Sichtbarkeit über `restDesTagesMoeglich()` 4772), wendet denselben Verteiler wie das
