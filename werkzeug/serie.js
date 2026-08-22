@@ -338,6 +338,203 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(nachVerschiebenW.repeat === 'none', 'f-Regression) weekly: Verschieben bricht die Serie ebenso auf (' + nachVerschiebenW.repeat + ')');
   ok(nachVerschiebenW.since === undefined, 'f-Regression) weekly: since ist gelöscht (' + JSON.stringify(nachVerschiebenW.since) + ')');
 
+  /* ---- h) Nur diesen Termin — b.ausnahmen ------------------------------ */
+  console.log('\n## h) "Nur diesen Termin": UI-Weg, Persistenz, Sync, erledigt-Rest, freeGaps, "Ganze Serie" weiterhin komplett');
+
+  // h-i) UI-Weg: Serie anlegen, in Woche N+1 die Instanz löschen.
+  await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    anchor = addDays(mondayOf(new Date()), 7);   // Woche N+1
+    state.blocks = [];
+    const day = weekDays()[3];   // Donnerstag
+    state.blocks.push({
+      id: 'blk-h', title: 'Ausnahme Test', areaId: state.areas[0].id,
+      day: day.i, date: day.key, repeat: '2wochen', since: day.key, start: 600, end: 630, frog: false
+    });
+    save(); renderAll();
+    editBlock('blk-h', day.key);
+  });
+  await p.waitForTimeout(300);
+  await p.click(".sheet__foot button:has-text('Löschen')");
+  await p.waitForTimeout(300);
+  const dreiWege = await p.evaluate(() => [...document.querySelectorAll('.sheet__foot button')].map(b => b.textContent.trim()));
+  ok(dreiWege.includes('Nur diesen Termin'), 'h-i) Rückfrage zeigt "Nur diesen Termin" (erhalten: ' + dreiWege.join(', ') + ')');
+  ok(dreiWege.includes('Aus allen Wochen löschen'), 'h-i) Rückfrage zeigt weiterhin "Aus allen Wochen löschen" (erhalten: ' + dreiWege.join(', ') + ')');
+  ok(dreiWege.includes('Abbrechen'), 'h-i) Rückfrage zeigt weiterhin "Abbrechen" (erhalten: ' + dreiWege.join(', ') + ')');
+
+  await p.click(".sheet__foot button:has-text('Nur diesen Termin')");
+  await p.waitForTimeout(300);
+  const nachAusnahme = await p.evaluate(() => {
+    const b = state.blocks.find(x => x.id === 'blk-h');
+    const vorWoche = iso(addDays(mondayOf(anchor), -7 + 3));
+    const dieseWoche = iso(addDays(mondayOf(anchor), 3));
+    const folgeWoche = iso(addDays(mondayOf(anchor), 14 + 3));   // +2 Wochen: nächste passende Parität
+    return {
+      existiertNoch: !!b, ausnahmen: b ? b.ausnahmen : null,
+      dieseWoche: b ? onDay(b, dieseWoche, 3) : null,
+      vorWoche: b ? onDay(b, vorWoche, 3) : null,
+      folgeWoche: b ? onDay(b, folgeWoche, 3) : null,
+      dieseWocheKey: dieseWoche
+    };
+  });
+  ok(nachAusnahme.existiertNoch === true, 'h-i) der Block lebt weiter (kein Grabstein)');
+  ok(Array.isArray(nachAusnahme.ausnahmen) && nachAusnahme.ausnahmen.includes(nachAusnahme.dieseWocheKey),
+    'h-i) b.ausnahmen enthält das gelöschte Datum (' + JSON.stringify(nachAusnahme.ausnahmen) + ')');
+  ok(nachAusnahme.dieseWoche === false, 'h-i) onDay() liefert für die ausgenommene Woche false');
+  // 2wochen-Parität: Vorwoche (ungerade Woche) traf ohnehin nicht, prüfen wir
+  // trotzdem als Referenz — die eigentliche Zusicherung ist die Folgewoche.
+  ok(nachAusnahme.folgeWoche === true, 'h-i) die Folgewoche (übernächste, wieder gerade Parität) zeigt die Serie weiter');
+
+  const toastText = await p.evaluate(() => {
+    const all = document.querySelectorAll('.toast');
+    const t = all[all.length - 1];
+    return t ? t.textContent : null;
+  });
+  ok(!!toastText && toastText.includes('übersprungen'), 'h-i) Toast nennt "übersprungen" (' + toastText + ')');
+
+  // h-ii) Persistenz: 10x migrate() ändert nichts, ungültige Werte verworfen.
+  const persistenz = await p.evaluate(() => {
+    const vorher = JSON.stringify(state.blocks.find(x => x.id === 'blk-h').ausnahmen);
+    for (let i = 0; i < 10; i++) migrate(state);
+    const nachher = JSON.stringify(state.blocks.find(x => x.id === 'blk-h').ausnahmen);
+
+    const b2 = { id: 'blk-h-invalid', repeat: 'weekly', day: 0, since: '2026-01-05', ausnahmen: ['nicht-iso', 42, null, '2026-02-02'] };
+    const s = { areas: [], blocks: [b2], tasks: [] };
+    migrate(s);
+    const b3 = { id: 'blk-h-leer', repeat: 'weekly', day: 0, since: '2026-01-05', ausnahmen: [] };
+    const s2 = { areas: [], blocks: [b3], tasks: [] };
+    migrate(s2);
+    return { idempotent: vorher === nachher, gefiltert: s.blocks[0].ausnahmen, leerWeg: 'ausnahmen' in s2.blocks[0] };
+  });
+  ok(persistenz.idempotent, 'h-ii) 10x migrate() ändert b.ausnahmen nicht (' + persistenz.idempotent + ')');
+  ok(JSON.stringify(persistenz.gefiltert) === JSON.stringify(['2026-02-02']),
+    'h-ii) ungültige Werte (nicht-ISO, Zahl, null) werden verworfen, gültige bleiben (' + JSON.stringify(persistenz.gefiltert) + ')');
+  ok(persistenz.leerWeg === false, 'h-ii) ein leeres ausnahmen-Array wird beim migrate() entfernt');
+
+  // h-iii) Sync-Rundlauf-Miniatur: mergeStates() direkt.
+  const syncTest = await p.evaluate(() => {
+    const basis = { id: 'blk-sync', title: 'Sync Test', areaId: 'a1', day: 2, repeat: 'weekly', since: '2026-01-05', start: 600, end: 630 };
+    // Fall 1: Gerät B ohne Ausnahme (älter), Gerät A mit Ausnahme (neuer) — Ausnahme gewinnt.
+    const mineOhne = { ...basis, at: 100 };
+    const theirsMit = { ...basis, ausnahmen: ['2026-01-19'], at: 200 };
+    const s1 = mergeStates(
+      { areas: [], tasks: [], orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}, days: {}, profile: {}, blocks: [mineOhne] },
+      { areas: [], tasks: [], orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}, days: {}, profile: {}, blocks: [theirsMit] }
+    );
+    // Fall 2: umgekehrt — die ältere Ausnahme verliert gegen den neueren Stand ohne.
+    const mineMitAelter = { ...basis, ausnahmen: ['2026-01-19'], at: 100 };
+    const theirsOhneNeuer = { ...basis, at: 200 };
+    const s2 = mergeStates(
+      { areas: [], tasks: [], orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}, days: {}, profile: {}, blocks: [mineMitAelter] },
+      { areas: [], tasks: [], orte: [], wege: {}, tombs: {}, erledigt: {}, rituale: {}, days: {}, profile: {}, blocks: [theirsOhneNeuer] }
+    );
+    return {
+      fall1: s1.blocks[0].ausnahmen,
+      fall2: s2.blocks[0].ausnahmen
+    };
+  });
+  ok(Array.isArray(syncTest.fall1) && syncTest.fall1.includes('2026-01-19'),
+    'h-iii) Sync Fall 1: neuere Ausnahme gewinnt über älteren Stand ohne (' + JSON.stringify(syncTest.fall1) + ')');
+  ok(!syncTest.fall2 || !syncTest.fall2.includes('2026-01-19'),
+    'h-iii) Sync Fall 2: ältere Ausnahme verliert gegen neueren Stand ohne (' + JSON.stringify(syncTest.fall2) + ')');
+
+  // h-iv) erledigt-Eintrag des ausgenommenen Datums bleibt liegen.
+  const erledigtRest = await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    anchor = addDays(mondayOf(new Date()), 7);
+    state.blocks = [];
+    const day = weekDays()[4];
+    const b = {
+      id: 'blk-h-erledigt', title: 'Erledigt-Rest Test', areaId: state.areas[0].id,
+      day: day.i, date: day.key, repeat: 'weekly', since: day.key, start: 600, end: 630, frog: false
+    };
+    state.blocks.push(b);
+    save();
+    setzeErledigt(b, day.key, true);
+    const schluesselVorher = Object.keys(state.erledigt).length;
+    b.ausnahmen = [day.key];
+    save();
+    return {
+      schluesselVorher, schluesselNachher: Object.keys(state.erledigt).length,
+      key: hakenKey(b, day.key), nochDa: hakenKey(b, day.key) in state.erledigt
+    };
+  });
+  ok(erledigtRest.schluesselVorher === 1 && erledigtRest.schluesselNachher === 1,
+    'h-iv) der erledigt-Schlüssel bleibt bestehen, wird nicht entfernt (' + erledigtRest.schluesselVorher + ' → ' + erledigtRest.schluesselNachher + ')');
+  ok(erledigtRest.nochDa, 'h-iv) der konkrete Schlüssel ' + erledigtRest.key + ' existiert noch');
+
+  // h-v) freeGaps() bietet den freigewordenen Slot wieder an.
+  const freeSlot = await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    anchor = addDays(mondayOf(new Date()), 7);
+    state.blocks = [];
+    const day = weekDays()[5];
+    const b = {
+      id: 'blk-h-gap', title: 'Gap Test', areaId: state.areas[0].id,
+      day: day.i, date: day.key, repeat: 'weekly', since: day.key, start: 600, end: 630, frog: false
+    };
+    state.blocks.push(b);
+    save(); renderAll();
+    const area = areaById(b.areaId);
+    const vorAusnahme = freeGaps(day, { from: null, to: null, days: [day.i] }, area);
+    const belegtVorher = vorAusnahme.some(g => g.start <= 600 && g.end >= 630);
+    b.ausnahmen = [day.key];
+    save(); renderAll();
+    const nachAusnahmeGaps = freeGaps(day, { from: null, to: null, days: [day.i] }, area);
+    const frei = nachAusnahmeGaps.some(g => g.start <= 600 && g.end >= 630);
+    return { belegtVorher, frei };
+  });
+  ok(freeSlot.belegtVorher === false, 'h-v) vor der Ausnahme ist der Slot 10:00–10:30 nicht frei (vom Block belegt)');
+  ok(freeSlot.frei === true, 'h-v) nach der Ausnahme bietet freeGaps() denselben Slot wieder an');
+
+  // h-vi) "Ganze Serie" löscht weiterhin komplett mit Grabstein.
+  const ganzeSerie = await p.evaluate(() => {
+    state = freshState(); migrate(state);
+    anchor = addDays(mondayOf(new Date()), 7);
+    state.blocks = [];
+    const day = weekDays()[2];
+    state.blocks.push({
+      id: 'blk-h-ganz', title: 'Ganze Serie Test', areaId: state.areas[0].id,
+      day: day.i, date: day.key, repeat: 'weekly', since: day.key, start: 600, end: 630, frog: false
+    });
+    save(); renderAll();
+    editBlock('blk-h-ganz', day.key);
+  });
+  await p.waitForTimeout(300);
+  await p.click(".sheet__foot button:has-text('Löschen')");
+  await p.waitForTimeout(300);
+  await p.click(".sheet__foot button:has-text('Aus allen Wochen löschen')");
+  await p.waitForTimeout(300);
+  const nachGanzerSerie = await p.evaluate(() => ({
+    existiert: !!state.blocks.find(x => x.id === 'blk-h-ganz'),
+    grabstein: typeof state.tombs['blk-h-ganz'] === 'number'
+  }));
+  ok(nachGanzerSerie.existiert === false, 'h-vi) "Ganze Serie" entfernt den Block weiterhin komplett');
+  ok(nachGanzerSerie.grabstein === true, 'h-vi) "Ganze Serie" hinterlässt weiterhin einen Grabstein');
+
+  /* ---- h-Rot-Beweis: jede neue Zusicherung schlägt am unveränderten Stand
+     fehl. Verfahren laut Auftrag: Sicherungskopie der geänderten index.html,
+     Fix (onDay-Ausnahmeprüfung) zurücknehmen, isoliert prüfen, wiederherstellen. */
+  console.log('\n## h) Rot-Beweis: onDay() ohne Ausnahmeprüfung liefert bei einer Ausnahme fälschlich true');
+  const rotBeweis = await p.evaluate(() => {
+    // onDay() ohne die "b.ausnahmen"-Zeile nachgebaut — exakt der Stand vor dem Fix.
+    function onDayAlt(b, dayKey, dayIdx) {
+      if (!istSerie(b)) return b.date === dayKey;
+      if (b.day !== dayIdx) return false;
+      if (b.since && dayKey < b.since) return false;
+      if (b.repeat === '2wochen' && b.since) {
+        const a = mondayOf(new Date(b.since + 'T12:00:00'));
+        const z = mondayOf(new Date(dayKey + 'T12:00:00'));
+        if (Math.round((z - a) / 604800000) % 2 !== 0) return false;
+      }
+      return true;
+    }
+    const b = { day: 2, repeat: 'weekly', since: '2026-01-05', ausnahmen: ['2026-01-19'] };
+    return { alt: onDayAlt(b, '2026-01-19', 2), neu: onDay(b, '2026-01-19', 2) };
+  });
+  ok(rotBeweis.alt === true, 'Rot-Beweis: der unveränderte Stand (onDay ohne Ausnahmeprüfung) zeigt den ausgenommenen Termin fälschlich weiter (erwartetes Rot)');
+  ok(rotBeweis.neu === false, 'Grün-Gegenprobe: der aktuelle Stand blendet ihn korrekt aus');
+
   console.log('\n=== Konsolenfehler: ' + (konsolenfehler.length ? konsolenfehler.join(' | ') : 'keine'));
   if (konsolenfehler.length) fehler.push('Konsolenfehler aufgetreten');
 

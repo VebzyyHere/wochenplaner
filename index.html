@@ -2358,6 +2358,16 @@ function migrate(s) {
     if (istSerie(b) && !b.since) b.since = b.date || "1970-01-01";
   });
 
+  // Ausnahmen einzelner Termine einer Serie (Stufe „nur diesen Termin
+  // löschen"): nur ein Array gültiger ISO-Datumsstrings, sonst verworfen —
+  // ein leeres Array bleibt nicht liegen, sonst schleppt jeder Stand das
+  // Feld unnötig mit.
+  s.blocks.forEach(b => {
+    if (!Array.isArray(b.ausnahmen)) { delete b.ausnahmen; return; }
+    const a = b.ausnahmen.filter(x => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x));
+    if (a.length) b.ausnahmen = a; else delete b.ausnahmen;
+  });
+
   // Verwaiste Verweise reparieren. Wird ein Bereich auf einem Gerät gelöscht,
   // zeigen die Blöcke des anderen ins Leere — areaById fällt still auf den
   // ersten Bereich zurück, und „Laufen" zählt plötzlich auf das Arbeitsziel.
@@ -2772,12 +2782,21 @@ function confirmSheet(title, text, confirmLabel, onYes, opts = {}) {
     const cancel = document.createElement("button");
     cancel.className = "btn"; cancel.textContent = "Abbrechen";
     cancel.onclick = close;
+    // opts.extra — ein dritter, harmloser Weg neben Abbrechen/Löschen (bisher
+    // nur „nur diesen Termin überspringen" bei Serien-Löschung); bewusst kein
+    // Gefahrknopf, deshalb ohne die Löschfarbe.
+    let extra = null;
+    if (opts.extra) {
+      extra = document.createElement("button");
+      extra.className = "btn"; extra.textContent = opts.extra.label;
+      extra.onclick = () => { close(); opts.extra.onClick(); };
+    }
     const yes = document.createElement("button");
     yes.className = "btn btn--primary"; yes.textContent = confirmLabel;
     yes.style.background = "var(--danger)"; yes.style.borderColor = "var(--danger)";
     yes.style.color = "var(--on-danger)";
     yes.onclick = () => { close(); onYes(); };
-    foot.append(cancel, yes);
+    if (extra) foot.append(cancel, extra, yes); else foot.append(cancel, yes);
     s.appendChild(foot);
   });
 }
@@ -3458,6 +3477,7 @@ function istSerie(b) { return b.repeat === "weekly" || b.repeat === "2wochen"; }
    gelten nur in jeder zweiten Woche, gezählt ab der Woche von „since". */
 function onDay(b, dayKey, dayIdx) {
   if (!istSerie(b)) return b.date === dayKey;
+  if (b.ausnahmen && b.ausnahmen.includes(dayKey)) return false;
   if (b.day !== dayIdx) return false;
   if (b.since && dayKey < b.since) return false;
   if (b.repeat === "2wochen" && b.since) {
@@ -6617,12 +6637,21 @@ function blockSheet(draft, dayKey) {
         // nur die angezeigte. Das passierte bisher ohne jede Nachfrage.
         if (istSerie(draft)) {
           const rhythmus = draft.repeat === "2wochen" ? "alle 2 Wochen" : "in jeder Woche";
+          const d = hakenTag ? new Date(hakenTag + "T12:00:00") : null;
+          const tagText = d ? DAY_LONG[(d.getDay() + 6) % 7] + ", " + d.getDate() + "." + (d.getMonth() + 1) + "." : "diesen Termin";
+          const nur = () => {
+            if (!draft.ausnahmen) draft.ausnahmen = [];
+            if (!draft.ausnahmen.includes(hakenTag)) draft.ausnahmen.push(hakenTag);
+            const b = state.blocks.find(x => x.id === draft.id);
+            if (b) b.ausnahmen = draft.ausnahmen;
+            save(); close(); renderAll(); toast("Termin am " + tagText + " übersprungen");
+          };
           // push: true — bei „Abbrechen" bleibt der halb ausgefüllte Editor
           // dahinter erhalten statt zu verschwinden.
           confirmSheet(draft.repeat === "2wochen" ? "Zweiwöchentlicher Eintrag" : "Wöchentlicher Eintrag",
-            "„" + (draft.title || "Ohne Titel") + "\" steht " + rhythmus + ". Löschen entfernt " +
-            "ihn aus allen Wochen — auch aus den kommenden.",
-            "Aus allen Wochen löschen", weg, { push: true });
+            "„" + (draft.title || "Ohne Titel") + "\" steht " + rhythmus + ". Nur diesen Termin (" + tagText + ") " +
+            "überspringen, oder ihn aus allen Wochen löschen — auch aus den kommenden?",
+            "Aus allen Wochen löschen", weg, { push: true, extra: hakenTag ? { label: "Nur diesen Termin", onClick: nur } : null });
         } else weg();
       };
       foot.appendChild(del);

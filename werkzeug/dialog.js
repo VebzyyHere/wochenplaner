@@ -161,7 +161,7 @@ async function appIsInert(p) {
   ok((await appIsInert(p)) === true, '.app bleibt inert, während die Rückfrage oben liegt');
 
   const nPush = await focusablesCount(p, '.sheet');
-  ok(nPush === 2, 'genau zwei fokussierbare Elemente in der Rückfrage — Abbrechen/Löschen (' + nPush + ')');
+  ok(nPush === 3, 'genau drei fokussierbare Elemente in der Rückfrage — Abbrechen/Nur diesen Termin/Löschen (' + nPush + ')');
   await focusItem(p, '.sheet', -1);
   await p.keyboard.press('Tab');
   ok(await activeIsItem(p, '.sheet', 0), 'Tab in der Rückfrage wrappt innerhalb der aufgesetzten Ebene');
