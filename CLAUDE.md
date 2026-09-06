@@ -11,6 +11,44 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.27 vom 2026-09-06
+
+Änderungen und Prüfungsumfang stehen in `release/v1.27.md`. Der ausführliche
+lokale Produktreview liegt zusätzlich in `release/PROJEKTBERICHT.md` (gitignored).
+Der Nutzer hat grüne Akzente ausdrücklich beauftragt; ältere Hinweise auf rein
+achromatischen Chrome sind damit überholt. Waldgrün steht für Aktionen, dezente
+Salbeiflächen für Auswahl. Bereichsfarben behalten ihre inhaltliche Bedeutung.
+
+- Migration endet jetzt bei **version 10**. `task.schritt` ist optionaler Text
+  bis 240 Zeichen, wertbasiert abgesichert; es gibt kein neues Wurzelfeld.
+- `aufgabeAbhaken()` schreibt Aufgabe und zugehörigen Termin gemeinsam. Ein
+  ausdrücklich abgehakter Vorschlag wird dabei als durchgeführt bestätigt.
+- `planTask()` öffnet bei vorhandener Verknüpfung den bestehenden Termin in
+  seiner tatsächlichen Woche. Dasselbe gilt für einen erneuten Drop. Alte
+  doppelte Termine bleiben erhalten; `migrate()` entfernt nur nichtkanonische
+  Aufgabenverweise (maßgeblich ist `task.geplant`).
+- Aufgaben unterscheiden „Ohne Platz“, „Vorgeschlagen“, „Eingeplant“, „Andere
+  Wochen“ und „Erledigt“. Nur bestätigte Termine in der gezeigten Woche zählen
+  im Fuß. Datumsangaben nennen Tag und Monat, grobe Termine ihren Abschnitt.
+- `#panelNav` scrollt am Desktop direkt zum jeweiligen Abschnitt; der Kalender
+  bleibt daneben. `setView()` bringt dort jetzt auch programmgesteuert Aufgaben
+  und Ziele ins Bild. Mobile Ansichten und Navigation bleiben erhalten.
+- `fussbereichMessen()` setzt die beiden bestehenden CSS-Fußvariablen aus
+  tatsächlichen Höhen (`ResizeObserver`). Die festen CSS-Werte bleiben Fallback.
+  Den sichtbaren Dialogbereich liefert `visualViewport` bei unvergrößerter Seite.
+- `werkzeug/release.js` prüft diese Abläufe einschließlich Datenerhalt,
+  Titelsynchronisierung, Migration, Tastaturweg und großer Schrift. Die vollständige
+  Kette hat damit 56 Skripte. Ein übersprungener Server-Test lässt `alles.js`
+  ebenfalls fehlschlagen, statt eine unvollständige Kette als grün auszugeben.
+- Lokale Vorschau: `node release/preview.cjs`, Port 8902, nur `127.0.0.1`.
+  `/` liefert die echte App, `/beispiel` eine flüchtige Beispielwoche mit fixierter
+  Uhr, isoliertem Speicherdummy, deaktiviertem Cloudabgleich und ohne SW-Registrierung.
+  Die Vorschau wird durch `release/vorschau-pruefen.cjs` geprüft.
+
+Die Worker-Version für diesen Release lautet `wp-v1.27`.
+Die darunterstehenden Zeilennummern beschreiben teilweise den vorherigen Stand;
+für aktuelle Stellen die Abschnittsbanner oder Funktionsnamen suchen.
+
 `index.html` **ist** das Produkt — 9915 Zeilen, ~478 KB, Vanilla JS, kein Build, kein npm,
 kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
 Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
@@ -151,7 +189,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.26` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.27` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
@@ -164,7 +202,7 @@ nicht im Repo — nicht danach suchen.
 
 **Zustand.** Ein einziges `state`-Objekt. `freshState()` (2227) legt es bei `version: 8` an,
 `migrate()` (2258) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
-`version: 9`. Felder: `areas` (seit v9 zusätzlich optional `area.regeln`, s. Verteiler), `blocks`,
+`version: 10`. Felder: `areas` (seit v9 zusätzlich optional `area.regeln`, s. Verteiler), `blocks`,
 `tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. Die Erholungs-Startbereiche
 a4–a6 (Hobby, Freizeit & Pausen, Menschen) bekommen in `freshState()` `plan.grob = true` —
 `defaultPlan()` selbst bleibt bei `false`, damit selbst angelegte Bereiche exakt starten
