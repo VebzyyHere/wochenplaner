@@ -70,6 +70,9 @@ const PAARE = [
   ['--text-faint', '--surface',   'normal'],
   ['--text-faint', '--surface-2', 'normal'],
   ['--on-ink',     '--ink',       'normal'],
+  ['--selected-text', '--selected', 'normal'],
+  ['--selected-text', '--bg', 'normal'],
+  ['--selected-text', '--surface-3', 'normal'],
   ['--on-danger',  '--danger',    'normal'],
 ];
 const SCHWELLE = { normal: 4.5, gross: 3.0 };

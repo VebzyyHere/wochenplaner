@@ -281,7 +281,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   };
   const zk = await fall('8) Zukunftsversion (version 99), ERSETZEN', 'zukunft.json', JSON.stringify(zukunftDatei), 'ersetzen');
   const zkVersion = await p.evaluate(() => state.version);
-  ok(zkVersion === 9, '8) migrate() zieht eine Zukunftsversion trotzdem auf version 9 (' + zkVersion + '), kein Absturz');
+  ok(zkVersion === 10, '8) migrate() zieht eine Zukunftsversion trotzdem auf version 10 (' + zkVersion + '), kein Absturz');
 
   // ==============================================================
   // 9) Auftrag B — der Bestaetigungsdialog muss bei "0 Eintraege,

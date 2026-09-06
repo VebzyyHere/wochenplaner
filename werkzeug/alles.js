@@ -169,5 +169,5 @@ process.on('exit', alleServerBeenden);
   const uebersprungen = ergebnisse.filter(e => e.status === 'uebersprungen');
   console.log('\n' + ergebnisse.length + ' Skripte, ' + rot.length + ' rot'
     + (uebersprungen.length ? ', ' + uebersprungen.length + ' übersprungen' : ''));
-  process.exit(rot.length ? 1 : 0);
+  process.exit(rot.length || uebersprungen.length ? 1 : 0);
 })();

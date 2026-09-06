@@ -11,11 +11,12 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-  const ctx = await br.newContext({ ...devices['iPhone SE'] });
+  const ctx = await br.newContext({ ...devices['iPhone SE'], timezoneId: 'Europe/Berlin' });
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
   p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+  await p.clock.setFixedTime(new Date('2026-09-07T08:00:00+02:00'));
   await p.goto('file://' + path.resolve(__dirname, '..', 'index.html')); await p.waitForTimeout(450);
   await p.evaluate(() => closeModal());
 
