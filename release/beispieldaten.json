@@ -1,0 +1,443 @@
+{
+  "version": 10,
+  "profile": {
+    "id": "ncux1rph",
+    "name": "Alex"
+  },
+  "settings": {
+    "dayStart": 7,
+    "dayEnd": 22,
+    "theme": "light",
+    "sleep": {
+      "on": true,
+      "from": 1380,
+      "to": 420,
+      "wind": 30
+    }
+  },
+  "settingsAt": 1788941700000,
+  "areas": [
+    {
+      "id": "a1",
+      "name": "Arbeit",
+      "hue": 248,
+      "plan": {
+        "goal": 0,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "kopf",
+        "ortId": null,
+        "grob": false,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 0
+    },
+    {
+      "id": "a2",
+      "name": "Uni & Lernen",
+      "hue": 295,
+      "plan": {
+        "goal": 5,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "kopf",
+        "ortId": null,
+        "grob": false,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 1788941700000
+    },
+    {
+      "id": "a3",
+      "name": "Sport",
+      "hue": 152,
+      "plan": {
+        "goal": 3,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "koerper",
+        "ortId": null,
+        "grob": false,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 1788941700000
+    },
+    {
+      "id": "a4",
+      "name": "Hobby",
+      "hue": 88,
+      "plan": {
+        "goal": 2,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "erholung",
+        "ortId": null,
+        "grob": true,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 1788941700000
+    },
+    {
+      "id": "a5",
+      "name": "Freizeit & Pausen",
+      "hue": 196,
+      "plan": {
+        "goal": 0,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "erholung",
+        "ortId": null,
+        "grob": true,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 0
+    },
+    {
+      "id": "a6",
+      "name": "Menschen",
+      "hue": 22,
+      "plan": {
+        "goal": 3,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "erholung",
+        "ortId": null,
+        "grob": true,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 1788941700000
+    },
+    {
+      "id": "a7",
+      "name": "Alltag",
+      "hue": 330,
+      "plan": {
+        "goal": 0,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "from": null,
+        "to": null,
+        "min": 45,
+        "max": 120,
+        "must": true,
+        "pad": 0,
+        "art": "orga",
+        "ortId": null,
+        "grob": false,
+        "keinVorschlag": false
+      },
+      "regeln": null,
+      "at": 0
+    }
+  ],
+  "orte": [],
+  "wege": {},
+  "blocks": [
+    {
+      "id": "mo1",
+      "title": "Arbeit",
+      "areaId": "a1",
+      "day": 0,
+      "date": "2026-09-07",
+      "start": 540,
+      "end": 720,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "mo2",
+      "title": "Projektzeit",
+      "areaId": "a1",
+      "day": 0,
+      "date": "2026-09-07",
+      "start": 780,
+      "end": 960,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "di1",
+      "title": "Arbeit",
+      "areaId": "a1",
+      "day": 1,
+      "date": "2026-09-08",
+      "start": 540,
+      "end": 720,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "di2",
+      "title": "Lernzeit",
+      "areaId": "a2",
+      "day": 1,
+      "date": "2026-09-08",
+      "start": 840,
+      "end": 930,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "mi1",
+      "title": "Projektbesprechung",
+      "areaId": "a1",
+      "day": 2,
+      "date": "2026-09-09",
+      "start": 600,
+      "end": 660,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "mi2",
+      "title": "Kapitel 3 fertig schreiben",
+      "areaId": "a2",
+      "day": 2,
+      "date": "2026-09-09",
+      "start": 840,
+      "end": 930,
+      "repeat": "none",
+      "taskId": "t1",
+      "at": 1788941700000
+    },
+    {
+      "id": "mi3",
+      "title": "Eine Runde laufen",
+      "areaId": "a3",
+      "day": 2,
+      "date": "2026-09-09",
+      "start": 1050,
+      "end": 1095,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "do1",
+      "title": "Arbeit",
+      "areaId": "a1",
+      "day": 3,
+      "date": "2026-09-10",
+      "start": 540,
+      "end": 720,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "do2",
+      "title": "Rezept abholen",
+      "areaId": "a7",
+      "day": 3,
+      "date": "2026-09-10",
+      "start": 780,
+      "end": 795,
+      "repeat": "none",
+      "taskId": "t4",
+      "sug": true,
+      "grund": "Donnerstag ist vor dem nächsten Termin noch Platz.",
+      "at": 1788941700000
+    },
+    {
+      "id": "fr1",
+      "title": "Arbeit",
+      "areaId": "a1",
+      "day": 4,
+      "date": "2026-09-11",
+      "start": 540,
+      "end": 720,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "sa1",
+      "title": "Frühstück mit Freunden",
+      "areaId": "a6",
+      "day": 5,
+      "date": "2026-09-12",
+      "start": 600,
+      "end": 720,
+      "repeat": "none",
+      "at": 1788941700000
+    },
+    {
+      "id": "hobby",
+      "title": "Zeit für Musik",
+      "areaId": "a4",
+      "day": 1,
+      "date": "2026-09-08",
+      "start": 1080,
+      "end": 1200,
+      "repeat": "none",
+      "grob": true,
+      "teil": "ab",
+      "dauer": 120,
+      "at": 1788941700000
+    },
+    {
+      "id": "urlaub",
+      "title": "Unterlagen für den Urlaub prüfen",
+      "areaId": "a7",
+      "day": 1,
+      "date": "2026-09-15",
+      "start": 900,
+      "end": 945,
+      "repeat": "none",
+      "taskId": "t3",
+      "at": 1788941700000
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Kapitel 3 fertig schreiben",
+      "areaId": "a2",
+      "done": false,
+      "frog": true,
+      "dauer": 90,
+      "geplant": "mi2",
+      "schritt": "Gliederung öffnen und den ersten Absatz skizzieren.",
+      "at": 1788941700000
+    },
+    {
+      "id": "t2",
+      "title": "Für die Woche einkaufen",
+      "areaId": "a7",
+      "done": false,
+      "frog": false,
+      "dauer": 30,
+      "at": 1788941700000
+    },
+    {
+      "id": "t3",
+      "title": "Unterlagen für den Urlaub prüfen",
+      "areaId": "a7",
+      "done": false,
+      "frog": false,
+      "dauer": 45,
+      "geplant": "urlaub",
+      "at": 1788941700000
+    },
+    {
+      "id": "t4",
+      "title": "Rezept abholen",
+      "areaId": "a7",
+      "done": false,
+      "frog": false,
+      "dauer": 15,
+      "geplant": "do2",
+      "at": 1788941700000
+    },
+    {
+      "id": "t5",
+      "title": "Pflanzen gießen",
+      "areaId": "a7",
+      "done": true,
+      "frog": false,
+      "at": 1788941700000
+    }
+  ],
+  "days": {
+    "2026-09-13": {
+      "energy": null,
+      "frei": true,
+      "at": 1788941700000
+    }
+  },
+  "tombs": {},
+  "erledigt": {},
+  "rituale": {
+    "2026-09-07": 1788941700000
+  },
+  "backupAt": 0,
+  "nagAt": 0
+}

@@ -32,29 +32,33 @@
 <style>
 /* ============================================================
    Design Tokens
-   Chrome bleibt achromatisch — die Farbe gehört den Bereichen.
-   In einem Planer IST die Farbe die Information.
+   Waldgrün markiert Aktionen und Auswahl, die Bereichsfarben den Inhalt.
+   Helle Salbeiflächen geben Orientierung, ohne mit dem Wochenraster zu konkurrieren.
    ============================================================ */
 :root {
   color-scheme: light dark;
   -webkit-text-size-adjust: 100%;   /* iOS blaeht Text im Querformat sonst auf */
 
-  --h-ink: 265;
+  --h-ink: 155;
 
-  --bg:         oklch(0.985 0.003 var(--h-ink));
+  --bg:         oklch(0.977 0.007 var(--h-ink));
   --surface:    oklch(1 0 0);
-  --surface-2:  oklch(0.965 0.004 var(--h-ink));
+  --surface-2:  oklch(0.965 0.008 var(--h-ink));
   --surface-3:  oklch(0.935 0.006 var(--h-ink));
   --border:     oklch(0.90 0.006 var(--h-ink));
   --border-strong: oklch(0.82 0.008 var(--h-ink));
   --text:       oklch(0.24 0.015 var(--h-ink));
   --text-muted: oklch(0.44 0.012 var(--h-ink));
-  --text-faint: oklch(0.53 0.010 var(--h-ink));
+  --text-faint: oklch(0.50 0.010 var(--h-ink));
 
-  --ink:        oklch(0.30 0.030 var(--h-ink));
-  --ink-hover:  oklch(0.24 0.030 var(--h-ink));
-  --ink-active: oklch(0.19 0.030 var(--h-ink));
-  --focus:      oklch(0.58 0.170 var(--h-ink));
+  --ink:        oklch(0.40 0.085 var(--h-ink));
+  --ink-hover:  oklch(0.34 0.075 var(--h-ink));
+  --ink-active: oklch(0.29 0.065 var(--h-ink));
+  --focus:      oklch(0.48 0.120 var(--h-ink));
+  --selected:   oklch(0.935 0.027 var(--h-ink));
+  --selected-text: oklch(0.35 0.070 var(--h-ink));
+  --sicht-hoehe: 100dvh;
+  --sicht-oben: 0px;
 
   --danger:  oklch(0.55 0.190 25);
   --success: oklch(0.55 0.140 150);
@@ -66,8 +70,8 @@
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px;
   --s-6:24px; --s-8:32px; --s-12:48px;
 
-  --radius: 10px;
-  --radius-sm: 7px;
+  --radius: 14px;
+  --radius-sm: 8px;
   --radius-lg: 16px;
   --shadow-1: 0 1px 2px oklch(0.2 0.02 var(--h-ink) / 0.08);
   --shadow-2: 0 6px 20px oklch(0.2 0.02 var(--h-ink) / 0.14), 0 1px 3px oklch(0.2 0.02 var(--h-ink) / 0.08);
@@ -102,10 +106,12 @@ html[data-theme="dark"] {
   --text-muted: oklch(0.80 0.012 var(--h-ink));
   --text-faint: oklch(0.68 0.012 var(--h-ink));
 
-  --ink:        oklch(0.90 0.010 var(--h-ink));
-  --ink-hover:  oklch(0.96 0.010 var(--h-ink));
-  --ink-active: oklch(0.82 0.010 var(--h-ink));
-  --focus:      oklch(0.72 0.150 var(--h-ink));
+  --ink:        oklch(0.82 0.095 var(--h-ink));
+  --ink-hover:  oklch(0.89 0.075 var(--h-ink));
+  --ink-active: oklch(0.76 0.095 var(--h-ink));
+  --focus:      oklch(0.78 0.120 var(--h-ink));
+  --selected:   oklch(0.30 0.035 var(--h-ink));
+  --selected-text: oklch(0.89 0.060 var(--h-ink));
 
   --danger:  oklch(0.68 0.180 25);
   --success: oklch(0.72 0.140 150);
@@ -268,7 +274,10 @@ button { cursor: pointer; }
   background: var(--surface);
   flex: none;
 }
-.brand { display: flex; align-items: baseline; gap: var(--s-2); margin-right: auto; min-width: 0; }
+.brand { display: flex; align-items: center; gap: var(--s-3); margin-right: auto; min-width: 0; }
+.brand__mark { width: 34px; height: 34px; flex: none; color: var(--ink); }
+.brand__copy { display: flex; flex-direction: column; min-width: 0; }
+.brand__tagline { font-size: var(--t-xs); color: var(--text-faint); }
 .brand__name { font-size: var(--t-h2); font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
 .brand__who {
   font-size: var(--t-sm); color: var(--text-muted); white-space: nowrap;
@@ -469,23 +478,43 @@ button { cursor: pointer; }
 
 .main { display: flex; flex: 1; min-height: 0; }
 
+/* Direkte Wege durch die lange Desktop-Seitenleiste. Die Abschnitte
+   bleiben nebeneinander mit dem Raster nutzbar und vollständig scrollbar. */
+.panelnav { display: flex; gap: var(--s-1); position: sticky; top: calc(var(--s-4) * -1); z-index: 25;
+  margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) 0; padding: var(--s-3) var(--s-4);
+  background: var(--bg); border-bottom: 1px solid var(--border); }
+.panelnav button { flex: 1; min-height: 40px; border: none; border-radius: var(--radius-sm);
+  padding: var(--s-2); background: transparent; color: var(--text-muted); font-weight: 600; font-size: var(--t-sm); }
+.panelnav button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
+.planhead { display: flex; flex: none; align-items: center; justify-content: space-between;
+  gap: var(--s-4); padding: var(--s-4) var(--s-6); border-bottom: 1px solid var(--border); background: var(--surface); }
+.planhead h1 { font-size: var(--t-h1); margin: 0 0 2px; letter-spacing: -.02em; }
+.planhead__hint { margin: 0; color: var(--text-muted); font-size: var(--t-sm); }
+.planhead__actions { display: flex; align-items: center; gap: var(--s-2); flex: none; }
+@media (min-width: 1101px) {
+  .main > .panel { width: 352px; }
+  .planwrap { margin: var(--s-4) var(--s-4) var(--s-4) 0; border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; }
+}
+
 .panel {
   width: 320px; flex: none;
   border-right: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
   overflow-y: auto;
   padding: var(--s-4);
   display: flex; flex-direction: column; gap: var(--s-5);
 }
 .card {
   border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface-2); padding: var(--s-4);
+  background: var(--surface); padding: var(--s-4);
+  scroll-margin-top: 76px;
 }
 .card__head {
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s-2); margin-bottom: var(--s-3);
 }
-.card__title { font-size: var(--t-sm); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--text-muted); }
+.card__title { font-size: var(--t-h2); font-weight: 650; letter-spacing: -.01em; color: var(--text); margin: 0; }
 
 /* ============================================================ Tagesform (Signature) */
 .energy { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
@@ -497,7 +526,7 @@ button { cursor: pointer; }
   transition: background .15s, border-color .15s, transform .1s;
 }
 .energy__opt:active { transform: scale(0.97); }
-.energy__opt[aria-pressed="true"] { border-color: var(--ink); background: var(--surface-3); }
+.energy__opt[aria-pressed="true"] { border-color: var(--ink); background: var(--selected); color: var(--selected-text); }
 .energy__bars { display: flex; align-items: flex-end; gap: 3px; height: 20px; }
 .energy__bars i { width: 5px; border-radius: 2px; background: var(--border-strong); display: block; }
 .energy__bars i:nth-child(1) { height: 8px; }
@@ -534,6 +563,11 @@ button { cursor: pointer; }
   font-size: var(--t-body); font-weight: 600; color: var(--text); text-align: left;
   cursor: pointer;
 }
+.agenda__frog { color: var(--selected-text); }
+.task__step, .agenda__step { margin-top: 6px; font-size: var(--t-sm); color: var(--text-muted);
+  line-height: 1.45; overflow-wrap: anywhere; }
+.agenda__step { margin-bottom: 4px; }
+.task__step b, .agenda__step b { font-weight: 600; color: var(--text); }
 .agenda__hero {
   margin-top: 10px; padding: 8px 0 10px 10px;
   border-left: 3px solid var(--area-line); border-bottom: 1px solid var(--border);
@@ -901,7 +935,7 @@ html[data-theme="dark"] .agenda__loading {
   width: 4px; height: 9px; border: solid var(--on-ink);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
-.task__body { flex: 1; min-width: 0; cursor: pointer; }
+.task__body { flex: 1; min-width: 0; min-height: 44px; cursor: pointer; }
 .task__title { font-size: var(--t-body); word-break: break-word; line-height: 1.35; }
 .task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
 .task__star {
@@ -909,7 +943,7 @@ html[data-theme="dark"] .agenda__loading {
   background: var(--text); margin-right: 5px; vertical-align: middle;
 }
 .task__meta {
-  display: flex; align-items: center; gap: 5px; margin-top: 2px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 4px;
   font-size: var(--t-xs); color: var(--text-muted);
 }
 .task__dur {
@@ -928,12 +962,13 @@ html[data-theme="dark"] .agenda__loading {
    Primäraktion steht, statt nur für Zustand (Häkchen). */
 .task__go {
   flex: none; align-self: center; border: 0; border-radius: 8px;
-  background: var(--ink); color: var(--on-ink);
-  min-width: 32px; min-height: 32px; padding: 4px 8px;
-  font-size: var(--t-body); line-height: 1;
+  background: var(--selected); color: var(--selected-text);
+  min-width: 44px; min-height: 44px; padding: 4px 8px;
+  font-size: var(--t-sm); font-weight: 600; line-height: 1;
   transition: background .15s;
 }
-.task__go:hover { background: var(--ink-hover); }
+.task__go:hover { background: var(--surface-3); }
+.task__body:focus-visible { outline-offset: 4px; }
 .taskadd { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
 .taskadd .field { min-height: 38px; }
 
@@ -1275,7 +1310,7 @@ html[data-theme="dark"] .rest {
 
 /* ============================================================ Sheet / Modal */
 .scrim {
-  position: fixed; inset: 0; z-index: 60;
+  position: fixed; inset: 0; top: var(--sicht-oben); bottom: auto; height: var(--sicht-hoehe); z-index: 60;
   background: oklch(0.2 0.02 var(--h-ink) / 0.45);
   backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
@@ -1284,7 +1319,7 @@ html[data-theme="dark"] .rest {
 }
 @keyframes fade { from { opacity: 0 } }
 .sheet {
-  width: 100%; max-width: 460px; max-height: 88dvh; overflow-y: auto;
+  width: 100%; max-width: 460px; max-height: min(88dvh, calc(var(--sicht-hoehe) - 16px)); overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-3);
   padding: var(--s-5);
@@ -1427,6 +1462,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
   }
   .tabbar button[aria-current="true"] { color: var(--text); }
+  .tabbar button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
   .tabbar button:active { background: var(--surface-2); }
 
   /* Schwebender Knopf — „ins Raster tippen" ist am Handy nicht selbsterklärend */
@@ -1501,6 +1537,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      ein leeres `.planwrap` liess vorher das Band stehen und schnitt die
      Karten mitten im Text ab. */
   .main { flex-direction: column; }
+  .panelnav, .planhead { display: none; }
   .panel {
     width: 100%; flex: 1; min-height: 0;
     border-right: 0; max-height: none;
@@ -1729,6 +1766,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .btn--icon { min-width: 44px; min-height: 44px; }
   .chip { min-height: 44px; padding: 0 var(--s-3); }
   .field { min-height: 46px; }
+  input.field, select.field, textarea.field { font-size: max(1rem, 16px); }
   .arearow .field { min-height: 44px; }
   .arearow__swatch { width: 40px; height: 40px; position: relative; }
   .arearow__swatch::before { content: ""; position: absolute; inset: -2px; }
@@ -1807,7 +1845,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
   <header class="topbar">
     <div class="brand">
-      <span class="brand__name">Wochenplaner</span>
+      <svg class="brand__mark" viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M10 24V16m8 8V10m8 14v-9" fill="none" stroke="var(--on-ink)" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="brand__copy"><span class="brand__name">Wochenplaner</span><span class="brand__tagline">Platz für das, was zählt.</span></div>
       <span class="brand__who" id="whoLabel"></span>
     </div>
 
@@ -1827,9 +1866,15 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
   <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
 
-  <div class="main" id="main" tabindex="-1">
+  <div class="main" id="main" role="main" aria-label="Wochenplaner" tabindex="-1">
 
     <aside class="panel">
+
+      <nav class="panelnav" id="panelNav" aria-label="Bereich der Seitenleiste wählen">
+        <button type="button" data-panel="heute" aria-current="true">Heute</button>
+        <button type="button" data-panel="ziele" aria-current="false">Ziele</button>
+        <button type="button" data-panel="aufgaben" aria-current="false">Aufgaben</button>
+      </nav>
 
       <!-- Tagesform -->
       <section class="card" data-card="heute">
@@ -1864,7 +1909,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       <section class="card" data-card="ziele">
         <div class="card__head">
           <h2 class="card__title">Wochenziele</h2>
-          <button class="btn btn--sm btn--ghost" id="goalsEdit">Ziele</button>
+          <button class="btn btn--sm btn--ghost" id="goalsEdit">Bearbeiten</button>
         </div>
         <div class="goals" id="goalsList"></div>
         <div class="goals__foot" id="goalsFoot"></div>
@@ -1886,6 +1931,13 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     </aside>
 
     <div class="planwrap">
+      <div class="planhead">
+        <div><h1>Deine Woche</h1><p class="planhead__hint">Feste Zeiten. Klare Prioritäten. Luft dazwischen.</p></div>
+        <div class="planhead__actions">
+          <button type="button" class="btn" id="weekOverviewBtn">Freie Zeit</button>
+          <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
+        </div>
+      </div>
       <div class="gridwrap" id="gridWrap">
         <div class="grid" id="grid"></div>
       </div>
@@ -2264,6 +2316,12 @@ function migrate(s) {
   if (!Array.isArray(s.areas) || !s.areas.length) s.areas = DEFAULT_AREAS.map(a => ({ ...a, plan: defaultPlan() }));
   if (!Array.isArray(s.blocks)) s.blocks = [];
   if (!Array.isArray(s.tasks)) s.tasks = [];
+  // Optionaler Startschritt: ältere Sicherungen brauchen keine Umstellung.
+  // Wertbasiert und idempotent, auch beim Import und beim Abgleich.
+  s.tasks.forEach(t => {
+    if (typeof t.schritt === "string" && t.schritt.trim()) t.schritt = t.schritt.trim().slice(0, 240);
+    else delete t.schritt;
+  });
   if (!s.days) s.days = {};
   // v2: Wochenziele + bevorzugte Zeitfenster pro Bereich
   s.areas.forEach(a => {
@@ -2424,6 +2482,13 @@ function migrate(s) {
     const taskIds = new Set(s.tasks.map(t => t.id));
     s.tasks.forEach(t => { if (t.geplant && !blockIds.has(t.geplant)) delete t.geplant; });
     s.blocks.forEach(b => { if (b.taskId && !taskIds.has(b.taskId)) delete b.taskId; });
+    // Frühere doppelte Einplanungen bleiben als Termine erhalten. Nur der
+    // von task.geplant benannte Termin behält die gemeinsame Erledigt-Markierung.
+    const tasksById = new Map(s.tasks.map(t => [t.id, t]));
+    s.blocks.forEach(b => {
+      const t = tasksById.get(b.taskId);
+      if (t && t.geplant && t.geplant !== b.id) delete b.taskId;
+    });
   }
 
   // v9: Regeln, die am Vorhaben hängen statt am Bereich — Fenster (erlaubte
@@ -2459,7 +2524,8 @@ function migrate(s) {
     a.regeln = (fenster.length || anker) ? { fenster, anker } : null;
   });
 
-  s.version = 9;
+  // v10: optionaler erster Schritt an Aufgaben (oben wertbasiert abgesichert).
+  s.version = 10;
 }
 
 let anchor = new Date();          // irgendein Tag der angezeigten Woche
@@ -2594,7 +2660,7 @@ function applyTheme() {
   // Vom Homescreen gestartet ist das die Farbe der Statusleiste. Ohne das
   // sitzt eine weisse Leiste ueber einer dunklen App.
   const mc = document.getElementById("themeColor");
-  if (mc) mc.setAttribute("content", dunkel ? "#15131c" : "#ffffff");
+  if (mc) mc.setAttribute("content", dunkel ? "#101b15" : "#ffffff");
 }
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (state.settings.theme === "auto") applyTheme();
@@ -2730,6 +2796,20 @@ function closeModal() {
     if (modalOpener && modalOpener.isConnected) modalOpener.focus();
     modalOpener = null;
   }
+}
+// iOS kann beim Öffnen der Bildschirmtastatur den Layout-Viewport behalten.
+// Dialog und klebender Fuß folgen deshalb dem sichtbaren Bereich. Pinch-Zoom
+// wird ausgenommen, damit Vergrößern nicht gegen eine neue Dialoggröße arbeitet.
+if (window.visualViewport) {
+  const sichtbarerBereich = () => {
+    const v = window.visualViewport;
+    if (Math.abs(v.scale - 1) > .02) return;
+    document.documentElement.style.setProperty("--sicht-hoehe", v.height + "px");
+    document.documentElement.style.setProperty("--sicht-oben", v.offsetTop + "px");
+  };
+  window.visualViewport.addEventListener("resize", sichtbarerBereich);
+  window.visualViewport.addEventListener("scroll", sichtbarerBereich);
+  sichtbarerBereich();
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
@@ -4879,6 +4959,21 @@ function renderSugBar() {
   bar.append(text, ok, close);
 }
 
+// Die CSS-Werte sind der Startwert ohne JavaScript-Messung. Tatsächliche
+// Höhen variieren mit Schrift, Safe Area und Zeilenumbrüchen. Ein ResizeObserver
+// hält alle schwebenden Elemente und das Scrollpolster an derselben Kante.
+function fussbereichMessen() {
+  if (!isMobile) {
+    document.body.style.removeProperty("--fussleiste");
+    document.body.style.removeProperty("--fuss-oben");
+    return;
+  }
+  const hoehe = id => document.getElementById(id).getBoundingClientRect().height;
+  const unten = hoehe("tabbar") + hoehe("daySwitch");
+  document.body.style.setProperty("--fussleiste", unten + "px");
+  document.body.style.setProperty("--fuss-oben", (unten + hoehe("sugBar")) + "px");
+}
+
 /* ============================================================ Ziele-Anzeige */
 /* Ist die angezeigte Woche die laufende? */
 function istDieseWoche() {
@@ -5122,7 +5217,7 @@ function renderGoals() {
 
 function goalHint(done, sug, open, goal) {
   if (sug > 0) return "<b>" + fmtDur(sug) + "</b> vorgeschlagen" + (open >= 15 ? " · " + fmtDur(open) + " bleiben offen" : "");
-  if (done >= goal) return "Geschafft.";
+  if (done >= goal) return "Ziel eingeplant.";
   return "<b>" + fmtDur(goal - done) + "</b> noch offen";
 }
 
@@ -5692,7 +5787,7 @@ function renderGrid() {
       "<div class='dayhead__num'>" + d.getDate() + "</div>" +
       (frei ? "<span class='dayhead__frei'>frei</span>" : "") +
       "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
-    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); if (einTag) renderGrid(); };
+    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); renderAgenda(); if (einTag) renderGrid(); };
     grid.appendChild(h);
   });
   }
@@ -6132,6 +6227,7 @@ function attachColumnHandlers(col, hourH) {
     e.preventDefault();
     const t = state.tasks.find(x => x.id === dragTaskId);
     if (!t) return;
+    if (aufgabenBlock(t)) { planTask(t); return; }
     // Startzeit klemmen, nicht die Endzeit — sonst entsteht beim Fallenlassen
     // ganz unten ein Block „22:00–22:00" ohne Dauer.
     const laenge = t.dauer || 60;
@@ -6735,6 +6831,8 @@ function blockSheet(draft, dayKey) {
         // Block beim nächsten Durchlauf nicht mehr an.
         b.fix = true;
         if (doneBox) setzeErledigt(b, hakenTag, doneBox.checked);
+        const tk = state.tasks.find(t => t.id === b.taskId && t.geplant === b.id);
+        if (tk) { tk.title = b.title; tk.areaId = b.areaId; }
       }
       save(); close(); renderAll();
     };
@@ -6753,6 +6851,24 @@ let dragTaskId = null;
    irgendwem mitteilen müsste. */
 let aufgabenErledigtOffen = false;
 
+function aufgabenBlock(t) { return t.geplant ? state.blocks.find(b => b.id === t.geplant) : null; }
+function blockInPlanwoche(b) { return !!b && weekDays().some(d => onDay(b, d.key, d.i)); }
+function aufgabenTermin(b) {
+  const tag = weekDays().find(d => onDay(b, d.key, d.i));
+  return tag ? tag.key : b.date;
+}
+function aufgabeAbhaken(t, on) {
+  const b = aufgabenBlock(t);
+  t.done = !!on;
+  if (b) {
+    // Wer die Aufgabe als erledigt bestätigt, bestätigt auch ihre Durchführung.
+    // Ein zugehöriger Vorschlag wird dabei zum tatsächlichen Eintrag.
+    if (on && b.sug) { delete b.sug; b.fix = true; }
+    setzeErledigt(b, aufgabenTermin(b), on);
+  }
+  save(); renderAll();
+}
+
 /* ============================================================
    Stufe 14: der Aufgaben-Bildschirm beantwortet eine Frage — "was hat noch
    keinen Platz?" — statt eine flache Liste zu sein. Drei Abschnitte, in
@@ -6767,7 +6883,7 @@ function renderTasks() {
   foot.hidden = true; foot.innerHTML = "";
 
   if (!state.tasks.length) {
-    list.innerHTML = "<div class='empty'><b>Noch nichts notiert</b>Schreib oben rein, was ansteht. Aufgaben kannst du später einfach in den Wochenplan ziehen.</div>";
+    list.innerHTML = "<div class='empty'><b>Was möchtest du angehen?</b>Notiere die nächste konkrete Handlung. Über „Planen“ bekommt sie einen Platz im Wochenplan.</div>";
     return;
   }
 
@@ -6776,18 +6892,21 @@ function renderTasks() {
 
   // Punkt C: mit Dauer vor ohne Dauer (die kann der Planer einplanen),
   // alphabetisch nur als letzter Schlüssel — Scannbarkeit vor Anlegereihenfolge.
-  const ohnePlatz = open.filter(t => !t.geplant).sort((a, b) =>
+  const ohnePlatz = open.filter(t => !aufgabenBlock(t)).sort((a, b) =>
     (a.dauer ? 0 : 1) - (b.dauer ? 0 : 1) || a.title.localeCompare(b.title, "de"));
 
   // Chronologisch nach Tag+Uhrzeit des Blocks, alphabetisch nur als letzter
   // Schlüssel.
-  const eingeplant = open.filter(t => t.geplant).sort((a, b) => {
+  const sortiert = open.filter(t => aufgabenBlock(t)).sort((a, b) => {
     const ba = state.blocks.find(x => x.id === a.geplant);
     const bb = state.blocks.find(x => x.id === b.geplant);
-    return (ba ? ba.day : 99) - (bb ? bb.day : 99)
+    return aufgabenTermin(ba).localeCompare(aufgabenTermin(bb))
       || (ba ? ba.start : 0) - (bb ? bb.start : 0)
       || a.title.localeCompare(b.title, "de");
   });
+  const eingeplant = sortiert.filter(t => blockInPlanwoche(aufgabenBlock(t)) && !aufgabenBlock(t).sug);
+  const vorgeschlagen = sortiert.filter(t => blockInPlanwoche(aufgabenBlock(t)) && aufgabenBlock(t).sug);
+  const andereWochen = sortiert.filter(t => !blockInPlanwoche(aufgabenBlock(t)));
 
   // Punkt B: der Tagesschwerpunkt steht ganz oben, dieselbe Sprache wie die
   // Agenda ("Heute zählt", ~5702) — dort für den Tag, hier für die Woche.
@@ -6821,7 +6940,9 @@ function renderTasks() {
     tasks.forEach(t => list.appendChild(taskEl(t)));
   };
   abschnitt("Ohne Platz", ohnePlatz);
+  abschnitt("Vorgeschlagen", vorgeschlagen);
   abschnitt("Eingeplant", eingeplant);
+  abschnitt("Andere Wochen", andereWochen);
 
   if (done.length) {
     const kopf = document.createElement("button");
@@ -6839,8 +6960,10 @@ function renderTasks() {
       weg.style.marginTop = "6px";
       weg.onclick = () => {
         const n = done.length;
+        const ids = new Set(done.map(t => t.id));
+        state.blocks.forEach(b => { if (ids.has(b.taskId)) delete b.taskId; });
         state.tasks = state.tasks.filter(x => !x.done);
-        save(); renderTasks(); toastUndo(n + " erledigt & weggeräumt");
+        save(); renderAll(); toastUndo(n + " erledigt & weggeräumt");
       };
       list.appendChild(weg);
     }
@@ -6851,7 +6974,9 @@ function renderTasks() {
   // Platz"). Kein Ring, kein Balken, keine Farbe, nur der Satz.
   if (open.length) {
     foot.hidden = false;
-    foot.innerHTML = "<b>" + eingeplant.length + " von " + open.length + "</b> Aufgaben haben einen Platz diese Woche.";
+    const zeitraum = istDieseWoche() ? "diese Woche" : "in KW " + isoWeek(mondayOf(anchor));
+    foot.innerHTML = "<b>" + eingeplant.length + " von " + open.length + "</b> Aufgaben haben einen Platz " + zeitraum + "."
+      + (vorgeschlagen.length ? " " + vorgeschlagen.length + " noch vorgeschlagen." : "");
   }
 }
 
@@ -6875,15 +7000,20 @@ const TASK_DAUERN = [15, 30, 45, 60, 90, 120];
 function taskEl(t) {
   const row = document.createElement("div");
   row.className = "task" + (t.done ? " is-done" : "");
-  row.draggable = !t.done;
+  row.draggable = !t.done && !aufgabenBlock(t);
 
   const cb = document.createElement("input");
   cb.type = "checkbox"; cb.className = "task__check"; cb.checked = t.done;
   cb.setAttribute("aria-label", "Erledigt: " + t.title);
-  cb.onchange = () => { t.done = cb.checked; save(); renderTasks(); };
+  cb.onchange = () => aufgabeAbhaken(t, cb.checked);
 
   const body = document.createElement("div");
   body.className = "task__body";
+  body.tabIndex = 0; body.setAttribute("role", "button");
+  body.setAttribute("aria-label", "Aufgabe bearbeiten: " + t.title);
+  body.onkeydown = e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); taskSheet(t); }
+  };
 
   const ti = document.createElement("div");
   ti.className = "task__title";
@@ -6902,13 +7032,23 @@ function taskEl(t) {
   // Stufe 12: eine verplante Aufgabe zeigt Tag+Uhrzeit ihres Blocks statt
   // der bloßen Dauer — sonst stünde dieselbe Aufgabe doppelt da: einmal
   // hier in der Liste, einmal als Block im Raster.
-  const geplantBlock = t.geplant ? state.blocks.find(x => x.id === t.geplant) : null;
+  const geplantBlock = aufgabenBlock(t);
+  const tagText = geplantBlock ? (() => {
+    const tag = new Date(aufgabenTermin(geplantBlock) + "T12:00:00");
+    const zeit = geplantBlock.grob ? abschnittVon(geplantBlock.teil).name : fmtTime(geplantBlock.start);
+    return DAY_SHORT[(tag.getDay() + 6) % 7] + ", " + tag.getDate() + "." + (tag.getMonth() + 1) + "."
+      + (tag.getFullYear() !== new Date().getFullYear() ? tag.getFullYear() : "") + " · " + zeit;
+  })() : "";
   meta.innerHTML = "<span class='chip__dot'></span>" + escapeHtml(a.name)
     + (geplantBlock
-        ? "<span class='task__dur num'>eingeplant " + DAY_SHORT[geplantBlock.day] + " " + fmtTime(geplantBlock.start) + "</span>"
-        : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : ""));
+        ? "<span class='task__dur num'>" + (geplantBlock.sug ? "Vorschlag " : "eingeplant ") + tagText + "</span>"
+        : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "<span>· Dauer offen</span>"));
 
   body.append(ti, meta);
+  if (t.schritt && !t.done) {
+    const schritt = document.createElement("div"); schritt.className = "task__step";
+    schritt.innerHTML = "<b>Start:</b> " + escapeHtml(t.schritt); body.appendChild(schritt);
+  }
 
   row.append(cb, body);
 
@@ -6916,7 +7056,7 @@ function taskEl(t) {
   // hinein — eingeplante und erledigte haben ihren Platz schon.
   if (!t.done && !geplantBlock) {
     const go = document.createElement("button");
-    go.className = "task__go"; go.type = "button"; go.textContent = "→";
+    go.className = "task__go"; go.type = "button"; go.textContent = "Planen";
     go.title = "In den Wochenplan legen";
     go.setAttribute("aria-label", "In den Wochenplan legen: " + t.title);
     go.onclick = e => { e.stopPropagation(); planTask(t); };
@@ -6936,6 +7076,7 @@ function taskEl(t) {
   body.onclick = () => taskSheet(t);
 
   row.addEventListener("dragstart", e => {
+    if (!row.draggable) { e.preventDefault(); return; }
     dragTaskId = t.id; row.classList.add("is-dragging");
     e.dataTransfer.effectAllowed = "copy";
     try { e.dataTransfer.setData("text/plain", t.title); } catch (err) {}
@@ -6950,6 +7091,17 @@ function taskEl(t) {
    des Tages (naechsteStelle) und öffnet den Block-Editor damit vorausgefüllt
    — kein stilles Eintragen ohne Blick auf Tag und Uhrzeit. */
 function planTask(t) {
+  const vorhanden = aufgabenBlock(t);
+  if (vorhanden) {
+    // Der Aufgabenbestand ist global. Öffnen muss den tatsächlichen Termin
+    // zeigen und darf weder einen zweiten Block noch ein anderes Datum erzeugen.
+    const key = aufgabenTermin(vorhanden);
+    anchor = new Date(key + "T12:00:00");
+    selectedDayIdx = (anchor.getDay() + 6) % 7;
+    setView("plan"); renderAll();
+    if (vorhanden.sug) sugSheet(vorhanden); else editBlock(vorhanden.id, key);
+    return;
+  }
   const d = addDays(mondayOf(anchor), selectedDayIdx);
   const laenge = t.dauer || 60;
   const wunsch = clamp(snap(new Date().getHours() * 60 + 60),
@@ -6974,6 +7126,9 @@ function taskSheet(t) {
       "<h2 class='sheet__title'>Aufgabe</h2>" +
       "<div class='sheet__row'><label class='label' for='tkTitle'>Was ist zu tun?</label>" +
       "<input class='field' id='tkTitle' autocomplete='off'></div>" +
+      "<div class='sheet__row'><label class='label' for='tkSchritt'>Erster kleiner Schritt <span style='font-weight:400'>(optional)</span></label>" +
+      "<input class='field' id='tkSchritt' maxlength='240' placeholder='z. B. Dokument öffnen und drei Stichpunkte notieren' autocomplete='off' aria-describedby='tkSchrittHint'>" +
+      "<div class='task__step' id='tkSchrittHint'>Was kannst du als Erstes in wenigen Minuten tun?</div></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span>" +
       "<div class='chipset' id='tkAreas'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
@@ -6985,6 +7140,10 @@ function taskSheet(t) {
 
     const titel = s.querySelector("#tkTitle");
     titel.value = t.title;
+    titel.required = true;
+    titel.oninput = () => titel.setCustomValidity("");
+    const schritt = s.querySelector("#tkSchritt");
+    schritt.value = t.schritt || "";
 
     const areaWrap = s.querySelector("#tkAreas");
     const malAreas = () => {
@@ -7023,6 +7182,7 @@ function taskSheet(t) {
       dHint.textContent = dauer
         ? "„In den Wochenplan legen\" nimmt " + fmtDur(dauer) + " statt einer Stunde."
         : "Ohne Angabe wird beim Einplanen eine Stunde angenommen.";
+      if (aufgabenBlock(t)) dHint.textContent = "Das ist deine Schätzung. Die Dauer des bestehenden Termins änderst du direkt im Plan.";
     };
     malDauer();
 
@@ -7050,14 +7210,15 @@ function taskSheet(t) {
     const inPlan = document.createElement("button");
     inPlan.className = "btn"; inPlan.type = "button";
     inPlan.style.width = "100%";
-    inPlan.textContent = "📅 In den Wochenplan legen";
+    const schonGeplant = aufgabenBlock(t);
+    inPlan.textContent = schonGeplant ? (schonGeplant.sug ? "Vorschlag prüfen" : "Eintrag im Plan öffnen") : "In den Wochenplan legen";
     inPlan.onclick = () => {
       // Stufe 14: dieselbe Suche nach der nächstgelegenen freien Stelle
       // (naechsteStelle) steckt jetzt in planTask() — geteilt mit dem
       // Knopf direkt an der Zeile ohne Platz (taskEl, .task__go).
       // uebernehmen() zieht Titel/Bereich/Dauer/Stern vorher auf t, damit
       // planTask(t) denselben Stand sieht wie diese Felder gerade zeigen.
-      uebernehmen();
+      if (!uebernehmen()) return;
       close();
       planTask(t);
     };
@@ -7065,13 +7226,20 @@ function taskSheet(t) {
 
     function uebernehmen() {
       const neu = titel.value.trim();
-      if (neu) t.title = neu;
+      titel.setCustomValidity(neu ? "" : "Gib der Aufgabe einen kurzen Titel.");
+      if (!titel.reportValidity()) return false;
+      t.title = neu;
+      if (schritt.value.trim()) t.schritt = schritt.value.trim().slice(0, 240); else delete t.schritt;
       t.areaId = areaId;
       if (dauer) t.dauer = dauer; else delete t.dauer;
       if (wichtig && !t.frog) state.tasks.forEach(x => x.frog = false);
       t.frog = wichtig;
+      const geplant = aufgabenBlock(t);
+      if (geplant) { geplant.title = t.title; geplant.areaId = areaId; geplant.frog = wichtig; }
       regeln.commit();
       save();
+      renderAll();
+      return true;
     }
 
     const foot = document.createElement("div");
@@ -7084,7 +7252,7 @@ function taskSheet(t) {
       // mitreißen, den man vielleicht längst wahrgenommen hat.
       state.blocks.forEach(b => { if (b.taskId === t.id) delete b.taskId; });
       state.tasks = state.tasks.filter(x => x.id !== t.id);
-      save(); close(); renderTasks(); renderEnergy(); toastUndo("Aufgabe gelöscht");
+      save(); close(); renderAll(); toastUndo("Aufgabe gelöscht");
     };
     const sp = document.createElement("span"); sp.className = "spacer";
     const ab = document.createElement("button");
@@ -7092,7 +7260,7 @@ function taskSheet(t) {
     ab.onclick = close;
     const ok = document.createElement("button");
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Speichern";
-    ok.onclick = () => { uebernehmen(); close(); renderTasks(); renderEnergy(); };
+    ok.onclick = () => { if (!uebernehmen()) return; close(); renderAll(); };
     titel.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); ok.onclick(); } };
     foot.append(del, sp, ab, ok);
     s.appendChild(foot);
@@ -7150,7 +7318,8 @@ function renderAgenda() {
   // korrekt "Sonntag, 9.8." nennt) wäre "Heute" schlicht falsch.
   let html = "<div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
-    + (wichtig ? escapeHtml(wichtig.title) : "—  antippen") + "</button>";
+    + (wichtig ? escapeHtml(wichtig.title) : "Schwerpunkt wählen") + "</button>"
+    + (wichtig && wichtig.schritt ? "<div class='agenda__step'><b>Erster Schritt:</b> " + escapeHtml(wichtig.schritt) + "</div>" : "");
 
   const eintraege = tagesAgenda(dayKey, dayIdx);
   const laufend = heute
@@ -7386,6 +7555,7 @@ function renderAgenda() {
       const lab = cb.closest(".agenda__row");
       if (lab) lab.classList.toggle("is-on", cb.checked);
       save();
+      renderTasks(); renderGoals(); renderGrid(); renderAgenda();
     };
   });
 
@@ -9449,6 +9619,15 @@ function setView(v) {
     const on = b.dataset.view === v;
     b.setAttribute("aria-current", String(on));
   });
+  if (v !== "plan") {
+    document.querySelectorAll("#panelNav button").forEach(b => {
+      b.setAttribute("aria-current", String(b.dataset.panel === v));
+    });
+    if (!isMobile) {
+      const ziel = document.querySelector('.card[data-card="' + v + '"]:not([hidden])');
+      if (ziel) ziel.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+  }
   if (v === "plan") renderGrid();
   renderSugBar();
 }
@@ -9456,6 +9635,15 @@ function setView(v) {
 document.querySelectorAll("#tabbar button").forEach(b => {
   b.onclick = () => setView(b.dataset.view);
 });
+document.querySelectorAll("#panelNav button").forEach(b => {
+  b.onclick = () => {
+    setView(b.dataset.panel);
+    const ziel = document.querySelector('.card[data-card="' + b.dataset.panel + '"]:not([hidden])');
+    if (ziel) { ziel.tabIndex = -1; ziel.focus({ preventScroll: true }); }
+  };
+});
+$("#weekOverviewBtn").onclick = () => freizeitSheet();
+$("#desktopAdd").onclick = () => $("#fabAdd").onclick();
 
 /* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
    ab der nächsten vollen Stunde, aber nicht in der Vergangenheit. */
@@ -9800,6 +9988,11 @@ $("#syncBadge").onclick = () => {
   if (!Sync.active()) signInSheet();
   else { Sync.pull(); toast("Wird abgeglichen …"); }
 };
+
+if ("ResizeObserver" in window) {
+  const fussBeobachter = new ResizeObserver(fussbereichMessen);
+  ["tabbar", "daySwitch", "sugBar"].forEach(id => fussBeobachter.observe(document.getElementById(id)));
+}
 
 applyTheme();
 document.body.dataset.tage = einTag ? "1" : "7";

@@ -60,7 +60,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   });
   console.log('nach migrate(): version', a1.nachVersion, '| Sicherung vorhanden:', !!a1.backup);
   ok(!!a1.backup, 'a) die Sicherung entsteht beim Migrieren eines v8-Stands');
-  ok(a1.nachVersion === 9, 'a) der migrierte Stand ist auf version 9 (' + a1.nachVersion + ')');
+  ok(a1.nachVersion === 10, 'a) der migrierte Stand ist auf version 10 (' + a1.nachVersion + ')');
   ok(JSON.stringify(a1.backup) === JSON.stringify(a1.vorMigrate),
     'a) die Sicherung ist byte-identisch mit dem Stand VOR migrate() (nicht dem migrierten)');
   ok(!!a1.backup && a1.backup.version === 8, 'a) die Sicherung traegt version 8 (' + (a1.backup && a1.backup.version) + ')');
@@ -79,7 +79,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     const raw = localStorage.getItem('wochenplaner.local.vor-v9');
     return { alt2Version: alt2.version, backup: raw ? JSON.parse(raw) : null };
   });
-  ok(b1.alt2Version === 9, 'b) der zweite Stand wird trotzdem ganz normal migriert (' + b1.alt2Version + ')');
+  ok(b1.alt2Version === 10, 'b) der zweite Stand wird trotzdem ganz normal migriert (' + b1.alt2Version + ')');
   ok(!!b1.backup && b1.backup.marker === 'NETZ-MARKER-A', 'b) die Sicherung zeigt weiter den ERSTEN Marker (' + (b1.backup && b1.backup.marker) + ')');
   ok(!!b1.backup && !b1.backup.blocks.some(x => x.title === 'Zweiter Ladevorgang'),
     'b) der Block aus dem zweiten Durchlauf landet NICHT in der Sicherung');
@@ -119,7 +119,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     keinDialogOffen: !document.querySelector('.sheet')
   }));
   console.log('Nach Wiederherstellen:', JSON.stringify(d1));
-  ok(d1.version === 9, 'd) der wiederhergestellte Stand ist migriert (version ' + d1.version + ')');
+  ok(d1.version === 10, 'd) der wiederhergestellte Stand ist migriert (version ' + d1.version + ')');
   ok(d1.marker === 'NETZ-MARKER-A', 'd) der wiederhergestellte Stand ist der urspruengliche v8-Marker-Stand');
   ok(d1.hatMarkerBlock, 'd) der Marker-Block ist wieder im aktiven Plan');
   ok(!d1.hatZweitenBlock, 'd) der Block aus b) ist NICHT im wiederhergestellten Stand');
@@ -147,7 +147,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   });
   console.log('Ergebnis c):', JSON.stringify(c1));
   ok(!c1.hatBackup, 'c) ein bereits migrierter (v9) Stand erzeugt keine Sicherung');
-  ok(c1.version === 9, 'c) Kontrolle: die Version bleibt 9 (' + c1.version + ')');
+  ok(c1.version === 10, 'c) Kontrolle: v9 wird auf version 10 migriert (' + c1.version + ')');
 
   await p.click('#settingsBtn');
   await p.waitForTimeout(400);

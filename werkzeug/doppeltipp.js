@@ -195,11 +195,19 @@ const blatt = p => p.evaluate(() => {
     // "Woche anlegen" selbst braucht wie jeder Schritt zuvor den expliziten
     // Fokus (s. Kommentar an der Schleife oben).
     await knopf.focus();
-    const t0 = Date.now();
+    // Ereignisabstand im Browser messen: Node-Roundtrips und die Arbeit
+    // nach dem zweiten Enter gehören nicht zur Geschwindigkeit des Doppeltipps.
+    await p.evaluate(() => {
+      window.enterZeiten = [];
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') window.enterZeiten.push(performance.now());
+      }, true);
+    });
     await p.keyboard.press('Enter');
-    await p.waitForTimeout(70);
+    await p.waitForTimeout(45);
     await p.keyboard.press('Enter');
-    ok(Date.now() - t0 < 100, 'd) zweites Enter kam < 100ms nach dem ersten');
+    const abstand = await p.evaluate(() => window.enterZeiten[1] - window.enterZeiten[0]);
+    ok(abstand >= 40 && abstand < 100, 'd) zweites Enter nach Autofokus und < 100ms nach dem ersten (' + Math.round(abstand) + 'ms)');
 
     const d = await blatt(p);
     ok(d.titel === 'Das wird eng', 'd) Gate steht nach dem Tastatur-Doppel-Enter (Titel: ' + JSON.stringify(d.titel) + ')');

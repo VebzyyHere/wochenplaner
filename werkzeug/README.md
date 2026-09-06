@@ -10,6 +10,13 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.27 ergänzt `release.js`: 27 Zusicherungen zu verknüpften
+Aufgaben, erneutem Einplanen, Titeländerungen, Wochenzuordnung, ersten Schritten,
+Migration, Tastaturbedienung und dynamischer Fußleiste. Die Kette umfasst jetzt
+56 Skripte. Für einen fehlenden Playwright-Browser kann der vorhandene Chrome
+über `$env:WP_CHROMIUM = 'C:\Program Files\Google\Chrome\Application\chrome.exe'`
+verwendet werden. `alles.js` endet auch bei übersprungenen Server-Tests mit Fehler.
+
 ```bash
 cd werkzeug
 npm init -y

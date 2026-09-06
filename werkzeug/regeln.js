@@ -241,7 +241,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   });
   console.log('\n=== Migration: zehn Durchlaeufe ===');
   console.log(JSON.stringify(mig, null, 1));
-  ok(mig.version === 9, 'migrate() endet bei version 9 (' + mig.version + ')');
+  ok(mig.version === 10, 'migrate() endet bei version 10 (' + mig.version + ')');
   ok(mig.unveraendert, 'area.regeln bleibt ueber 10 migrate()-Durchlaeufe unveraendert');
   ok(mig.taskUnveraendert, 'task.regeln bleibt ueber 10 migrate()-Durchlaeufe unveraendert (migrate fasst es nicht an)');
 

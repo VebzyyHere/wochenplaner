@@ -1,0 +1,7 @@
+# Lokale Sicherungen, Messwerte und Bilder bleiben auf dem Arbeitsrechner.
+*
+!.gitignore
+!preview.cjs
+!vorschau-pruefen.cjs
+!beispieldaten.json
+!v1.27.md
