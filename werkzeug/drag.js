@@ -14,6 +14,7 @@ const path = require('path');
   await p.waitForTimeout(300);
 
   // Aufgabe in das Raster ziehen (echtes HTML5-Ziehen)
+  await p.locator('#panelNav [data-panel="aufgaben"]').click();
   await p.evaluate(() => { document.querySelectorAll('.daycol')[3].id = 'zielSpalte'; });
   await p.dragAndDrop('.task', '#zielSpalte', { targetPosition: { x: 60, y: 200 } });
   await p.waitForTimeout(500);

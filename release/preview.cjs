@@ -28,7 +28,9 @@ function demoHtml() {
   html = html.replace('</style>',`
   .demo-hinweis {min-height:36px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;padding:6px 12px;background:var(--ink);color:var(--on-ink);font-size:12px;}
   .demo-hinweis a {color:inherit;font-weight:600;}
-  .app {height:calc(100dvh - 36px);}
+  body {display:flex;flex-direction:column;height:100dvh;}
+  .demo-hinweis {flex:none;}
+  .app {height:auto;flex:1;min-height:0;}
   @media(max-width:500px){.demo-hinweis{font-size:11px;}}
   </style>`);
   html = html.replace('<body>','<body><div class="demo-hinweis"><span>Beispielwoche · Änderungen nur vorübergehend</span><a href="/app">Eigenen Plan öffnen ↗</a></div>');

@@ -167,6 +167,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     const hourH = parseFloat(getComputedStyle(grid).getPropertyValue('--hourh')) || 52;
     return (660 - state.settings.dayStart * 60) / 60 * hourH;   // 11:00
   });
+  await p.locator('#panelNav [data-panel="aufgaben"]').click();
   await p.dragAndDrop('.task', '#zielSpalteD', { targetPosition: { x: 60, y: yD } });
   await p.waitForTimeout(400);
   const d = await p.evaluate(() => {

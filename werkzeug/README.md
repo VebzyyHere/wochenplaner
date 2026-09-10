@@ -10,9 +10,14 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.28 ergänzt `abschluss.js`: 17 Zusicherungen zu Arbeitsbereichen,
+Tablet-Drehung, Datenerhalt, Touch-Navigation und Speicherwarnungen. Die aktuelle
+vollständige Kette umfasst 57 Skripte. Desktop-Dragtests öffnen vor dem Ziehen
+den Aufgabenbereich über die sichtbare Navigation.
+
 Version 1.27 ergänzt `release.js`: 27 Zusicherungen zu verknüpften
 Aufgaben, erneutem Einplanen, Titeländerungen, Wochenzuordnung, ersten Schritten,
-Migration, Tastaturbedienung und dynamischer Fußleiste. Die Kette umfasst jetzt
+Migration, Tastaturbedienung und dynamischer Fußleiste. Die Kette umfasste damals
 56 Skripte. Für einen fehlenden Playwright-Browser kann der vorhandene Chrome
 über `$env:WP_CHROMIUM = 'C:\Program Files\Google\Chrome\Application\chrome.exe'`
 verwendet werden. `alles.js` endet auch bei übersprungenen Server-Tests mit Fehler.

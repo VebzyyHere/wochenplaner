@@ -11,6 +11,28 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.28 vom 2026-09-10
+
+Aktuelle Änderungen: `release/v1.28.md`. Der lokale Abnahmebericht liegt in
+`release/abschluss-2026-09-10/ABNAHME.md` (gitignored).
+
+- `MOBILE_Q` und das CSS wechseln gemeinsam bei **1100px** zu eigenständigen
+  Arbeitsflächen mit unterer Navigation. `EINTAG_Q` bleibt bei 640px: ein
+  Tablet zeigt weiterhin sieben Kalendertage. In der Tablet-Heute-Ansicht bleibt
+  die Tagesauswahl erreichbar.
+- Am Desktop zeigt `body.dataset.panel` den gewählten Arbeitsbereich neben
+  dem Raster. `setView()` setzt nur Ansichtsstatus; keine neuen Datenfelder.
+  Vor echten Klicks/Ziehen auf Aufgaben muss auch ein Test den Aufgabenbereich öffnen.
+- Die Breite der Desktop-Arbeitsfläche liegt zwischen 352 und 440px. Alle
+  Kalenderspalten passen in die verbleibende Fläche; kurze Titel werden gekürzt.
+- `--safe-top/right/bottom/left` übernehmen die Plattform-Inset-Werte.
+  App, schwebende Leiste und Dialoge beachten seitliche Ränder. `#banner` ist
+  ein Flex-Kind der App, damit Speicherwarnungen die Navigation nicht verdrängen.
+- `werkzeug/abschluss.js` ergänzt 17 Regressionen zu Navigation, Tablet-Drehung,
+  Datenerhalt und Speicherwarnung. Die vollständige Kette umfasst 57 Skripte.
+- Interner Worker-Stand: `wp-v1.28`. Datenschema weiterhin 10. Keine sichtbaren
+  Versionsnummern im Produkt; keine Umsetzung der geparkten Idee in `IDEEN.md`.
+
 ### Release v1.27 vom 2026-09-06
 
 Änderungen und Prüfungsumfang stehen in `release/v1.27.md`. Der ausführliche
@@ -189,7 +211,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.27` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.28` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

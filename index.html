@@ -59,6 +59,10 @@
   --selected-text: oklch(0.35 0.070 var(--h-ink));
   --sicht-hoehe: 100dvh;
   --sicht-oben: 0px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
   --danger:  oklch(0.55 0.190 25);
   --success: oklch(0.55 0.140 150);
@@ -168,6 +172,12 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+input, textarea { caret-color: var(--ink); }
+input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1; }
+::selection { background: var(--selected); color: var(--selected-text); }
+* { scrollbar-color: var(--border-strong) transparent; scrollbar-width: thin; }
+.ui-icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
@@ -252,7 +262,8 @@ button { cursor: pointer; }
 /* ============================================================ App shell */
 /* overflow: hidden verhindert, dass die ganze Seite am Telefon gummiartig
    mitfedert — gescrollt wird im Raster, nicht am Dokument. */
-.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+  padding-left: var(--safe-left); padding-right: var(--safe-right); }
 /* Rückfall für setAppInert(), falls der Browser kein natives inert kennt —
    aria-hidden allein hält die Maus nicht ab. */
 .app.is-inert-fallback { pointer-events: none; }
@@ -269,7 +280,7 @@ button { cursor: pointer; }
 .topbar {
   display: flex; align-items: center; gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
-  padding-top: max(var(--s-3), env(safe-area-inset-top));
+  padding-top: max(var(--s-3), var(--safe-top));
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   flex: none;
@@ -478,12 +489,12 @@ button { cursor: pointer; }
 
 .main { display: flex; flex: 1; min-height: 0; }
 
-/* Direkte Wege durch die lange Desktop-Seitenleiste. Die Abschnitte
-   bleiben nebeneinander mit dem Raster nutzbar und vollständig scrollbar. */
-.panelnav { display: flex; gap: var(--s-1); position: sticky; top: calc(var(--s-4) * -1); z-index: 25;
-  margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) 0; padding: var(--s-3) var(--s-4);
-  background: var(--bg); border-bottom: 1px solid var(--border); }
-.panelnav button { flex: 1; min-height: 40px; border: none; border-radius: var(--radius-sm);
+/* Ein ausgewählter Arbeitsbereich neben dem Kalender. Die Navigation bleibt
+   beim Scrollen erreichbar; kein Sprung in einen langen Kartenstapel. */
+.panelnav { display: flex; gap: var(--s-1); position: sticky; top: calc(var(--s-5) * -1); z-index: 25;
+  margin: calc(var(--s-5) * -1) calc(var(--s-5) * -1) 0; padding: var(--s-3);
+  background: var(--surface); border-bottom: 1px solid var(--border); }
+.panelnav button { flex: 1; min-height: 44px; border: none; border-radius: var(--radius-sm);
   padding: var(--s-2); background: transparent; color: var(--text-muted); font-weight: 600; font-size: var(--t-sm); }
 .panelnav button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
 .planhead { display: flex; flex: none; align-items: center; justify-content: space-between;
@@ -492,9 +503,16 @@ button { cursor: pointer; }
 .planhead__hint { margin: 0; color: var(--text-muted); font-size: var(--t-sm); }
 .planhead__actions { display: flex; align-items: center; gap: var(--s-2); flex: none; }
 @media (min-width: 1101px) {
-  .main > .panel { width: 352px; }
+  .main > .panel { width: clamp(352px, 29vw, 440px); padding: var(--s-5);
+    margin: var(--s-4); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--surface); }
+  .panel > .card { border: 0; border-radius: 0; padding: 0; background: transparent; }
+  body[data-panel="heute"] .panel > .card:not([data-card="heute"]),
+  body[data-panel="ziele"] .panel > .card:not([data-card="ziele"]),
+  body[data-panel="aufgaben"] .panel > .card:not([data-card="aufgaben"]) { display: none; }
   .planwrap { margin: var(--s-4) var(--s-4) var(--s-4) 0; border: 1px solid var(--border);
     border-radius: var(--radius-lg); overflow: hidden; }
+  .main > .panel, .main > .planwrap { margin-bottom: max(var(--s-4), var(--safe-bottom)); }
 }
 
 .panel {
@@ -911,7 +929,9 @@ html[data-theme="dark"] .agenda__loading {
   display: grid; place-items: center; box-shadow: var(--shadow-1);
 }
 .block__sug button:hover { background: var(--area-bg-2); }
-.block.is-short .block__sug { top: 1px; }
+.block.is-short .block__sug { display: none; }
+.block.is-short .block__title { padding-right: 0; min-width: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================ Aufgaben */
 .tasks { display: flex; flex-direction: column; gap: 2px; }
@@ -936,7 +956,7 @@ html[data-theme="dark"] .agenda__loading {
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task__body { flex: 1; min-width: 0; min-height: 44px; cursor: pointer; }
-.task__title { font-size: var(--t-body); word-break: break-word; line-height: 1.35; }
+.task__title { font-size: var(--t-body); overflow-wrap: anywhere; line-height: 1.4; }
 .task.is-done .task__title { text-decoration: line-through; color: var(--text-faint); }
 .task__star {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -970,7 +990,8 @@ html[data-theme="dark"] .agenda__loading {
 .task__go:hover { background: var(--surface-3); }
 .task__body:focus-visible { outline-offset: 4px; }
 .taskadd { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
-.taskadd .field { min-height: 38px; }
+.taskadd .field { min-height: 44px; min-width: 0; }
+.taskadd .btn { min-width: 44px; }
 
 /* Stufe 14: Gliederung der Aufgabenliste — Abschnittsköpfe und der
    Tagesschwerpunkt teilen sich die Sprache der Agenda (.agenda__label,
@@ -1048,7 +1069,7 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 
 /* Am Telefon ist links kein Platz für eine Beschriftungsspalte —
    der Abschnitt steht als Zeile über seinen Einträgen. */
-@media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
+@media (max-width: 1100px) {
   body[data-tage="1"] .loose { grid-template-columns: 1fr; padding: var(--s-1) 0 var(--s-2); }
   body[data-tage="1"] .loose__lab { text-align: left; padding: 6px var(--s-3) 2px; }
   body[data-tage="1"] .loose__cell { padding: 0 var(--s-3); }
@@ -1059,7 +1080,7 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
   grid-template-columns: var(--gutter) repeat(var(--cols), minmax(var(--colmin), 1fr));
   min-width: 100%;
   --gutter: 56px;
-  --colmin: 116px;
+  --colmin: 0px;
   --hourh: 52px;
 }
 .dayhead {
@@ -1119,7 +1140,7 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
 .daycol__line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); pointer-events: none; }
 .daycol__line--half { border-top-style: dotted; opacity: .6; }
 .now {
-  position: absolute; left: 0; right: 0; height: 0; z-index: 9; pointer-events: none;
+  position: absolute; left: 0; right: 0; height: 0; z-index: 7; pointer-events: none;
   border-top: 2px solid var(--danger);
 }
 .now::before {
@@ -1329,7 +1350,9 @@ html[data-theme="dark"] .rest {
 .sheet--wide { max-width: 560px; }
 .sheet__title { font-size: var(--t-h1); font-weight: 700; letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
 .sheet__row { margin-bottom: var(--s-4); }
-.sheet__cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.sheet__cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-3); }
+.sheet__cols > * { min-width: 0; }
+.sheet__title, .sheet__row { overflow-wrap: anywhere; }
 /* Der Fussbereich klebt am unteren Rand des Dialogs. Ohne das rutscht der
    Bestaetigen-Knopf bei langen Inhalten aus dem Bild - auf einem kleinen
    iPhone war der Willkommens-Dialog dadurch schlicht nicht bedienbar. */
@@ -1339,7 +1362,7 @@ html[data-theme="dark"] .rest {
   position: sticky; bottom: calc(var(--s-5) * -1);
   margin-bottom: calc(var(--s-5) * -1);
   padding: var(--s-3) 0 var(--s-5);
-  padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--s-5) + var(--safe-bottom));
   background: var(--surface);
   box-shadow: 0 -10px 14px -10px oklch(0.2 0.02 var(--h-ink) / 0.18);
 }
@@ -1362,7 +1385,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 /* ============================================================ Toast + banner */
 .toasts {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--s-5) + env(safe-area-inset-bottom)); z-index: 90;
+  bottom: calc(var(--s-5) + var(--safe-bottom)); z-index: 90;
   display: flex; flex-direction: column; gap: var(--s-2); align-items: center;
   pointer-events: none; width: min(92vw, 420px);
 }
@@ -1381,14 +1404,17 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 .toast__act:hover { opacity: .75; }
 .toasts .toast { pointer-events: none; }
 .toasts .toast:has(.toast__act) { pointer-events: auto; }
+#banner { flex: none; }
 .banner {
   display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
   padding: 10px var(--s-4); font-size: var(--t-sm);
+  padding-top: max(10px, var(--safe-top));
   background: oklch(0.66 0.15 75 / 0.16);
   border-bottom: 1px solid oklch(0.66 0.15 75 / 0.45);
   color: var(--text);
 }
 .banner b { font-weight: 700; }
+.app:has(.banner) .topbar { padding-top: 4px; }
 
 /* ============================================================ Responsive */
 /* ============================================================
@@ -1403,7 +1429,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 .fab { display: none; }
 .sugbar { display: none; }
 
-@media (max-width: 780px), (max-height: 500px) and (max-width: 1000px) {
+@media (max-width: 1100px) {
   /* ---- Unterer Bedienbereich --------------------------------------------
      Tabbar, FAB, Toasts und Vorschlagsleiste konkurrieren hier unten um
      denselben Platz. Statt jede Fläche mit einer eigenen, von Hand
@@ -1420,7 +1446,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
                      steht (body[data-sugbar="1"], gesetzt von renderSugBar). */
   body {
     --tagstreifen: 0px;
-    --fussleiste: calc(62px + var(--tagstreifen) + env(safe-area-inset-bottom));
+    --fussleiste: calc(62px + var(--tagstreifen) + var(--safe-bottom));
     --fuss-oben: var(--fussleiste);
   }
   /* 63px = 4px Polster oben + 53px hoher Chip + 4px Polster unten + 1px
@@ -1447,7 +1473,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
     flex: none; gap: 2px; padding: 2px 6px 0;
-    padding-bottom: max(4px, env(safe-area-inset-bottom));
+    padding-bottom: max(4px, var(--safe-bottom));
     border-top: 1px solid var(--border); background: var(--surface);
   }
   .tabbar button {
@@ -1461,14 +1487,13 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     width: 22px; height: 22px; fill: none; stroke: currentColor;
     stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
   }
-  .tabbar button[aria-current="true"] { color: var(--text); }
   .tabbar button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
   .tabbar button:active { background: var(--surface-2); }
 
   /* Schwebender Knopf — „ins Raster tippen" ist am Handy nicht selbsterklärend */
   body[data-mview="plan"] .fab {
     display: grid; place-items: center; position: fixed;
-    right: 16px; z-index: 40;
+    right: calc(16px + var(--safe-right)); z-index: 40;
     bottom: var(--fuss-oben);
     width: 54px; height: 54px; border-radius: 50%;
     background: var(--ink); border: none; box-shadow: var(--shadow-2);
@@ -1493,7 +1518,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      Zeile, weil dort nichts umbrechen muss. */
   body[data-sugbar="1"] .sugbar {
     display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3);
-    position: fixed; left: 0; right: 0; z-index: 41;
+    position: fixed; left: var(--safe-left); right: var(--safe-right); z-index: 41;
     bottom: var(--fussleiste); min-height: 61px;
     padding: var(--s-2) var(--s-4);
     border-top: 1px solid var(--border);
@@ -1591,7 +1616,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   }
   body[data-mview="aufgaben"] .tasks {
     flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+    padding-bottom: var(--s-4);
   }
 
   /* Eine Regel statt zweier gleich starker: die spätere gewann, und der
@@ -1664,9 +1689,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     .dayswitch__nav { width: 34px; }
   }
   .topbar { padding: 4px var(--s-2); gap: 0; }
-  .topbar { padding-top: max(4px, env(safe-area-inset-top)); }
-  .sheet { max-width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
-  .scrim { padding: 0; align-items: flex-end; }
+  .topbar { padding-top: max(4px, var(--safe-top)); }
+  .sheet { max-width: 100%; max-height: min(88dvh, calc(var(--sicht-hoehe) - var(--safe-top) - 8px));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
+  .scrim { padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); align-items: flex-end; }
   .card { padding: var(--s-3); }
 
   /* Das Band nimmt hoechstens ein Viertel der Hoehe. Vorher durfte es ein
@@ -1715,7 +1741,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      die Vorschlagsleiste (.sugbar, bleibt auch im Querformat sichtbar)
      oder in "Ziele" über „Alle übernehmen". */
   body[data-tage="7"] .block__sug { display: none; }
-  .topbar { padding: 2px var(--s-2); }
+  .topbar { padding: 2px var(--s-2); padding-top: max(2px, var(--safe-top)); }
   .weeknav__label { font-size: var(--t-sm); }
 
   /* Bei so wenig Höhe kostet das festgepinnte Eingabefeld (~1320) mehr,
@@ -1728,21 +1754,27 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   body[data-mview="aufgaben"] .tasks { flex: none; overflow-y: visible; }
 }
 
-/* ============================================================
-   Tablet — alle sieben Tage müssen sichtbar sein.
-   Eine Wochenansicht, die das Wochenende hinter horizontalem
-   Scrollen versteckt, ist keine Wochenansicht.
-   ============================================================ */
-@media (min-width: 781px) and (max-width: 1100px) and (min-height: 501px) {
-  .panel { width: 250px; padding: var(--s-3); gap: var(--s-4); }
-  .grid { --colmin: 0; --gutter: 44px; }
-  .dayhead { padding: 6px 2px 8px; }
-  .dayhead__num { font-size: var(--t-h2); width: 28px; height: 28px; line-height: 28px; }
-  .dayhead__name { font-size: var(--t-xs); }
-  .block { left: 2px; right: 2px; }
-  .block__title { font-size: var(--t-xs); }
-  .block__time { font-size: var(--t-xs); }
-  .card { padding: var(--s-3); }
+/* Tablets bekommen eine ganze Arbeitsfläche. Das Raster behält sieben Tage,
+   Texte in Heute, Aufgaben und Zielen eine gut lesbare Breite. */
+@media (min-width: 641px) and (max-width: 1100px) and (min-height: 501px) {
+  .panel { padding: var(--s-6) max(var(--s-6), calc((100% - 720px) / 2)) 0; }
+  .topbar { padding: var(--s-2) var(--s-4); padding-top: max(var(--s-2), var(--safe-top)); }
+  .brand { display: flex; }
+  .brand__name { overflow: hidden; text-overflow: ellipsis; }
+  .brand__tagline, .brand__who { display: none; }
+  .weeknav { margin-left: auto; margin-right: var(--s-2); }
+  .tabbar { padding-left: max(var(--s-6), calc((100% - 640px) / 2));
+    padding-right: max(var(--s-6), calc((100% - 640px) / 2)); }
+  .tabbar button { flex-direction: row; gap: var(--s-2); font-size: var(--t-sm); min-height: 54px; }
+  body[data-mview="heute"] .dayswitch { display: grid; padding-left: var(--s-6); padding-right: var(--s-6); }
+  body[data-mview="heute"] { --tagstreifen: 63px; }
+  .scrim { padding: max(var(--s-6), var(--safe-top)) max(var(--s-6), var(--safe-right))
+    max(var(--s-6), var(--safe-bottom)) max(var(--s-6), var(--safe-left)); align-items: center; }
+  .sheet { max-width: 560px; margin: 0; border-radius: var(--radius-lg);
+    max-height: calc(var(--sicht-hoehe) - max(48px, var(--safe-top) + var(--safe-bottom))); }
+}
+@media (min-width: 641px) and (max-width: 780px) and (min-height: 501px) {
+  .brand__copy { display: none; }
 }
 
 /* ============================================================
@@ -1839,9 +1871,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 </head>
 <body>
 <a href="#main" class="sr">Zum Inhalt</a>
-<div id="banner"></div>
 
 <div class="app">
+  <div id="banner"></div>
 
   <header class="topbar">
     <div class="brand">
@@ -1851,9 +1883,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     </div>
 
     <div class="weeknav">
-      <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück">‹</button>
+      <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5"/></svg></button>
       <button type="button" class="weeknav__label" id="weekLabel" aria-label="Wochenübersicht anzeigen"></button>
-      <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor">›</button>
+      <button class="btn btn--icon btn--ghost" id="nextWeek" aria-label="Woche vor"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7 5 5-5 5"/></svg></button>
     </div>
 
     <button type="button" class="btn btn--icon btn--ghost" id="monthBtn" aria-label="Monatsübersicht anzeigen" title="Monatsübersicht">
@@ -1861,7 +1893,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     </button>
     <button class="syncbadge" id="syncBadge" hidden></button>
     <button class="btn btn--sm" id="todayBtn">Heute</button>
-    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙</button>
+    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-.6 2.2-2 .9-2-.6-2 3.5 1.6 1.6v2.8L2.4 15l2 3.5 2-.6 2 .9L9 21h4l.6-2.2 2-.9 2 .6 2-3.5-1.6-1.6v-2.8L19.6 9l-2-3.5-2 .6-2-.9L13 3Z"/><circle cx="11" cy="12" r="3"/></svg></button>
   </header>
 
   <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
@@ -1870,7 +1902,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
     <aside class="panel">
 
-      <nav class="panelnav" id="panelNav" aria-label="Bereich der Seitenleiste wählen">
+      <nav class="panelnav" id="panelNav" aria-label="Arbeitsbereich wählen">
         <button type="button" data-panel="heute" aria-current="true">Heute</button>
         <button type="button" data-panel="ziele" aria-current="false">Ziele</button>
         <button type="button" data-panel="aufgaben" aria-current="false">Aufgaben</button>
@@ -1922,7 +1954,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
         </div>
         <form class="taskadd" id="taskForm">
           <input class="field" id="taskInput" placeholder="Was steht an?" aria-label="Neue Aufgabe" autocomplete="off">
-          <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen">+</button>
+          <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
         </form>
         <div class="tasks" id="taskList"></div>
         <div class="agenda__foot" id="tasksFoot" hidden></div>
@@ -2544,7 +2576,7 @@ let syncSettled = false;
    da passt die Woche, und der Tagwechsler wird überflüssig. Vorher war
    beides dieselbe Bedingung, und im Querformat blieb ein einzelner Tag
    über die volle Breite gezogen. */
-const MOBILE_Q = "(max-width: 780px), (max-height: 500px) and (max-width: 1000px)";
+const MOBILE_Q = "(max-width: 1100px)";
 const EINTAG_Q = "(max-width: 640px)";
 let isMobile = window.matchMedia(MOBILE_Q).matches;
 let einTag   = window.matchMedia(EINTAG_Q).matches;
@@ -9615,6 +9647,8 @@ let mview = "plan";
 function setView(v) {
   mview = v;
   document.body.dataset.mview = v;
+  if (v !== "plan") document.body.dataset.panel = v;
+  else if (!document.body.dataset.panel) document.body.dataset.panel = "heute";
   document.querySelectorAll("#tabbar button").forEach(b => {
     const on = b.dataset.view === v;
     b.setAttribute("aria-current", String(on));
@@ -9624,8 +9658,7 @@ function setView(v) {
       b.setAttribute("aria-current", String(b.dataset.panel === v));
     });
     if (!isMobile) {
-      const ziel = document.querySelector('.card[data-card="' + v + '"]:not([hidden])');
-      if (ziel) ziel.scrollIntoView({ block: "start", behavior: "instant" });
+      document.querySelector(".panel").scrollTop = 0;
     }
   }
   if (v === "plan") renderGrid();
@@ -9971,15 +10004,14 @@ function renderAll() {
 
 if (!Store.available) {
   $("#banner").innerHTML =
-    "<div class='banner'><b>Vorschau-Modus:</b> Hier werden Änderungen nicht gespeichert. " +
-    "Lade die Datei herunter und öffne sie direkt im Browser — dann bleibt alles erhalten.</div>";
+    "<div class='banner' role='alert'><span><b>Speichern nicht möglich.</b> Dieser Browser kann deine Änderungen gerade nicht behalten. " +
+    "Sichere sie als Datei über Einstellungen → Sicherung.</span></div>";
 }
 
 window.addEventListener("wp-speicher-voll", () => {
   $("#banner").innerHTML =
-    "<div class='banner'><b>Der Browser-Speicher ist voll.</b> Änderungen werden gerade " +
-    "<u>nicht</u> gespeichert. Mach über Einstellungen → Sicherung eine Kopie, bevor du " +
-    "weiterarbeitest.</div>";
+    "<div class='banner' role='alert'><span><b>Der Browser-Speicher ist voll.</b> Änderungen werden gerade nicht gespeichert. " +
+    "Sichere deinen Plan über Einstellungen → Sicherung, bevor du weiterarbeitest.</span></div>";
   toast("Speicher voll — bitte sichern", { label: "Sichern", run: exportData });
 });
 

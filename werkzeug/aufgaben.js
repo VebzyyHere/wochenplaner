@@ -171,6 +171,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   // (Zeile ~4442); "nicht in der Nacht" ist damit strukturell das, was unten als
   // innerhalbTag geprueft wird: das Raster reicht ueberhaupt nicht in die Nacht hinein.
   const yOben = 2;
+  await p.locator('#panelNav [data-panel="aufgaben"]').click();
   await p.dragAndDrop('.task', '#zielSpalteE', { targetPosition: { x: 60, y: yOben } });
   await p.waitForTimeout(400);
   const e = await p.evaluate(() => {
