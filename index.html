@@ -258,6 +258,9 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
   background: var(--surface); color: var(--text);
 }
 .field:focus { outline: 2px solid var(--focus); outline-offset: -1px; border-color: transparent; }
+.field[aria-invalid="true"] { border-color: var(--danger); }
+.field-error { margin: 8px 0 0; color: var(--danger); font-size: var(--t-sm); line-height: 1.5; }
+.field-error[hidden] { display: none; }
 
 /* ============================================================ App shell */
 /* overflow: hidden verhindert, dass die ganze Seite am Telefon gummiartig
@@ -1956,6 +1959,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
           <input class="field" id="taskInput" placeholder="Was steht an?" aria-label="Neue Aufgabe" autocomplete="off">
           <button class="btn btn--primary" type="submit" aria-label="Aufgabe hinzufügen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
         </form>
+        <p class="field-error" id="taskError" role="status" hidden></p>
         <div class="tasks" id="taskList"></div>
         <div class="agenda__foot" id="tasksFoot" hidden></div>
       </section>
@@ -6566,6 +6570,7 @@ function blockSheet(draft, dayKey) {
         "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
         "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
       "</div>" +
+      "<p class='field-error' id='bZeitError' role='status' hidden></p>" +
       "<div class='sheet__row' id='bGrobRow' hidden>" +
         "<span class='label'>Wann ungefähr?</span><div class='chipset' id='bTeil'></div>" +
         "<label class='label' style='margin-top:14px' for='bDauer'>Wie lange etwa?</label>" +
@@ -6629,6 +6634,22 @@ function blockSheet(draft, dayKey) {
     let teil = ABSCHNITTE.some(x => x.id === draft.teil) ? draft.teil
              : abschnittFuer(draft.start);
     let dauer = draft.dauer || Math.max(30, draft.end - draft.start);
+    const zeitFehler = s.querySelector("#bZeitError");
+    from.setAttribute("aria-describedby", "bZeitError");
+    to.setAttribute("aria-describedby", "bZeitError");
+    const pruefeZeit = (fokus = false) => {
+      const fehltVon = !from.value, fehltBis = !to.value;
+      const falsch = !grob && (fehltVon || fehltBis || parseTime(to.value) <= parseTime(from.value));
+      zeitFehler.hidden = !falsch;
+      zeitFehler.textContent = falsch
+        ? (fehltVon || fehltBis ? "Bitte gib Start- und Endzeit an." : "Die Endzeit muss nach der Startzeit liegen. Bitte passe „Bis“ an.") : "";
+      from.setAttribute("aria-invalid", String(!grob && fehltVon));
+      to.setAttribute("aria-invalid", String(falsch && !fehltVon));
+      if (falsch && fokus) (fehltVon ? from : to).focus();
+      return !falsch;
+    };
+    from.addEventListener("input", () => pruefeZeit());
+    to.addEventListener("input", () => pruefeZeit());
 
     const genauWrap = s.querySelector("#bGenau");
     const genauHint = s.querySelector("#bGenauHint");
@@ -6659,6 +6680,7 @@ function blockSheet(draft, dayKey) {
       });
       zeitRow.hidden = grob;
       grobRow.hidden = !grob;
+      pruefeZeit();
       genauHint.textContent = grob
         ? "Steht ohne Uhrzeit im Band unter dem Raster. Nichts kollidiert, nichts muss umgeplant werden."
         : "Liegt fest im Raster.";
@@ -6800,8 +6822,8 @@ function blockSheet(draft, dayKey) {
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = isNew ? "Eintragen" : "Speichern";
 
     const commit = () => {
-      let st = parseTime(from.value), en = parseTime(to.value);
-      if (en <= st) en = st + 30;
+      if (!pruefeZeit(true)) return;
+      const st = parseTime(from.value), en = parseTime(to.value);
       const list = [...days];
       // Grobe Blöcke tragen ihre Dauer und den Abschnitt; start/end bleiben
       // nur als Anhaltspunkt gefüllt, damit Sortierungen weiter funktionieren.
@@ -6867,6 +6889,7 @@ function blockSheet(draft, dayKey) {
         if (tk) { tk.title = b.title; tk.areaId = b.areaId; }
       }
       save(); close(); renderAll();
+      toast(isNew ? "Eintrag im Wochenplan gespeichert" : "Eintrag gespeichert");
     };
     ok.onclick = commit;
     title.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
@@ -6921,6 +6944,12 @@ function renderTasks() {
 
   const open = state.tasks.filter(t => !t.done);
   const done = state.tasks.filter(t => t.done);
+  if (!open.length) {
+    const leer = document.createElement("div");
+    leer.className = "empty";
+    leer.innerHTML = "<b>Alles erledigt.</b>Neue Aufgaben kannst du oben notieren. Deine erledigten Aufgaben bleiben unten erreichbar.";
+    list.appendChild(leer);
+  }
 
   // Punkt C: mit Dauer vor ohne Dauer (die kann der Planer einplanen),
   // alphabetisch nur als letzter Schlüssel — Scannbarkeit vor Anlegereihenfolge.
@@ -6982,7 +7011,7 @@ function renderTasks() {
     kopf.setAttribute("aria-expanded", String(aufgabenErledigtOffen));
     kopf.innerHTML = "<span>Erledigt (" + done.length + ")</span><span aria-hidden='true'>"
       + (aufgabenErledigtOffen ? "⌃" : "⌄") + "</span>";
-    kopf.onclick = () => { aufgabenErledigtOffen = !aufgabenErledigtOffen; renderTasks(); };
+    kopf.onclick = () => { aufgabenErledigtOffen = !aufgabenErledigtOffen; renderTasks(); $("#taskList .tasks__toggle").focus(); };
     list.appendChild(kopf);
     if (aufgabenErledigtOffen) {
       done.forEach(t => list.appendChild(taskEl(t)));
@@ -7037,7 +7066,11 @@ function taskEl(t) {
   const cb = document.createElement("input");
   cb.type = "checkbox"; cb.className = "task__check"; cb.checked = t.done;
   cb.setAttribute("aria-label", "Erledigt: " + t.title);
-  cb.onchange = () => aufgabeAbhaken(t, cb.checked);
+  cb.onchange = () => {
+    aufgabeAbhaken(t, cb.checked);
+    const ziel = $("#taskList .task__check") || $("#taskList .tasks__toggle") || $("#taskInput");
+    ziel.focus();
+  };
 
   const body = document.createElement("div");
   body.className = "task__body";
@@ -7084,14 +7117,19 @@ function taskEl(t) {
 
   row.append(cb, body);
 
-  // Punkt A/C: nur eine Aufgabe ohne Platz braucht einen direkten Weg
-  // hinein — eingeplante und erledigte haben ihren Platz schon.
-  if (!t.done && !geplantBlock) {
+  // Offene Aufgaben führen direkt zum nächsten Schritt: planen oder
+  // einen vorhandenen Vorschlag prüfen, ohne den Arbeitsbereich zu wechseln.
+  if (!t.done && (!geplantBlock || geplantBlock.sug)) {
     const go = document.createElement("button");
     go.className = "task__go"; go.type = "button"; go.textContent = "Planen";
     go.title = "In den Wochenplan legen";
     go.setAttribute("aria-label", "In den Wochenplan legen: " + t.title);
-    go.onclick = e => { e.stopPropagation(); planTask(t); };
+    if (geplantBlock) {
+      go.textContent = "Prüfen";
+      go.title = "Vorschlag prüfen";
+      go.setAttribute("aria-label", "Vorschlag prüfen: " + t.title);
+    }
+    go.onclick = e => { e.stopPropagation(); if (geplantBlock) sugSheet(geplantBlock); else planTask(t); };
     row.append(go);
   }
 
@@ -7303,10 +7341,23 @@ $("#taskForm").addEventListener("submit", e => {
   e.preventDefault();
   const inp = $("#taskInput");
   const v = inp.value.trim();
-  if (!v) return;
+  const fehler = $("#taskError");
+  if (!v) {
+    fehler.textContent = "Gib eine Aufgabe ein, zum Beispiel „Einkaufen“.";
+    fehler.hidden = false;
+    inp.setAttribute("aria-invalid", "true");
+    inp.setAttribute("aria-describedby", "taskError");
+    inp.focus(); return;
+  }
   state.tasks.unshift({ id: uid(), title: v, areaId: state.areas[0].id, done: false, frog: false });
   inp.value = "";
   save(); renderTasks();
+  inp.focus();
+  toast("Aufgabe hinzugefügt — mit „Planen“ in die Woche legen");
+});
+$("#taskInput").addEventListener("input", () => {
+  $("#taskError").hidden = true;
+  $("#taskInput").removeAttribute("aria-invalid");
 });
 $("#goalsEdit").onclick = goalsSheet;
 
