@@ -11,6 +11,14 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.30 vom 2026-09-25
+
+Aktuelle Änderungen und visuelle Prüfbeschränkungen: `release/v1.30.md`.
+Am Telefon steht der Tagesstreifen nun vor dem Inhalt. Die Eintragsaktion
+gehört zum Plankopf statt zum schwebenden Fußbereich; `fussbereichMessen()`
+zählt nur noch Tabbar und Vorschlagsleiste. Der Termin-Dialog priorisiert Tag
+und Uhrzeit. PWA-Cache: `wp-v1.30`; Datenschema weiterhin 10.
+
 ### Release v1.28 vom 2026-09-10
 
 Aktuelle Änderungen: `release/v1.28.md`. Der lokale Abnahmebericht liegt in
@@ -211,7 +219,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.28` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.30` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

@@ -1,8 +1,8 @@
 /* ============================================================
    Pruefskript Streifen-Wischen (Auftrag "Der Tagesstreifen lernt Wischen")
 
-   .dayswitch (der Tagesstreifen mit den sieben Tageschips + zwei Rand-
-   pfeilen) hatte bis hierher KEINE Wisch-Geste, nur Taps. Dieses Skript
+   .dayswitch (der Tagesstreifen mit sieben Tageschips) hatte bis hierher
+   KEINE Wisch-Geste, nur Taps. Dieses Skript
    prueft streifenwischenEinrichten() -- dieselbe Achsen-/Schwellen-/
    Geschwindigkeitslogik wie wischenEinrichten() (Kommentar dort, ~9214),
    nur auf #daySwitch statt #gridWrap angewandt, und die 360/375/393-
@@ -155,19 +155,20 @@ function zustand(p) {
     await ctx.close();
   }
 
-  // ---- e: Pfeile funktionieren weiter --------------------------------
+  // ---- e: Einfache Wochenpfeile im Kopf funktionieren weiter ----------
   {
     const { ctx, p, errs } = await neueSeite(b);
     const vor = await zustand(p);
-    await p.locator('.dayswitch__nav--next').click();
+    await p.locator('#nextWeek').click();
     await p.waitForTimeout(150);
     const nachNext = await zustand(p);
     ok(nachNext.woche !== vor.woche, '(e) Pfeil "Woche vor" funktioniert weiterhin');
 
-    await p.locator('.dayswitch__nav--prev').click();
+    await p.locator('#prevWeek').click();
     await p.waitForTimeout(150);
     const nachPrev = await zustand(p);
     ok(nachPrev.woche === vor.woche, '(e) Pfeil "Woche zurück" funktioniert weiterhin');
+    ok(await p.locator('.dayswitch__nav').count() === 0, '(e) Keine doppelten Wochenpfeile im Tagesstreifen');
 
     console.log('Konsolenfehler:', errs.length ? errs : 'keine');
     fehler.push(...errs);
@@ -193,20 +194,25 @@ function zustand(p) {
   {
     const { ctx, p, errs } = await neueSeite(b);
     const geo = await p.evaluate(() => {
-      const navs = [...document.querySelectorAll('.dayswitch__nav')].map(n => Math.round(n.getBoundingClientRect().width));
       const chips = [...document.querySelectorAll('.dayswitch__btn')].map(c => Math.round(c.getBoundingClientRect().width));
       const cs = getComputedStyle(document.querySelector('.dayswitch'));
       const sug = document.querySelector('.agenda__sugacts button');
       const blockSug = document.querySelector('.block__sug button');
       return {
-        navs, chips, gap: cs.columnGap,
+        chips, gap: cs.columnGap,
         sug: sug ? Math.round(sug.getBoundingClientRect().width) : null,
         blockSug: blockSug ? Math.round(blockSug.getBoundingClientRect().width) : null,
       };
     });
     console.log('(g) Geometrie 393px:', JSON.stringify(geo));
-    ok(geo.navs.every(w => w >= 32), '(g) Pfeile bei 393px sichtbar >=32px: ' + geo.navs);
+    ok(geo.chips.every(w => w >= 44), '(g) Tageschips bei 393px mindestens 44px breit: ' + geo.chips);
     ok(parseFloat(geo.gap) > 2, '(g) Chip-Luecken bei 393px > 2px: ' + geo.gap);
+    const reihenfolge = await p.evaluate(() => {
+      const top = sel => document.querySelector(sel).getBoundingClientRect().top;
+      return [top('.topbar'), top('.dayswitch'), top('.planhead'), top('.gridwrap'), top('.tabbar')];
+    });
+    ok(reihenfolge.every((y, i) => i === 0 || y > reihenfolge[i - 1]),
+      '(g) Sichtbare Reihenfolge entspricht Tastaturfolge: Kopf, Tage, Plankopf, Raster, Tabbar');
     if (geo.sug != null) ok(geo.sug >= 40, '(g) Vorschlags-Checkknopf (Agenda) bei 393px sichtbar >=40px: ' + geo.sug);
     if (geo.blockSug != null) ok(geo.blockSug >= 40, '(g) Vorschlags-Checkknopf (Raster) bei 393px sichtbar >=40px: ' + geo.blockSug);
 
@@ -215,24 +221,24 @@ function zustand(p) {
     await ctx.close();
   }
 
-  // ---- h: Geometrie 320px (SE) unangetastet ---------------------------
+  // ---- h: Geometrie 320px (SE) ----------------------------------------
   {
     const { ctx, p, errs } = await neueSeite(b, { width: 320, height: 568 });
     const geo = await p.evaluate(() => {
-      const navs = [...document.querySelectorAll('.dayswitch__nav')].map(n => Math.round(n.getBoundingClientRect().width));
+      const chips = [...document.querySelectorAll('.dayswitch__btn')].map(n => n.getBoundingClientRect().width);
       const cs = getComputedStyle(document.querySelector('.dayswitch'));
       const sug = document.querySelector('.agenda__sugacts button');
       const blockSug = document.querySelector('.block__sug button');
       const hourh = getComputedStyle(document.querySelector('.grid')).getPropertyValue('--hourh').trim();
       return {
-        navs, gap: cs.columnGap, hourh,
+        chips, gap: cs.columnGap, hourh,
         sug: sug ? Math.round(sug.getBoundingClientRect().width) : null,
         blockSug: blockSug ? Math.round(blockSug.getBoundingClientRect().width) : null,
       };
     });
     console.log('(h) Geometrie 320px (SE, Zweitkontext):', JSON.stringify(geo));
-    ok(geo.navs.every(w => w === 22), '(h) SE: Pfeile bleiben exakt 22px: ' + geo.navs);
-    ok(parseFloat(geo.gap) === 2, '(h) SE: Chip-Luecken bleiben exakt 2px: ' + geo.gap);
+    ok(geo.chips.every(w => w >= 44), '(h) SE: Tageschips sind mindestens 44px breit: ' + geo.chips);
+    ok(parseFloat(geo.gap) === 0, '(h) SE: Tageschips nutzen die volle Breite: ' + geo.gap);
     ok(geo.hourh === '56px', '(h) SE: --hourh bleibt exakt 56px: ' + geo.hourh);
     if (geo.sug != null) ok(geo.sug === 34, '(h) SE: Vorschlags-Checkknopf (Agenda) bleibt 34px: ' + geo.sug);
     if (geo.blockSug != null) ok(geo.blockSug === 34, '(h) SE: Vorschlags-Checkknopf (Raster) bleibt 34px: ' + geo.blockSug);

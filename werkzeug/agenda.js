@@ -17,15 +17,9 @@
    Vertragslücke; Abschnitt h) unten prüft den Abend absichtlich mit einer
    zweiten, eigenen festen Uhr (23 Uhr) statt die Falz für alle Zeiten wegzudefinieren.
 
-   Anmerkung zu (a): der Auftrag nennt als untere Grenze ".dayswitch". Das
-   Element steht laut Markup (~1243) zwar VOR ".main", sitzt seit Stufe 8
-   aber per CSS-order (order:2, siehe .dayswitch/.tabbar) direkt über der
-   Tabbar — am unteren, nicht mehr am oberen Bildschirmrand (siehe Messung
-   unten). Trotzdem bleibt die feste Tabbar (".tabbar", unten, Daumenzone)
-   die geprüfte Fuß-Kante: sie steht immer, .dayswitch nur bei data-tage="1"
-   (sonst display:none, s. CSS). Geprüft wird deshalb Agenda-Unterkante <
-   Tabbar-Oberkante; die Dayswitch-Werte werden zur Kontrolle mit ausgegeben.
-   Siehe Bericht für die Begründung.
+   Anmerkung zu (a): Der Tagesstreifen steht in Markup und sichtbarer
+   Reihenfolge direkt unter der Kopfzeile. Untere feste Kante ist die
+   Tabbar; die Agenda muss bei Standardschrift oberhalb davon enden.
 
    Diese strenge Falz (a) gilt für die Standardschrift. Bei vergrößerter
    Systemschrift ist Scrollen die gewollte Folge größerer Schrift — dafür
@@ -127,8 +121,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
   ok(rects.panelScrollTop === 0, 'Panel ist ungescrollt (natürlicher Zustand geprüft)');
   ok(rects.agenda.bottom <= rects.tabbar.top,
     `Agenda-Unterkante (${rects.agenda.bottom.toFixed(1)}) liegt über Tabbar-Oberkante (${rects.tabbar.top.toFixed(1)})`);
-  console.log(`   Zur Kontrolle: .dayswitch liegt bei top ${rects.dayswitch.top.toFixed(1)}–bottom ${rects.dayswitch.bottom.toFixed(1)} `
-    + '(seit Stufe 8 unten über der Tabbar, nicht mehr am oberen Bildschirmrand — als Fußkante der Agenda trotzdem ungeeignet, s. Kommentar oben)');
+  console.log(`   Zur Kontrolle: .dayswitch liegt oben bei ${rects.dayswitch.top.toFixed(1)}–${rects.dayswitch.bottom.toFixed(1)}`);
   await p.screenshot({ path: 'ag-falz-hell.png' });
 
   /* ---- b) 44px Trefferflächen ------------------------------------------- */

@@ -2,14 +2,14 @@
    Pruefskript Fussbereich (Stufe 6, erweitert in Stufe 8) — iPhone SE
    (320x568) und Querformat
 
-   Prueft, was der Bericht zu Stufe 6 ueber die Stapelung von Tabbar,
-   Vorschlagsleiste, FAB und Toasts behauptet:
+   Prueft die mobile Stapelung von Tabbar, Tagesstreifen, Eintragsaktion,
+   Vorschlagsleiste und Toasts:
      a) Ueberlappung — mit offenen Vorschlaegen ueberlappen sich Tabbar,
-        Tagesstreifen (.dayswitch, seit Stufe 8), Vorschlagsleiste, FAB
+        Tagesstreifen (.dayswitch), Vorschlagsleiste, Eintragsaktion
         und ein sichtbarer Toast PAARWEISE NICHT (Rechteck-Schnittflaeche
         = 0)
-     b) Ohne Vorschlaege — die Leiste ist nicht im Bild, FAB und Toast
-        ruecken nach unten (ihr bottom-Wert wird kleiner)
+     b) Ohne Vorschlaege — die Leiste ist nicht im Bild, Toast rueckt nach
+        unten; die Eintragsaktion bleibt im Plankopf
      c) Sicherheitszone — kein Element ragt unter die Tabbar-Unterkante
      d) Querformat — die Leiste erscheint auch dort
 
@@ -60,6 +60,7 @@ async function messen(p) {
       sugbarFlag: document.body.dataset.sugbar,
       tabbar: rectOrNull('.tabbar'),
       dayswitch: rectOrNull('.dayswitch'),
+      gridwrap: rectOrNull('.gridwrap'),
       sugbar: rectOrNull('#sugBar'),
       fab: rectOrNull('.fab'),
       toast: rectOrNull('.toasts .toast:last-child'),
@@ -105,6 +106,8 @@ async function pruefeFall(p, tag, quer) {
   // Ansicht 'plan' bei 320px Breite/Hoehe (hoch wie quer) liegt unter der
   // (max-width:640px)-Schwelle fuer einTag — der Tagesstreifen muss also da sein.
   ok(!!mit.dayswitch, 'Tagesstreifen (.dayswitch) ist sichtbar');
+  ok(mit.dayswitch && mit.gridwrap && mit.dayswitch.bottom <= mit.gridwrap.top,
+    'Tagesstreifen steht vor dem Planinhalt');
 
   const flaechen = { tabbar: mit.tabbar, dayswitch: mit.dayswitch, sugbar: mit.sugbar, fab: mit.fab, toast: mit.toast };
   const namen = Object.keys(flaechen).filter(k => flaechen[k]);
@@ -148,10 +151,8 @@ async function pruefeFall(p, tag, quer) {
   }
 
   if (mit.fab && ohne.fab) {
-    // bottom-css-Wert = Abstand von der Fensterunterkante zur Unterkante des Elements
-    const cssBottomMit = mit.innerHeight - mit.fab.bottom;
-    const cssBottomOhne = ohne.innerHeight - ohne.fab.bottom;
-    ok(cssBottomOhne < cssBottomMit, `FAB rueckt nach unten, wenn die Leiste weg ist (bottom ${cssBottomMit}px -> ${cssBottomOhne}px)`);
+    ok(Math.abs(mit.fab.top - ohne.fab.top) < 1,
+      'Eintragsaktion bleibt im Plankopf, auch wenn Vorschlaege erscheinen');
   }
   if (mit.toast && ohne.toast) {
     const cssBottomMit = mit.innerHeight - mit.toast.bottom;

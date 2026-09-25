@@ -117,10 +117,10 @@ function ok(b, text) { assert.ok(b, text); checks++; console.log('OK ' + text); 
     await m.waitForTimeout(250);
     const kanten = await m.evaluate(() => {
       const v = document.querySelector('#sugBar').getBoundingClientRect();
-      const t = document.querySelector('#daySwitch').getBoundingClientRect();
+      const t = document.querySelector('#tabbar').getBoundingClientRect();
       return {unten:v.bottom,oben:t.top};
     });
-    ok(Math.abs(kanten.unten-kanten.oben)<1, 'Vorschlagsleiste schließt auch bei 150 % Schrift ohne Spalt an den Tagesstreifen an');
+    ok(Math.abs(kanten.unten-kanten.oben)<1, 'Vorschlagsleiste schließt auch bei 150 % Schrift ohne Spalt an die Tabbar an');
     await mobil.close();
     console.log(checks + ' Release-Prüfungen bestanden.');
   } finally { await browser.close(); }

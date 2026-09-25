@@ -1263,8 +1263,8 @@ html[data-theme="dark"] .rest {
 
 /* ============================================================ Mobile day switcher */
 .dayswitch {
-  display: none; grid-template-columns: 22px repeat(7, minmax(0, 1fr)) 22px; gap: 2px;
-  padding: 4px 2px; border-bottom: 1px solid var(--border);
+  display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px;
+  padding: 4px; border-bottom: 1px solid var(--border);
   background: var(--surface); overflow: hidden;
   /* pinch-zoom dazu wie beim Raster (.daycol, Kommentar dort) -- "none"
      wuerde auch senkrechtes Seitenscrollen kapern, das der Streifen selbst
@@ -1274,22 +1274,9 @@ html[data-theme="dark"] .rest {
      per se. */
   touch-action: pan-y pinch-zoom;
 }
-/* Randpfeile fuer den Wochensprung, links und rechts der sieben Chips. Bei
-   320px ist selbst mit 2px-Fugen kein Platz fuer zwei volle 44px-Knoepfe
-   UND sieben ordentlich breite Tageschips zugleich (2*44 + 7*44 liegt weit
-   über 320, sogar ganz ohne jede Fuge) — deshalb bleiben sie mit 22px so
-   schmal wie ein Pfeilglyph und holen sich einen Teil ihrer Trefferfläche
-   wie die Chips unten über ein ::before. Das bleibt bewusst INNERHALB von
-   .dayswitch (kein negativer Versatz nach außen) — sonst zählt es zur
-   Scrollbreite von .dayswitch dazu, obwohl overflow:hidden es unsichtbar
-   abschneidet, und dsQuer (s. diag7.js) meldet fälschlich waagerechtes
-   Scrollen. */
-.dayswitch__nav {
-  width: 22px; min-width: 0; padding: 0; position: relative;
-}
-.dayswitch__nav::before { content: ""; position: absolute; top: 0; bottom: 0; width: 36px; }
-.dayswitch__nav--prev::before { left: 0; }
-.dayswitch__nav--next::before { right: 0; }
+/* Die Woche wird bereits über die Pfeile im Kopf gewechselt. Ohne zweite
+   Pfeilreihe bekommen alle sieben Tage auch auf 320px eine Trefferfläche
+   nahe 44px; Tastatur- und sichtbare Reihenfolge bleiben gleich. */
 .dayswitch__btn {
   min-width: 0; min-height: 46px; border-radius: var(--radius-sm);
   border: 1px solid transparent; background: transparent; padding: 3px 1px;
@@ -1433,43 +1420,15 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 .sugbar { display: none; }
 
 @media (max-width: 1100px) {
-  /* ---- Unterer Bedienbereich --------------------------------------------
-     Tabbar, FAB, Toasts und Vorschlagsleiste konkurrieren hier unten um
-     denselben Platz. Statt jede Fläche mit einer eigenen, von Hand
-     geschätzten Zahl zu positionieren (das führte zuletzt zu einem
-     Notbehelf: ein Toast-Wert, der eigentlich die "Heute"-Karte freihalten
-     sollte, nicht die Tabbar — bei einem leeren Tag schwebte er dadurch
-     mitten im Bild), zieht jede schwebende Fläche ihren bottom-Wert aus
-     zwei Variablen:
-       --fussleiste  Höhe der Tabbar inkl. unterer Sicherheitszone, seit
-                     Stufe 8 zuzüglich des Tagesstreifens (--tagstreifen),
-                     wenn er steht — der sitzt jetzt selbst unmittelbar über
-                     der Tabbar statt oben unter der Kopfzeile.
-       --fuss-oben   dasselbe, zusätzlich die Vorschlagsleiste, wenn sie
-                     steht (body[data-sugbar="1"], gesetzt von renderSugBar). */
+  /* Tabbar und Vorschlagsleiste bilden den unteren Bedienbereich. Der
+     Tagesstreifen steht direkt unter der Kopfzeile und zählt hier nicht. */
   body {
-    --tagstreifen: 0px;
-    --fussleiste: calc(62px + var(--tagstreifen) + var(--safe-bottom));
+    --fussleiste: calc(62px + var(--safe-bottom));
     --fuss-oben: var(--fussleiste);
   }
-  /* 63px = 4px Polster oben + 53px hoher Chip + 4px Polster unten + 1px
-     Haarlinie und 1px Puffer. Der Chip selbst hat zwar min-height:46px,
-     wächst durch Label+Kreis+Balken (.dayswitch__btn span/b/i) aber auf
-     tatsächlich ~53px — 55px (angenommene 46px) war zu knapp und liess die
-     Vorschlagsleiste 2px in den Tagesstreifen hineinragen (per fuss.js
-     gemessen: dayswitch.top 448.9 < sugbar.bottom 451). Muss mit
-     .dayswitch/.dayswitch__btn oben übereinstimmen. Dieselbe Bedingung wie
-     weiter unten bei der display:grid-Regel für .dayswitch, sonst rechnen
-     beide Stellen mit unterschiedlichen Tagen. */
-  body[data-mview="plan"][data-tage="1"],
-  body[data-mview="heute"][data-tage="1"] {
-    --tagstreifen: 63px;
-  }
   body[data-sugbar="1"] {
-    /* 61px = Höhe der Vorschlagsleiste: 44px hohe Knöpfe + 16px senkrechtes
-       Padding (var(--s-2) oben und unten) + 1px Haarlinie. Muss mit den
-       Werten unten bei .sugbar übereinstimmen, sonst schiebt sich der FAB
-       wieder unter die Leiste. */
+  /* 61px = Höhe der Vorschlagsleiste: 44px hohe Knöpfe + 16px senkrechtes
+       Padding (var(--s-2) oben und unten) + 1px Haarlinie. */
     --fuss-oben: calc(var(--fussleiste) + 61px);
   }
 
@@ -1493,19 +1452,18 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .tabbar button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
   .tabbar button:active { background: var(--surface-2); }
 
-  /* Schwebender Knopf — „ins Raster tippen" ist am Handy nicht selbsterklärend */
+  /* Die Eintragsaktion steht in der Plan-Kopfzeile. So bleibt sie sichtbar,
+     ohne Termine im Raster oder Vorschläge am unteren Rand zu verdecken. */
   body[data-mview="plan"] .fab {
-    display: grid; place-items: center; position: fixed;
-    right: calc(16px + var(--safe-right)); z-index: 40;
-    bottom: var(--fuss-oben);
-    width: 54px; height: 54px; border-radius: 50%;
-    background: var(--ink); border: none; box-shadow: var(--shadow-2);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+    flex: none; min-height: 44px; padding: 0 var(--s-3); border-radius: var(--radius-sm);
+    background: var(--ink); color: var(--on-ink); border: none;
   }
   .fab svg {
-    width: 26px; height: 26px; fill: none; stroke: var(--on-ink);
+    width: 20px; height: 20px; fill: none; stroke: currentColor;
     stroke-width: 2.2; stroke-linecap: round;
   }
-  .fab:active { transform: scale(0.94); }
+  .fab:active { opacity: .85; }
 
   /* Vorschlagsleiste: keine Karte — kein Schatten, kein Radius, kein
      farbiger Rand. Eine Haarlinie nach oben genügt, die Fläche bleibt
@@ -1565,7 +1523,11 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      ein leeres `.planwrap` liess vorher das Band stehen und schnitt die
      Karten mitten im Text ab. */
   .main { flex-direction: column; }
-  .panelnav, .planhead { display: none; }
+  .panelnav { display: none; }
+  body:not([data-mview="plan"]) .planhead { display: none; }
+  .planhead { padding: var(--s-2) var(--s-4); gap: var(--s-2); }
+  .planhead h1 { font-size: var(--t-body); margin: 0; }
+  .planhead__hint, .planhead #desktopAdd, .planhead #weekOverviewBtn { display: none; }
   .panel {
     width: 100%; flex: 1; min-height: 0;
     border-right: 0; max-height: none;
@@ -1587,8 +1549,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   }
   /* Die Vorschlagsleiste ist fixed und schwebt frei ueber dem Fussbereich —
      anders als die Tabbar, ein echtes Flex-Geschwister, bekommt sie von
-     Flexbox keinen eigenen Platz zugewiesen. FAB und Toasts rechnen sie
-     deshalb schon laengst ueber --fuss-oben ein (~1214/~1326); der Karte in
+     Flexbox keinen eigenen Platz zugewiesen. Toasts rechnen sie
+     ueber --fuss-oben ein; der Karte in
      "Heute" und dem Raster in "Plan" fehlte das Gegenstueck (belegt durch
      leiste.js). Bodenabstand ist die Differenz aus --fuss-oben und
      --fussleiste — exakt die Leistenhoehe, aber aus der Variable abgeleitet
@@ -1610,6 +1572,14 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     padding-bottom: calc(var(--fuss-oben) - var(--fussleiste) + var(--s-2));
   }
   .card__head { margin-bottom: var(--s-3); }
+  /* Auf kleinen Telefonen bleibt die laufende Agenda samt "Danach frei"
+     oberhalb der Tabbar. Nur Zwischenräume schrumpfen; antippbare Zeilen
+     und Schriftgrößen behalten ihre Maße. */
+  @media (max-width: 640px) {
+    body[data-mview="heute"] .agenda__label:not(:first-child) { margin-top: 8px; }
+    body[data-mview="heute"] .agenda__hero { margin-top: 4px; padding-bottom: 6px; }
+    body[data-mview="heute"] .agenda__foot { margin-top: 4px; padding-top: 6px; }
+  }
 
   /* Die Aufgabenliste darf den Platz nutzen, damit das Eingabefeld oben
      stehen bleibt statt mit wegzuscrollen. */
@@ -1629,12 +1599,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      dort gar nicht auswählen konnte. */
   body[data-mview="plan"][data-tage="1"] .dayswitch,
   body[data-mview="heute"][data-tage="1"] .dayswitch { display: grid; }
-  /* Der Streifen wandert direkt über die Tabbar statt unter die Kopfzeile —
-     .app ist schon flex-column, das Markup bleibt an seiner Stelle (vor
-     .main), nur die sichtbare Reihenfolge dreht sich per order. */
-  .main { order: 1; }
-  .dayswitch { order: 2; }
-  .tabbar { order: 3; }
+  /* Markup- und sichtbare Reihenfolge: Kopf, Tage, Inhalt, Tabbar. */
   .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
   /* Ab 390px (13/14 Pro Max, nicht das SE) darf die Stunde etwas hoeher
      werden -- --gutter bleibt unangetastet, das ist ein reiner
@@ -1656,6 +1621,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   }
   .weeknav__label small { display: inline; font-size: var(--t-sm); }
   .weeknav__label small::before { content: " · "; }
+  @media (max-width: 359px) {
+    .dayswitch { gap: 0; padding-left: 3px; padding-right: 3px; }
+    .planhead__weekday { display: none; }
+  }
   /* Unter 360 Pixeln bricht das Datum mitten durch. Die Tage stehen
      ohnehin im Wechsler darunter — dann lieber nur die Kalenderwoche. */
   @media (max-width: 360px) {
@@ -1677,20 +1646,6 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
     }
   }
-  /* Ab 360px ist der 22px-Pfeilkompromiss (Kommentar an .dayswitch__nav,
-     ~1211) nicht mehr noetig -- der galt fuer 320px, wo 2*44px-Knoepfe UND
-     sieben ordentlich breite Chips nicht gleichzeitig Platz haben. Ab 360px
-     reicht die Rechnung mit 34px-Pfeilen und einer Idee mehr Luecke (3px):
-       360px: 2*34 (Pfeile) + 8*3 (Luecken) + 4 (Padding) = 96px fix,
-              7 Chips teilen sich 360-96=264px  -> 37,7px/Chip
-       375px: fix bleibt 96px, 375-96=279px     -> 39,9px/Chip
-       393px: fix bleibt 96px, 393-96=297px     -> 42,4px/Chip
-     Alle drei liegen komfortabel ueber den 36,6px/Chip von 320px vorher,
-     und 96px fix + 7*37,7px passt bei 360px noch mit Rest zusammen. */
-  @media (min-width: 360px) {
-    .dayswitch { grid-template-columns: 34px repeat(7, minmax(0, 1fr)) 34px; gap: 3px; }
-    .dayswitch__nav { width: 34px; }
-  }
   .topbar { padding: 4px var(--s-2); gap: 0; }
   .topbar { padding-top: max(4px, var(--safe-top)); }
   .sheet { max-width: 100%; max-height: min(88dvh, calc(var(--sicht-hoehe) - var(--safe-top) - 8px));
@@ -1703,13 +1658,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .loose { max-height: 25dvh; padding: 4px 0; }
   .loose__hint { font-size: var(--t-xs); line-height: 1.35; }
 
-  /* Meldungen ueber die Leiste heben, sonst verdecken sie die Umschalter.
-     Bezieht sich jetzt auf --fuss-oben (Tabbar, plus Vorschlagsleiste, wenn
-     sie steht) statt auf einen von Hand geschaetzten Wert — der raetselte
-     bisher an der Hoehe der „Heute"-Karte herum und liess den Toast bei
-     einem leeren Tag mitten im Bild schweben. Dazu die Fab-Hoehe (54px)
-     und ein kleiner Abstand, damit er auch den Knopf klar ueberragt. */
-  .toasts { bottom: calc(var(--fuss-oben) + 54px + var(--s-2)); width: min(94vw, 420px); }
+  /* Meldungen stehen knapp über Tabbar oder Vorschlägen. Der Eintragsknopf
+     liegt jetzt im Plankopf und braucht unten keinen Freiraum mehr. */
+  .toasts { bottom: calc(var(--fuss-oben) + var(--s-2)); width: min(94vw, 420px); }
 
   /* ---- Dialogfuss ------------------------------------------------------
      Drei Knoepfe nebeneinander passen auf 320 px nicht. Loeschen rutscht in
@@ -1770,7 +1721,6 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     padding-right: max(var(--s-6), calc((100% - 640px) / 2)); }
   .tabbar button { flex-direction: row; gap: var(--s-2); font-size: var(--t-sm); min-height: 54px; }
   body[data-mview="heute"] .dayswitch { display: grid; padding-left: var(--s-6); padding-right: var(--s-6); }
-  body[data-mview="heute"] { --tagstreifen: 63px; }
   .scrim { padding: max(var(--s-6), var(--safe-top)) max(var(--s-6), var(--safe-right))
     max(var(--s-6), var(--safe-bottom)) max(var(--s-6), var(--safe-left)); align-items: center; }
   .sheet { max-width: 560px; margin: 0; border-radius: var(--radius-lg);
@@ -1828,11 +1778,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .switch input { width: 22px; height: 22px; }
   .hakenrow input { width: 22px; height: 22px; }
   .energy__opt { min-height: 68px; }
-  /* Auf 320px berühren sich die sieben Chips jetzt randlos (2px Abstand,
-     s. .dayswitch oben) — die sichtbare Fläche schrumpft dadurch unter
-     44px. ::before holt die Trefferfläche auf 46x46 zurück, ohne den
-     schmalen Chip optisch zu verbreitern (gleiche Technik wie bei
-     .block__done/.arearow__swatch). */
+  /* Der Pseudobereich hält die Tagesziele auch bei Zoom gut erreichbar. */
   .dayswitch__btn { min-height: 46px; position: relative; }
   .dayswitch__btn::before {
     content: ""; position: absolute; inset: 50%;
@@ -1972,6 +1918,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
         <div class="planhead__actions">
           <button type="button" class="btn" id="weekOverviewBtn">Freie Zeit</button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
+          <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Eintrag</span>
+          </button>
         </div>
       </div>
       <div class="gridwrap" id="gridWrap">
@@ -2009,10 +1958,6 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     </button>
   </nav>
 
-  <!-- Neuer Eintrag, ohne dass man wissen muss, dass man ins Raster tippt -->
-  <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
 </div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -3291,17 +3236,6 @@ function renderDaySwitch() {
   const mon = mondayOf(anchor);
   const todayIso = iso(new Date());
 
-  // Randpfeile für den Wochensprung — dieselbe Bewegung wie #prevWeek/
-  // #nextWeek im Kopf, nur eben direkt am Streifen, wo der Daumen ohnehin
-  // schon ist. selectedDayIdx bleibt stehen: wer auf Mittwoch steht und
-  // eine Woche weiterspringt, will den nächsten Mittwoch sehen, nicht
-  // wieder bei Montag anfangen.
-  const prev = document.createElement("button");
-  prev.type = "button"; prev.className = "btn btn--ghost dayswitch__nav dayswitch__nav--prev";
-  prev.textContent = "‹"; prev.setAttribute("aria-label", "Woche zurück");
-  prev.onclick = () => { anchor = addDays(mondayOf(anchor), -7); renderAll(); };
-  wrap.appendChild(prev);
-
   for (let i = 0; i < 7; i++) {
     const d = addDays(mon, i);
     const key = iso(d);
@@ -3328,12 +3262,6 @@ function renderDaySwitch() {
     b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); };
     wrap.appendChild(b);
   }
-
-  const next = document.createElement("button");
-  next.type = "button"; next.className = "btn btn--ghost dayswitch__nav dayswitch__nav--next";
-  next.textContent = "›"; next.setAttribute("aria-label", "Woche vor");
-  next.onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAll(); };
-  wrap.appendChild(next);
 }
 
 /* ============================================================
@@ -5005,7 +4933,7 @@ function fussbereichMessen() {
     return;
   }
   const hoehe = id => document.getElementById(id).getBoundingClientRect().height;
-  const unten = hoehe("tabbar") + hoehe("daySwitch");
+  const unten = hoehe("tabbar");
   document.body.style.setProperty("--fussleiste", unten + "px");
   document.body.style.setProperty("--fuss-oben", (unten + hoehe("sugBar")) + "px");
 }
@@ -5801,6 +5729,11 @@ function renderGrid() {
   const hourH = parseFloat(getComputedStyle(grid).getPropertyValue("--hourh")) || 52;
   const bodyH = hours * hourH;
   const mon = mondayOf(anchor);
+  const planTitel = $(".planhead h1");
+  const planTag = addDays(mon, selectedDayIdx);
+  planTitel.innerHTML = einTag
+    ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
+    : "Deine Woche";
   const todayIso = iso(new Date());
   const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
@@ -5912,7 +5845,7 @@ function renderGrid() {
     empty.style.alignSelf = "start";
     empty.innerHTML = (einzelTag && istFrei(einzelTag))
       ? "<b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten."
-      : "<b>Noch nichts geplant</b>Tippe auf eine freie Stelle im Raster, um einen ersten Eintrag anzulegen.";
+      : "<b>Noch nichts geplant</b>Wähle „Eintrag“ oder tippe auf eine freie Stunde im Raster.";
     grid.appendChild(empty);
   }
 
@@ -6559,9 +6492,10 @@ function blockSheet(draft, dayKey) {
       (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
-      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
-      "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
-        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Wann?</span>" +
+        "<div class='chipset' id='bDays'></div>" +
+        "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
+      "</div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
         "<div id='bGenauHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
@@ -6576,11 +6510,10 @@ function blockSheet(draft, dayKey) {
         "<label class='label' style='margin-top:14px' for='bDauer'>Wie lange etwa?</label>" +
         "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
-      "<div class='sheet__row'><span class='label'>Wann?</span>" +
-        "<div class='chipset' id='bRepeat'></div>" +
-        "<div class='chipset' id='bDays' style='margin-top:12px'></div>" +
-        "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
-      "</div>" +
+      "<div class='sheet__row'><span class='label'>Wiederholen?</span><div class='chipset' id='bRepeat'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
+        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
         "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
@@ -9620,7 +9553,7 @@ function wischenEinrichten() {
    Idx 0/6), deshalb reicht hier ein einziger Aufruf fuer den nahtlosen
    Wochenuebergang, denselben wie beim Inhalts-Wischen. Kein
    Transform-Vorschau -- der Streifen ist keine einzelne verschiebbare
-   Flaeche wie #grid, sondern sieben einzelne Chips plus zwei Pfeile;
+   Flaeche wie #grid, sondern sieben einzelne Chips;
    „schlichter Wechsel" (Auftrag W1) statt einer erfundenen Animation. */
 function streifenwischenEinrichten() {
   const wrap = $("#daySwitch");
@@ -10074,7 +10007,7 @@ $("#syncBadge").onclick = () => {
 
 if ("ResizeObserver" in window) {
   const fussBeobachter = new ResizeObserver(fussbereichMessen);
-  ["tabbar", "daySwitch", "sugBar"].forEach(id => fussBeobachter.observe(document.getElementById(id)));
+  ["tabbar", "sugBar"].forEach(id => fussBeobachter.observe(document.getElementById(id)));
 }
 
 applyTheme();

@@ -18,6 +18,9 @@ const assert = require('assert/strict');
     assert.equal(await page.locator('#taskError').isVisible(), false);
     await page.locator('#taskInput').press('Enter');
     await page.getByRole('button', { name: 'In den Wochenplan legen: Einkaufen', exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#bTitle,#bDays,#bGenau,#bFrom,#bTo,#bRepeat,#bAreas,#bOrte')].map(el => el.id)),
+      ['bTitle', 'bDays', 'bGenau', 'bFrom', 'bTo', 'bRepeat', 'bAreas', 'bOrte'],
+      'Titel, Tag und Uhrzeit gehen optionalen Angaben auch in der Tastaturfolge voraus');
     await page.locator('#bFrom').fill('14:00');
     await page.locator('#bTo').fill('13:00');
     await page.getByRole('button', { name: 'Eintragen', exact: true }).click();
