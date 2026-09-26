@@ -129,6 +129,33 @@ const aufbau = () => {
   ok(await p.evaluate(() => !JSON.stringify(state).includes('gefeiert') && !JSON.stringify(state).includes('jubel')), 'nichts davon landet in state');
   await ctx.close();
 
+  console.log('e) Ring am Termin und runde Schrift (v1.34)');
+  {
+    const { ctx, p } = await seite('2026-09-09T10:15:00+02:00');
+    await p.evaluate(() => setView('plan'));
+    await p.waitForTimeout(150);
+    const vor = await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity);
+    await p.hover('.block[data-id="lauf"]');
+    await p.waitForTimeout(250);
+    const nach = await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity);
+    ok(vor === '0' && nach === '1', 'Desktop: Ring erscheint erst beim Überfahren (' + vor + ' → ' + nach + ')');
+    await p.click('.block[data-id="lauf"] .block__done');
+    ok(await p.evaluate(() => istErledigt(state.blocks.find(b => b.id === 'lauf'), iso(new Date())) && document.querySelectorAll('.jubel').length > 0),
+      'Klick auf den Ring hakt ab und feiert');
+    ok(await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity === '1'), 'abgehakt bleibt der gefüllte Ring sichtbar');
+    const schrift = await p.evaluate(async () => { await document.fonts.ready;
+      return { da: document.fonts.check('750 17px "Wochenplaner Rund"'), stapel: getComputedStyle(document.querySelector('.planhead h1')).fontFamily }; });
+    ok(schrift.da && /Wochenplaner Rund/.test(schrift.stapel), 'eingebettete runde Schrift ist geladen und im Display-Stapel');
+    await ctx.close();
+  }
+  {
+    const { ctx, p } = await seite('2026-09-09T10:15:00+02:00', { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+    await p.evaluate(() => setView('plan'));
+    await p.waitForTimeout(150);
+    ok(await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity === '1'), 'Telefon: Ring ist immer sichtbar');
+    await ctx.close();
+  }
+
   console.log('c2) Bewegung reduziert');
   {
     const { ctx, p } = await seite('2026-09-09T10:15:00+02:00', { reducedMotion: 'reduce' });

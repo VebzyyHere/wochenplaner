@@ -10,6 +10,9 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.34 erweitert `freude.js` um den Ring am Termin (Desktop erst beim Überfahren,
+Telefon immer, Abhaken samt Konfetti) und die eingebettete runde Schrift.
+
 Version 1.33 ergänzt `freude.js`: Begrüßung zu fünf festen Uhrzeiten, Etiketten ohne
 Großbuchstaben, Welle unter dem Schwerpunkt, „frei"-Aufkleber, Konfetti beim Abhaken
 (und keins beim Aufheben oder bei reduzierter Bewegung), einmalige Ziel- und

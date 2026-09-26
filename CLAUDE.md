@@ -11,6 +11,18 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.34 vom 2026-09-26
+
+Aktuelle Änderungen: `release/v1.34.md`. PWA-Cache `wp-v1.34`, Datenschema 10, Kette 61 Skripte.
+
+- `.block__done` ist ein sichtbarer Ring (Touch immer, Maus bei Hover/Fokus); Blöcke unter
+  52 px tragen `.is-knapp` und halten rechts Platz frei; in der Sieben-Tage-Ansicht auf
+  `pointer: coarse` fehlt der Ring an knappen/kurzen Blöcken.
+- Am Anfang des `<style>`-Blocks steht ein `@font-face` „Wochenplaner Rund" (Nunito, OFL,
+  Base64, ~52 KB) — deshalb ist `index.html` jetzt ~575 KB. `--font-display` nennt es nach
+  `ui-rounded`; Apple-Geräte dekodieren es nie. Nicht durch eine externe Webfont ersetzen
+  (Offline-/Einzeldatei-Vertrag).
+
 ### Release v1.33 vom 2026-09-26
 
 Aktuelle Änderungen: `release/v1.33.md`. Prüfung: `werkzeug/freude.js`; Kette 61 Skripte.
@@ -289,7 +301,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.33` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.34` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
