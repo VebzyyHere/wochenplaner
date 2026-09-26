@@ -11,6 +11,29 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.33 vom 2026-09-26
+
+Aktuelle Änderungen: `release/v1.33.md`. Prüfung: `werkzeug/freude.js`; Kette 61 Skripte.
+PWA-Cache `wp-v1.33`, Datenschema weiterhin 10.
+
+- **Installiert kein Glas oben.** iOS 26/27 legt in Home-Bildschirm-Web-Apps einen
+  Liquid-Glass-Effekt über jeden nicht flachen oberen Rand. `applyTheme()` setzt
+  `html[data-app]` (über `laeuftAlsApp()`) und meldet `--kopf-flach` als `theme-color`;
+  `html[data-app="1"] .kopf` ist deckend in genau dieser Farbe. Beide Werte nur gemeinsam
+  ändern. Kein `black-translucent`. Nach Änderungen an diesen Angaben muss das
+  Home-Bildschirm-Symbol neu angelegt werden (iOS speichert sie mit dem Symbol).
+- **Gestaltung „Frisch & verspielt"** (vom Nutzer gewählt, Zielgruppe 20–30): `--font-display`
+  (`ui-rounded`) für Zahlen/Titel; keine `text-transform: uppercase`-Etiketten außer
+  Wochentags-Kürzeln; Agenda-Kopf ist `.agenda__kopfzeile` mit `gruss()` rechts — das erste
+  `.agenda__label` bleibt wörtlich „Heute zählt" (Tests); Welle `kringel(hue)` unter dem
+  Schwerpunkt; runde Haken.
+- **Freude beim Abhaken:** UI-Haken laufen über `abhaken(b, dayKey, on, el)` statt direkt
+  `setzeErledigt()` — Konfetti `jubel()`, einmalige Ziel- und Tagesmeldung (`gefeiert`,
+  nur Sitzung, nie in `state`). Nie beim Aufheben, nie bei reduzierter Bewegung.
+- **Lehre aus dieser Runde:** während `alles.js` läuft, `index.html` nicht bearbeiten —
+  `pwaupd.js` stellt die Datei auf den Stand bei seinem Start zurück und verschluckt
+  Zwischenänderungen still.
+
 ### Release v1.32 vom 2026-09-26
 
 Aktuelle Änderungen: `release/v1.32.md`. Prüfung: `werkzeug/iphone.js`; Kette 60 Skripte.
@@ -266,7 +289,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.32` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.33` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

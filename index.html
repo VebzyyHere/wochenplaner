@@ -89,8 +89,15 @@
   --glas-kante:  oklch(1 0 0 / 0.85);
   --glas-linie:  oklch(0.55 0.02 var(--h-ink) / 0.16);
   --glas-schatten: 0 1px 0 var(--glas-linie), 0 8px 24px oklch(0.2 0.02 var(--h-ink) / 0.06);
+  /* Vom Home-Bildschirm gestartet ist der Kopf flach und deckend — genau
+     diese Farbe meldet applyTheme() als theme-color (s. .kopf). */
+  --kopf-flach: #ffffff;
 
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* v1.33: die Stimme der App — rund, freundlich, ohne Webfont. Auf iPhone
+     und Mac ist ui-rounded SF Pro Rounded; sonst greifen die Rundlinge
+     dahinter oder die Grundschrift. Nur für Zahlen, Titel und Überschriften. */
+  --font-display: ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Schrift-Tokens — rem gegen die 100%-Basis, damit die Oberfläche mit der
      Systemschriftgröße mitwächst. Feste Skala (~1.13), kein Fluid Type: bei
@@ -140,6 +147,7 @@ html[data-theme="dark"] {
   --glas-kante:  oklch(1 0 0 / 0.10);
   --glas-linie:  oklch(1 0 0 / 0.09);
   --glas-schatten: 0 1px 0 var(--glas-linie), 0 8px 24px oklch(0 0 0 / 0.30);
+  --kopf-flach: #101b15;
 
 }
 
@@ -262,8 +270,8 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 .chip__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-dot); flex: none; }
 
 .label {
-  display: block; font-size: var(--t-sm); font-weight: 600; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--text-faint); margin-bottom: var(--s-2);
+  display: block; font-size: var(--t-sm); font-weight: 650; letter-spacing: 0;
+  color: var(--text-muted); margin-bottom: var(--s-2);
 }
 .field {
   width: 100%; min-height: 40px; padding: 0 var(--s-3);
@@ -310,6 +318,17 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
     backdrop-filter: blur(24px) saturate(1.8);
   }
   .kopf { border-bottom: 0; box-shadow: var(--glas-schatten), inset 0 -1px 0 var(--glas-kante); }
+}
+/* v1.33: vom Home-Bildschirm gestartet (html[data-app="1"]) legt iOS ab 26
+   seinen Liquid-Glass-„Scroll-Edge-Effekt" über den oberen Rand — überall
+   dort, wo es keine flache Farbe abtasten kann. Über unserem durchscheinenden
+   Kopf wusch das die KW-Zeile aus (iOS 27, Screenshot vom 2026-09-26). Hier
+   ist der Kopf deshalb flach und deckend, in genau der theme-color. Das Glas
+   bleibt unten (Tab- und Vorschlagsleiste) und im Browser. */
+html[data-app="1"] .kopf {
+  background: var(--kopf-flach) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: 0 1px 0 var(--glas-linie);
 }
 /* Wer „Transparenz reduzieren" eingeschaltet hat, bekommt volle Flächen. */
 @media (prefers-reduced-transparency: reduce) {
@@ -600,10 +619,10 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 .energy__opt[data-lvl="low"][aria-pressed="true"] .energy__bars i:nth-child(1) { background: var(--warn); }
 .energy__opt[data-lvl="mid"][aria-pressed="true"] .energy__bars i:nth-child(-n+2) { background: var(--focus); }
 .energy__opt[data-lvl="high"][aria-pressed="true"] .energy__bars i { background: var(--success); }
+/* v1.33: kein gestrichelter Kasten mehr um einen Satz — der Text steht
+   einfach unter den Knöpfen, auf die er antwortet. */
 .hint {
-  margin-top: var(--s-3); padding: var(--s-3);
-  border-radius: var(--radius-sm); background: var(--surface);
-  border: 1px dashed var(--border-strong);
+  margin-top: var(--s-3); padding: 0 2px;
   font-size: var(--t-sm); color: var(--text-muted); line-height: 1.5;
 }
 .hint b { color: var(--text); font-weight: 600; }
@@ -617,9 +636,33 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
    ist der laufende Eintrag, alles andere bleibt Fließtext.
    ============================================================ */
 .agenda { display: flex; flex-direction: column; }
+/* v1.33: normal geschrieben und in der runden Stimme statt gesperrter
+   Großbuchstaben — gleiche Größe, damit die Falz-Verträge halten. */
 .agenda__label {
-  font-size: var(--t-sm); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--text-muted); margin: 14px 0 6px;
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 700; letter-spacing: 0;
+  color: var(--text); margin: 14px 0 6px;
+}
+/* Begrüßung in derselben Zeile wie „Heute zählt" — kostet keine Höhe. */
+.agenda__kopfzeile { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.agenda__kopfzeile .agenda__label { margin-top: 0; }
+.agenda__gruss {
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+/* Die runde Stimme trägt Zahlen, Titel und die eine große Antwort. */
+.sheet__title, .card__title, .planhead h1, .brand__name, .weeknav__label,
+.dayhead__num, .dayswitch__btn b, .agenda__hero-title, .agenda__frog,
+.goal__name, .monat__titel, .zusage__kopf, .kuerzel kbd {
+  font-family: var(--font-display);
+}
+.agenda__hero-title { font-weight: 700; letter-spacing: -.01em; }
+.sheet__title, .card__title { letter-spacing: -.015em; }
+
+/* Abhaken wird gefeiert (jubel(), v1.33): kleine Schnipsel im Farbton des
+   Bereichs, feste Position über allem, nie anklickbar. */
+.jubel {
+  position: fixed; z-index: 400; width: 8px; height: 12px; border-radius: 2px;
+  pointer-events: none; will-change: transform, opacity;
 }
 .agenda__label:first-child { margin-top: 0; }
 .agenda__frog {
@@ -629,6 +672,12 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
   cursor: pointer;
 }
 .agenda__frog { color: var(--selected-text); }
+/* v1.33: der Schwerpunkt des Tages bekommt eine handgezogene Welle im
+   Farbton seines Bereichs — das eine Element, das „Heute" Charakter gibt. */
+.agenda__frogtext {
+  padding-bottom: 7px; background-repeat: repeat-x; background-position: left bottom;
+  background-size: 18px 7px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
 .task__step, .agenda__step { margin-top: 6px; font-size: var(--t-sm); color: var(--text-muted);
   line-height: 1.45; overflow-wrap: anywhere; }
 .agenda__step { margin-bottom: 4px; }
@@ -653,13 +702,13 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 .agenda__row.is-on .agenda__title { opacity: .55; text-decoration: line-through; }
 .agenda__check {
   appearance: none; width: 16px; height: 16px; margin-top: 4px; flex: none;
-  border: 1px solid var(--border); border-radius: 4px; background: var(--surface);
+  border: 1.5px solid var(--border-strong); border-radius: 50%; background: var(--surface);
   cursor: pointer; position: relative;
 }
 .agenda__check:checked { background: var(--ink); border-color: var(--ink); }
 .agenda__check:checked::after {
-  content: ""; position: absolute; left: 4px; top: 1px;
-  width: 4px; height: 8px; border: solid var(--on-ink);
+  content: ""; position: absolute; left: 4px; top: 1.5px;
+  width: 4px; height: 7px; border: solid var(--on-ink);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .agenda__body { flex: 1; min-width: 0; }
@@ -713,7 +762,7 @@ html[data-theme="dark"] .agenda__loading {
 /* ============================================================ Wochenstart */
 .ritual { border-color: var(--border-strong); }
 .ritual__head {
-  font-size: var(--t-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 700;
   color: var(--text-muted); margin-bottom: 6px;
 }
 .ritual__txt { margin: 0; font-size: var(--t-sm); line-height: 1.55; color: var(--text-muted); }
@@ -743,8 +792,8 @@ html[data-theme="dark"] .agenda__loading {
 .hakenkopf__sum { font-size: var(--t-sm); color: var(--text-muted); flex: 1; min-width: 120px; }
 .hakenkopf__sum b { color: var(--text); font-weight: 600; }
 .hakenliste__tag {
-  font-size: var(--t-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--text-faint); margin: 12px 0 4px;
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 700;
+  color: var(--text-muted); margin: 12px 0 4px;
 }
 .hakenrow {
   display: flex; align-items: center; gap: 10px; min-height: 44px;
@@ -1019,13 +1068,13 @@ html[data-theme="dark"] .agenda__loading {
 .task.is-dragging { opacity: .4; }
 .task__check {
   appearance: none; width: 18px; height: 18px; margin: 2px 0 0; flex: none;
-  border: 1.5px solid var(--border-strong); border-radius: 5px; background: var(--surface);
+  border: 1.5px solid var(--border-strong); border-radius: 50%; background: var(--surface);
   cursor: pointer; transition: background .15s, border-color .15s; position: relative;
 }
 .task__check:checked { background: var(--ink); border-color: var(--ink); }
 .task__check:checked::after {
-  content: ""; position: absolute; left: 5px; top: 1.5px;
-  width: 4px; height: 9px; border: solid var(--on-ink);
+  content: ""; position: absolute; left: 5px; top: 2px;
+  width: 4px; height: 8px; border: solid var(--on-ink);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task__body { flex: 1; min-width: 0; min-height: 44px; cursor: pointer; }
@@ -1110,8 +1159,8 @@ html[data-theme="dark"] .agenda__loading {
   overscroll-behavior: contain;
 }
 .loose__lab {
-  grid-column: 1; font-size: var(--t-xs); font-weight: 600; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--text-faint);
+  grid-column: 1; font-family: var(--font-display); font-size: var(--t-xs); font-weight: 700;
+  color: var(--text-muted);
   padding: 4px var(--s-2) 0 0; text-align: right; align-self: start;
 }
 .loose__cell { padding: 2px 3px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -1166,9 +1215,12 @@ html[data-theme="dark"] .loosechip:hover { filter: brightness(1.12); }
 }
 .dayhead--gutter { border-left: 0; }
 .dayhead.is-frei { background: var(--surface-2); }
+/* v1.33: „frei" ist ein kleiner Aufkleber, leicht schräg aufgeklebt — ein
+   freigehaltener Tag ist etwas, worauf man sich freut. */
 .dayhead__frei {
-  display: block; font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--success); margin-top: 2px;
+  display: inline-block; font-family: var(--font-display); font-size: var(--t-xs); font-weight: 700;
+  color: var(--selected-text); background: var(--selected); border-radius: 999px;
+  padding: 1px 8px; margin-top: 3px; transform: rotate(-4deg);
 }
 /* Ein freier Tag ist nicht leer — er ist geschützt. Darum eine ruhige
    Fläche statt einer Sperrschraffur. */
@@ -1868,7 +1920,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .fab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .dayhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 5px; padding: 3px 2px; }
   .dayhead__num { margin: 0; }
-  .dayhead__last, .dayhead__frei { flex-basis: 100%; }
+  .dayhead__last { flex-basis: 100%; }
   .dayhead__frei { margin-top: 0; line-height: 1.2; }
   .loose { max-height: 72px; }
   body[data-sugbar="1"] .sugbar { left: calc(var(--safe-left) + var(--rail)); }
@@ -2837,10 +2889,13 @@ function applyTheme() {
   const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const dunkel = (t === "auto" ? sysDark : t === "dark");
   document.documentElement.dataset.theme = dunkel ? "dark" : "light";
+  // v1.33: installiert (Home-Bildschirm) — flacher Kopf, s. html[data-app].
+  document.documentElement.dataset.app = laeuftAlsApp() ? "1" : "0";
   // Vom Homescreen gestartet ist das die Farbe der Statusleiste. Ohne das
   // sitzt eine weisse Leiste ueber einer dunklen App.
   const mc = document.getElementById("themeColor");
-  if (mc) mc.setAttribute("content", dunkel ? "#101b15" : "#ffffff");
+  if (mc) mc.setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--kopf-flach").trim()
+    || (dunkel ? "#101b15" : "#ffffff"));
 }
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (state.settings.theme === "auto") applyTheme();
@@ -3868,6 +3923,95 @@ function setzeErledigt(b, dayKey, on) {
   if (b.taskId) {
     const t = state.tasks.find(x => x.id === b.taskId);
     if (t) t.done = !!on;
+  }
+}
+
+/* ============================================================
+   Freude (v1.33)
+
+   Abhaken ist der Moment, in dem der Plan Wirklichkeit wird — der einzige,
+   der eine Reaktion verdient. Klein beim einzelnen Haken (ein paar
+   Schnipsel im Farbton des Bereichs), größer, wenn damit ein Wochenziel
+   erreicht oder der ganze Tag abgehakt ist, dann auch mit einem Satz.
+   Nie beim Aufheben eines Hakens, nie bei „Bewegung reduzieren", nie mehr
+   als einmal je Tag bzw. Ziel und Sitzung. Rein darstellend: nichts davon
+   landet in state.
+   ============================================================ */
+/* Handgezogene Welle unter dem Tagesschwerpunkt, im Farbton seines Bereichs.
+   Die Farbe steht im SVG selbst — ein data:-Bild kennt keine CSS-Variablen. */
+function kringel(hue) {
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='7' viewBox='0 0 18 7'>"
+    + "<path d='M0 4.5 Q4.5 0.5 9 4.5 T18 4.5' fill='none' stroke-width='2' stroke-linecap='round' style='stroke:oklch(0.68 0.15 " + (+hue || 150) + ")'/></svg>";
+  return "url(&quot;data:image/svg+xml," + encodeURIComponent(svg) + "&quot;)";
+}
+
+function gruss() {
+  const h = new Date().getHours();
+  const name = (state.profile && state.profile.name || "").trim();
+  if (h >= 23 || h < 5) return name ? "Noch wach, " + name + "?" : "Noch wach?";
+  const wort = h < 11 ? "Moin" : h < 14 ? "Mahlzeit" : h < 18 ? "Hey" : "Guten Abend";
+  return name ? wort + ", " + name : wort;
+}
+
+function jubel(el, hue, gross) {
+  if (!el || !el.getBoundingClientRect || !document.body.animate) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = el.getBoundingClientRect();
+  if (!r.width && !r.height) return;
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const n = gross ? 24 : 11;
+  // Der Bereich, ein Nachbarton und das Grün der App — bunt, aber verwandt.
+  const toene = [hue, hue, (hue + 40) % 360, 150];
+  // Auf dunklem Grund heller, damit die Schnipsel leuchten statt versinken.
+  const hell = document.documentElement.dataset.theme === "dark" ? 0.8 : 0.72;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement("i");
+    s.className = "jubel"; s.setAttribute("aria-hidden", "true");
+    s.style.left = x + "px"; s.style.top = y + "px";
+    s.style.background = "oklch(" + hell + " 0.2 " + toene[i % toene.length] + ")";
+    if (i % 3 === 0) { s.style.borderRadius = "50%"; s.style.height = "8px"; s.style.width = "8px"; }
+    document.body.appendChild(s);
+    const winkel = (Math.PI * 2 * i) / n + (Math.random() - 0.5) * 0.7;
+    const weite = gross ? 70 + Math.random() * 70 : 26 + Math.random() * 22;
+    const dx = Math.cos(winkel) * weite, dy = Math.sin(winkel) * weite - (gross ? 34 : 14);
+    const dreh = Math.round(Math.random() * 360 - 180);
+    const a = s.animate([
+      { transform: "translate(-50%, -50%) scale(.4) rotate(0deg)", opacity: 1 },
+      { transform: "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px)) scale(1) rotate(" + dreh + "deg)", opacity: 1, offset: 0.62 },
+      { transform: "translate(calc(-50% + " + dx * 1.08 + "px), calc(-50% + " + (dy + (gross ? 40 : 18)) + "px)) scale(.7) rotate(" + dreh * 1.4 + "deg)", opacity: 0 }
+    ], { duration: gross ? 1150 : 620, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
+    a.onfinish = a.oncancel = () => s.remove();
+  }
+}
+
+const gefeiert = new Set();
+/* Haken setzen und, wenn er gesetzt wird, darauf antworten. el ist der
+   Knopf/Haken, von dem die Schnipsel ausgehen. Der Aufrufer speichert und
+   zeichnet danach wie bisher selbst. */
+function abhaken(b, dayKey, on, el) {
+  const area = areaById(b.areaId);
+  const ziel = area && area.plan ? area.plan.goal * 60 : 0;
+  const vorher = ziel ? areaIst(area.id) : 0;
+  setzeErledigt(b, dayKey, on);
+  if (!on) return;
+  jubel(el, area ? area.hue : 150, false);
+  const nachher = ziel ? areaIst(area.id) : 0;
+  const zielKey = "ziel|" + area.id + "|" + iso(mondayOf(anchor));
+  if (ziel && vorher < ziel && nachher >= ziel && !gefeiert.has(zielKey)) {
+    gefeiert.add(zielKey);
+    jubel(el, area.hue, true);
+    toast(area.name + ": Wochenziel geschafft. Stark.");
+    return;
+  }
+  if (dayKey === iso(new Date()) && !gefeiert.has("tag|" + dayKey)) {
+    const idx = (new Date(dayKey + "T12:00:00").getDay() + 6) % 7;
+    if (iso(addDays(mondayOf(anchor), idx)) !== dayKey) return;
+    const eintraege = tagesAgenda(dayKey, idx);
+    if (eintraege.length >= 2 && eintraege.every(e => istErledigt(e.block, dayKey))) {
+      gefeiert.add("tag|" + dayKey);
+      jubel(el, area ? area.hue : 150, true);
+      toast("Alles abgehakt. Der Rest des Tages gehört dir.");
+    }
   }
 }
 
@@ -6306,7 +6450,7 @@ function renderGrid() {
     empty.style.alignSelf = "start";
     empty.innerHTML = (einzelTag && istFrei(einzelTag))
       ? "<b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten."
-      : "<b>Noch nichts geplant</b>Wähle „Eintrag“ oder tippe auf eine freie Stunde im Raster.";
+      : "<b>Noch nichts geplant</b>Leere Seite, volle Freiheit. Tipp auf „Eintrag“ oder direkt auf eine freie Stunde.";
     grid.appendChild(empty);
   }
 
@@ -6454,7 +6598,7 @@ function blockEl({ b, col, of }, hourH, dayKey) {
     done.addEventListener("click", e => e.stopPropagation());
     done.addEventListener("keydown", e => e.stopPropagation());
     done.onchange = () => {
-      setzeErledigt(b, dayKey || b.date, done.checked);
+      abhaken(b, dayKey || b.date, done.checked, done);
       // renderAll() statt nur diesen Block anzufassen: am Desktop stehen
       // Agenda und Raster nebeneinander, sonst zeigt der Haken in der
       // Agenda-Zeile den alten Stand, bis irgendetwas anderes neu zeichnet.
@@ -7299,7 +7443,7 @@ function blockSheet(draft, dayKey) {
         // fix (Stufe 11): im Editor bearbeitet — der Verteiler rührt den
         // Block beim nächsten Durchlauf nicht mehr an.
         b.fix = true;
-        if (doneBox) setzeErledigt(b, hakenTag, doneBox.checked);
+        if (doneBox) abhaken(b, hakenTag, doneBox.checked, doneBox);
         const tk = state.tasks.find(t => t.id === b.taskId && t.geplant === b.id);
         if (tk) { tk.title = b.title; tk.areaId = b.areaId; }
       }
@@ -7482,6 +7626,7 @@ function taskEl(t) {
   cb.type = "checkbox"; cb.className = "task__check"; cb.checked = t.done;
   cb.setAttribute("aria-label", "Erledigt: " + t.title);
   cb.onchange = () => {
+    if (cb.checked) jubel(cb, (areaById(t.areaId) || {}).hue || 150, false);
     aufgabeAbhaken(t, cb.checked);
     const ziel = $("#taskList .task__check") || $("#taskList .tasks__toggle") || $("#taskInput");
     ziel.focus();
@@ -7815,9 +7960,12 @@ function renderAgenda() {
   // Stufe C Punkt C3: das Hero-Label heißt nur am heutigen Tag "Heute
   // zählt" — an einem anderen Tag im Tagesstreifen (der seine Tagesform
   // korrekt "Sonntag, 9.8." nennt) wäre "Heute" schlicht falsch.
-  let html = "<div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
+  // v1.33: die Begrüßung steht in derselben Zeile wie „Heute zählt" —
+  // nur am heutigen Tag, und ohne eine Zeile Höhe zu kosten.
+  let html = "<div class='agenda__kopfzeile'><div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
+    + (heute ? "<span class='agenda__gruss'>" + escapeHtml(gruss()) + "</span>" : "") + "</div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
-    + (wichtig ? escapeHtml(wichtig.title) : "Schwerpunkt wählen") + "</button>"
+    + (wichtig ? "<span class='agenda__frogtext' style=\"background-image:" + kringel((areaById(wichtig.areaId) || { hue: 150 }).hue) + "\">" + escapeHtml(wichtig.title) + "</span>" : "Schwerpunkt wählen") + "</button>"
     + (wichtig && wichtig.schritt ? "<div class='agenda__step'><b>Erster Schritt:</b> " + escapeHtml(wichtig.schritt) + "</div>" : "");
 
   const eintraege = tagesAgenda(dayKey, dayIdx);
@@ -7881,7 +8029,7 @@ function renderAgenda() {
         + vorschlagHtml;
     } else {
       html += "<div class='empty'><b>" + (eintraege.length ? "Nichts mehr offen" : "Noch nichts geplant") + "</b>"
-        + (eintraege.length ? "Für den Rest des Tages steht nichts mehr an." : "Für diesen Tag steht noch nichts im Plan.")
+        + (eintraege.length ? "Für heute ist nichts mehr fällig. Gut gemacht." : "Der Tag gehört noch ganz dir. Soll der Planer etwas vorschlagen?")
         + "</div><button type='button' class='btn btn--primary btn--sm' id='agendaVorschlag'>Vorschlagen</button>";
     }
   } else {
@@ -8050,7 +8198,7 @@ function renderAgenda() {
     cb.onchange = () => {
       const b = state.blocks.find(x => x.id === cb.dataset.id);
       if (!b) return;
-      setzeErledigt(b, dayKey, cb.checked);
+      abhaken(b, dayKey, cb.checked, cb);
       const lab = cb.closest(".agenda__row");
       if (lab) lab.classList.toggle("is-on", cb.checked);
       save();
@@ -8067,7 +8215,7 @@ function renderAgenda() {
       if (!b) return;
       const art = btn.dataset.abschluss;
       if (art === "ab") {
-        setzeErledigt(b, dayKey, true);
+        abhaken(b, dayKey, true, btn);
         save(); renderAll();
       } else if (art === "schieben") {
         moveSheet(b.id);

@@ -116,6 +116,25 @@ const beispiel = () => {
     await p.waitForTimeout(100);
     const karte2 = await rect(p, '.card[data-card="heute"]');
     ok(karte2.top < kopf.bottom, 'nach dem Scrollen liegt Karteninhalt unter dem Glaskopf');
+
+    // v1.33: vom Home-Bildschirm gestartet legt iOS 26/27 seinen
+    // Scroll-Edge-Effekt über jeden nicht flachen oberen Rand — dort ist der
+    // Kopf deckend und hat exakt die theme-color, in Hell und Dunkel.
+    for (const th of ['light', 'dark']) {
+      const app = await p.evaluate(t => {
+        window.laeuftAlsApp = () => true;
+        state.settings.theme = t; applyTheme();
+        const k = getComputedStyle(document.getElementById('kopf'));
+        const farbe = c => { const e = document.createElement('i'); e.style.color = c; document.body.appendChild(e);
+          const w = getComputedStyle(e).color; e.remove(); return w; };
+        return { app: document.documentElement.dataset.app, bg: k.backgroundColor, filter: k.backdropFilter,
+          meta: farbe(document.getElementById('themeColor').content), kopf: farbe(k.backgroundColor) };
+      }, th);
+      ok(app.app === '1' && app.filter === 'none' && !/\/|rgba/.test(app.bg), th + ': installiert ist der Kopf flach und deckend (' + app.bg + ')');
+      ok(app.meta === app.kopf, th + ': theme-color entspricht der Kopffarbe (' + app.meta + ' = ' + app.kopf + ')');
+    }
+    await p.evaluate(() => { window.laeuftAlsApp = () => false; state.settings.theme = 'light'; applyTheme(); });
+    ok(await p.evaluate(() => /blur/.test(getComputedStyle(document.getElementById('kopf')).backdropFilter)), 'im Browser bleibt der Kopf Glas');
     await ctx.close();
   }
 

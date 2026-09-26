@@ -10,6 +10,13 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.33 ergänzt `freude.js`: Begrüßung zu fünf festen Uhrzeiten, Etiketten ohne
+Großbuchstaben, Welle unter dem Schwerpunkt, „frei"-Aufkleber, Konfetti beim Abhaken
+(und keins beim Aufheben oder bei reduzierter Bewegung), einmalige Ziel- und
+Tagesmeldung. `iphone.js` prüft zusätzlich den flachen Kopf im installierten Modus.
+Die Kette umfasst 61 Skripte. Während `alles.js` läuft, `index.html` nicht bearbeiten —
+`pwaupd.js` setzt die Datei am Ende auf den Stand bei seinem Start zurück.
+
 Version 1.32 ergänzt `iphone.js`: iPhone 15 Pro hoch und quer mit Safe-Areas, die wie auf
 dem Gerät schon beim Laden gelten (Temp-Kopie mit Stilblock), Glas-Kopf, senkrechte Leiste
 im Querformat, Vorschlagspille in der Kopfzeile, Drehen, aufgeräumter Desktop und

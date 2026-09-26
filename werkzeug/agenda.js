@@ -235,7 +235,11 @@ const ok = (bed, txt) => { console.log((bed ? '   OK   ' : '   FEHLER ') + txt);
     state.tasks = [{ id: uid(), title: titel, areaId: 'a1', done: false, frog: true }];
     save(); renderAgenda();
     const el = document.querySelector('#agendaFrog');
-    return el ? { text: el.textContent, html: el.innerHTML, kinder: el.children.length } : null;
+    // Seit v1.33 trägt der Schwerpunkt ein eigenes <span> (die Welle darunter)
+    // — gezählt werden deshalb alle Elemente AUSSER diesem einen Rahmen:
+    // aus dem Titel selbst darf keines entstehen.
+    const eigene = el ? el.querySelectorAll('.agenda__frogtext').length : 0;
+    return el ? { text: el.textContent, html: el.innerHTML, kinder: el.querySelectorAll('*').length - eigene } : null;
   }, boese);
   console.log('   ' + JSON.stringify(maskCheck));
   ok(!!maskCheck && maskCheck.text === boese, 'Titel erscheint unverändert als Text');
