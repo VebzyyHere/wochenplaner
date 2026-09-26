@@ -81,6 +81,15 @@
   --shadow-2: 0 6px 20px oklch(0.2 0.02 var(--h-ink) / 0.14), 0 1px 3px oklch(0.2 0.02 var(--h-ink) / 0.08);
   --shadow-3: 0 16px 48px oklch(0.2 0.02 var(--h-ink) / 0.22);
 
+  /* Glas (v1.32) für Kopf, Tab- und Vorschlagsleiste: durchscheinende
+     Fläche, Weichzeichner dahinter, eine helle Lichtkante oben. Ohne
+     backdrop-filter oder mit „Transparenz reduzieren" wird daraus die
+     volle --surface (s. .glas weiter unten). */
+  --glas:        oklch(0.995 0.004 var(--h-ink) / 0.80);
+  --glas-kante:  oklch(1 0 0 / 0.85);
+  --glas-linie:  oklch(0.55 0.02 var(--h-ink) / 0.16);
+  --glas-schatten: 0 1px 0 var(--glas-linie), 0 8px 24px oklch(0.2 0.02 var(--h-ink) / 0.06);
+
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Schrift-Tokens — rem gegen die 100%-Basis, damit die Oberfläche mit der
@@ -127,6 +136,10 @@ html[data-theme="dark"] {
   --shadow-1: 0 1px 2px oklch(0 0 0 / 0.35);
   --shadow-2: 0 6px 20px oklch(0 0 0 / 0.45), 0 1px 3px oklch(0 0 0 / 0.3);
   --shadow-3: 0 16px 48px oklch(0 0 0 / 0.6);
+  --glas:        oklch(0.215 0.014 var(--h-ink) / 0.80);
+  --glas-kante:  oklch(1 0 0 / 0.10);
+  --glas-linie:  oklch(1 0 0 / 0.09);
+  --glas-schatten: 0 1px 0 var(--glas-linie), 0 8px 24px oklch(0 0 0 / 0.30);
 
 }
 
@@ -280,12 +293,36 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 }
 .block__title, .block__time { -webkit-user-select: none; user-select: none; }
 
+/* v1.32: gemeinsamer Kopf aus Banner, Kopfzeile und Tagesstreifen — eine
+   Glasfläche statt dreier einzeln gefärbter Streifen. Am Desktop steht er im
+   Fluss; am Telefon liegt er über dem Inhalt, der darunter durchläuft
+   (s. Responsive). */
+.kopf {
+  flex: none; position: relative; z-index: 30;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.tabbar, .sugbar { background: var(--surface); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .kopf, .tabbar, .sugbar {
+    background: var(--glas);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    backdrop-filter: blur(24px) saturate(1.8);
+  }
+  .kopf { border-bottom: 0; box-shadow: var(--glas-schatten), inset 0 -1px 0 var(--glas-kante); }
+}
+/* Wer „Transparenz reduzieren" eingeschaltet hat, bekommt volle Flächen. */
+@media (prefers-reduced-transparency: reduce) {
+  .kopf, .tabbar, .sugbar {
+    background: var(--surface) !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+}
 .topbar {
   display: flex; align-items: center; gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
   padding-top: max(var(--s-3), var(--safe-top));
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  background: transparent;
   flex: none;
 }
 .brand { display: flex; align-items: center; gap: var(--s-3); margin-right: auto; min-width: 0; }
@@ -501,9 +538,10 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
   padding: var(--s-2); background: transparent; color: var(--text-muted); font-weight: 600; font-size: var(--t-sm); }
 .panelnav button[aria-current="true"] { background: var(--selected); color: var(--selected-text); }
 .planhead { display: flex; flex: none; align-items: center; justify-content: space-between;
-  gap: var(--s-4); padding: var(--s-4) var(--s-6); border-bottom: 1px solid var(--border); background: var(--surface); }
-.planhead h1 { font-size: var(--t-h1); margin: 0 0 2px; letter-spacing: -.02em; }
-.planhead__hint { margin: 0; color: var(--text-muted); font-size: var(--t-sm); }
+  gap: var(--s-4); padding: var(--s-2) var(--s-5); min-height: 56px; border-bottom: 1px solid var(--border); background: var(--surface); }
+/* v1.32: eine Zeile statt Titel + Werbesatz; „Freie Zeit" entfiel, weil die
+   KW-Anzeige im Kopf (und die Taste W) dasselbe Blatt öffnet. */
+.planhead h1 { font-size: var(--t-h2); margin: 0; letter-spacing: -.01em; }
 .planhead__actions { display: flex; align-items: center; gap: var(--s-2); flex: none; }
 @media (min-width: 1101px) {
   .main > .panel { width: clamp(352px, 29vw, 440px); padding: var(--s-5);
@@ -775,6 +813,11 @@ html[data-theme="dark"] .agenda__loading {
   .syncbadge__txt { display: none; }
   .syncbadge__ico { display: block; }
   .syncbadge::before { width: 7px; height: 7px; }
+  /* v1.32: im Glaskopf wie die Symbolknöpfe daneben — ohne eigene Pille;
+     der Punkt trägt den Zustand. .topbar erhöht die Spezifität gegenüber
+     der pointer:coarse-Regel, die sonst 12px Seitenpolster zurückbringt. */
+  .topbar .syncbadge { padding: 0; border-color: transparent; background: transparent; }
+  .topbar .syncbadge:hover { background: var(--surface-2); }
 }
 
 /* ============================================================ Einstellungs-Menü */
@@ -837,6 +880,27 @@ html[data-theme="dark"] .agenda__loading {
 .goal__rest b { color: var(--text); font-weight: 600; }
 .goals__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-4); }
 .goals__foot .btn { flex: 1 1 auto; }
+
+/* Passt das noch? (v1.32, zusageSheet) */
+.zusage__einstieg {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  width: 100%; min-height: 44px; margin-top: var(--s-4); padding: var(--s-3) 0 0;
+  border: 0; border-top: 1px solid var(--border); background: none; color: var(--text-muted);
+  font: inherit; font-size: var(--t-sm); text-align: left; line-height: 1.45; cursor: pointer;
+}
+.zusage__einstieg b { color: var(--text); font-weight: 600; }
+.zusage__einstieg > span:last-child { font-size: var(--t-h1); color: var(--text-faint); flex: none; }
+@media (hover: hover) { .zusage__einstieg:hover b { text-decoration: underline; text-underline-offset: 3px; } }
+.zusage__intro { margin: 0 0 var(--s-4); color: var(--text-muted); font-size: var(--t-body); line-height: 1.55; }
+.zusage { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.zusage__lage { margin: 0 0 var(--s-1); font-size: var(--t-body); line-height: 1.55; color: var(--text); }
+.zusage__var {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: var(--s-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2);
+}
+.zusage__kopf { font-weight: 600; font-size: var(--t-body); color: var(--text); }
+.zusage__text { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.5; }
+.zusage__absagen { margin: var(--s-1) 0 0; font-size: var(--t-sm); color: var(--text-faint); line-height: 1.5; }
 
 /* Zieleditor */
 .goallist { display: flex; flex-direction: column; gap: var(--s-2); }
@@ -1301,8 +1365,8 @@ html[data-theme="dark"] .rest {
 /* ============================================================ Mobile day switcher */
 .dayswitch {
   display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px;
-  padding: 4px; border-bottom: 1px solid var(--border);
-  background: var(--surface); overflow: hidden;
+  padding: 4px; border-top: 1px solid var(--glas-linie);
+  background: transparent; overflow: hidden;
   /* pinch-zoom dazu wie beim Raster (.daycol, Kommentar dort) -- "none"
      wuerde auch senkrechtes Seitenscrollen kapern, das der Streifen selbst
      gar nicht braucht, aber die Seite drumherum vielleicht. Das
@@ -1489,7 +1553,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     display: grid; grid-template-columns: repeat(4, 1fr);
     flex: none; gap: 2px; padding: 2px 6px 0;
     padding-bottom: max(4px, var(--safe-bottom));
-    border-top: 1px solid var(--border); background: var(--surface);
+    border-top: 1px solid var(--glas-linie);
+    box-shadow: inset 0 1px 0 var(--glas-kante);
+    position: relative; z-index: 42;
   }
   .tabbar button {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1535,8 +1601,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     position: fixed; left: var(--safe-left); right: var(--safe-right); z-index: 41;
     bottom: var(--fussleiste); min-height: 61px;
     padding: var(--s-2) var(--s-4);
-    border-top: 1px solid var(--border);
-    background: var(--surface);
+    border-top: 1px solid var(--glas-linie);
+    box-shadow: inset 0 1px 0 var(--glas-kante);
   }
   /* min-width:max-content statt 0 — die Zahl darf so viel Platz
      beanspruchen, wie sie braucht; reicht der daneben nicht mehr, wandern
@@ -1580,7 +1646,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   body:not([data-mview="plan"]) .planhead { display: none; }
   .planhead { padding: var(--s-2) var(--s-4); gap: var(--s-2); }
   .planhead h1 { font-size: var(--t-body); margin: 0; }
-  .planhead__hint, .planhead #desktopAdd, .planhead #weekOverviewBtn { display: none; }
+  .planhead #desktopAdd { display: none; }
   .panel {
     width: 100%; flex: 1; min-height: 0;
     border-right: 0; max-height: none;
@@ -1588,6 +1654,16 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     gap: var(--s-3);
     -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
   }
+  /* v1.32 Liquid Glass: der Kopf (Kopfzeile + Tagesstreifen, bis unter
+     die Dynamic Island) liegt über dem Inhalt. Die Karten in Heute/Ziele
+     beginnen darunter und scrollen sichtbar hinter das Glas; der Plan
+     beginnt ebenfalls darunter, sein Raster scrollt in sich (Tageskopf,
+     Scrollmerker und Klebetitel bleiben unberührt). --kopf-h misst
+     kopfhoeheMessen() an der echten Höhe, auch mit Speicher-Banner. */
+  .app { position: relative; }
+  .kopf { position: absolute; top: 0; left: 0; right: 0; }
+  .panel { padding-top: calc(var(--kopf-h, 0px) + var(--s-3)); scroll-padding-top: var(--kopf-h, 0px); }
+  .planwrap { padding-top: var(--kopf-h, 0px); }
   body[data-mview="plan"] .panel { display: none; }
   body:not([data-mview="plan"]) .planwrap { display: none; }
   body[data-mview="ziele"]    .card:not([data-card="ziele"]):not(.ritual),
@@ -1701,8 +1777,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
     }
   }
-  .topbar { padding: 4px var(--s-2); gap: 0; }
-  .topbar { padding-top: max(4px, var(--safe-top)); }
+  .topbar { padding: 4px max(var(--s-2), var(--safe-right)) 4px max(var(--s-2), var(--safe-left)); gap: 0; }  .topbar { padding-top: max(4px, var(--safe-top)); }
   .sheet { max-width: 100%; max-height: min(88dvh, calc(var(--sicht-hoehe) - var(--safe-top) - 8px));
     border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
   .scrim { padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); align-items: flex-end; }
@@ -1752,8 +1827,63 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      die Vorschlagsleiste (.sugbar, bleibt auch im Querformat sichtbar)
      oder in "Ziele" über „Alle übernehmen". */
   body[data-tage="7"] .block__sug { display: none; }
-  .topbar { padding: 2px var(--s-2); padding-top: max(2px, var(--safe-top)); }
+  .topbar { padding: 2px max(var(--s-2), var(--safe-right)) 2px var(--s-2);
+    padding-top: max(2px, var(--safe-top)); }
   .weeknav__label { font-size: var(--t-sm); }
+
+  /* ---- v1.32: Querformat als Übersicht ---------------------------------
+     Gemessen am iPhone 15 Pro quer (852 × 393): Kopf 49, „Deine Woche" 61,
+     Tagesköpfe 64, Abendband 118, Vorschläge 61, Tabbar 66 — dem Raster
+     blieben 35 px, keine einzige Stunde. Breite gibt es dagegen genug.
+     Deshalb wandert die Navigation als senkrechte Leiste an den Rand
+     (neben die Kamera-Aussparung), „Eintrag" unten in dieselbe Leiste,
+     die Tagesköpfe werden einzeilig und das Abendband flach. */
+  body { --rail: 64px; }
+  .main { margin-left: var(--rail); }
+  /* Ohne Tabbar unten hält niemand mehr den Home-Indikator frei. */
+  .planwrap { padding-bottom: var(--safe-bottom); }
+  .panel { padding-bottom: var(--safe-bottom); }
+  /* Die Leiste reicht über die volle Höhe, der Kopf beginnt rechts daneben —
+     unter dem Kopf begonnen, stieß auf dem SE quer (320 px, dort mit
+     Tagesstreifen) der vierte Tab an „Eintrag" (fuss.js). */
+  .kopf { left: calc(var(--safe-left) + var(--rail)); }
+  .tabbar {
+    position: fixed; z-index: 42; top: 0; bottom: 0; left: 0;
+    width: calc(var(--safe-left) + var(--rail));
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: max(6px, var(--safe-top)) 0 max(6px, var(--safe-bottom)) var(--safe-left);
+    border-top: 0; border-right: 1px solid var(--glas-linie);
+    box-shadow: inset -1px 0 0 var(--glas-kante);
+  }
+  .tabbar button { width: 52px; min-height: 44px; flex: none; }
+  .planhead, .planhead__actions { display: contents; }
+  .planhead > div:first-child { display: none; }
+  body[data-mview="plan"] .fab {
+    position: fixed; z-index: 43;
+    left: calc(var(--safe-left) + (var(--rail) - 52px) / 2);
+    bottom: max(8px, var(--safe-bottom));
+    width: 52px; min-height: 52px; padding: 0; border-radius: 16px;
+    box-shadow: var(--shadow-2);
+  }
+  .fab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .dayhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 5px; padding: 3px 2px; }
+  .dayhead__num { margin: 0; }
+  .dayhead__last, .dayhead__frei { flex-basis: 100%; }
+  .dayhead__frei { margin-top: 0; line-height: 1.2; }
+  .loose { max-height: 72px; }
+  body[data-sugbar="1"] .sugbar { left: calc(var(--safe-left) + var(--rail)); }
+  /* Ab 700 px Breite steht die Vorschlagsleiste in der Kopfzeile statt
+     über dem Raster (sugbarPlatzieren() hängt sie dorthin um) — als Pille
+     zwischen Wochennavigation und Monatssymbol, ohne eigene Zeile. */
+  body[data-sugoben="1"][data-sugbar="1"] .sugbar {
+    position: static; flex: 0 1 auto; flex-wrap: nowrap; gap: 4px;
+    min-height: 44px; margin: 0 var(--s-2); padding: 0 0 0 12px;
+    border: 1px solid var(--glas-linie); border-radius: 22px; box-shadow: none;
+    background: var(--surface-2); -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  body[data-sugoben="1"] .sugbar__text { flex: none; min-width: 0; }
+  body[data-sugoben="1"] .sugbar__accept { min-height: 36px; padding: 0 var(--s-3); }
+  body[data-sugoben="1"] .sugbar__close { min-width: 40px; min-height: 40px; }
 
   /* Bei so wenig Höhe kostet das festgepinnte Eingabefeld (~1320) mehr,
      als es bringt: dem Aufgabenblatt blieben gemessen nur noch 144px für
@@ -1768,8 +1898,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 /* Tablets bekommen eine ganze Arbeitsfläche. Das Raster behält sieben Tage,
    Texte in Heute, Aufgaben und Zielen eine gut lesbare Breite. */
 @media (min-width: 641px) and (max-width: 1100px) and (min-height: 501px) {
-  .panel { padding: var(--s-6) max(var(--s-6), calc((100% - 720px) / 2)) 0; }
-  .topbar { padding: var(--s-2) var(--s-4); padding-top: max(var(--s-2), var(--safe-top)); }
+  .panel { padding: calc(var(--kopf-h, 0px) + var(--s-6)) max(var(--s-6), calc((100% - 720px) / 2)) 0; }
+  .topbar { padding: var(--s-2) max(var(--s-4), var(--safe-right)) var(--s-2) max(var(--s-4), var(--safe-left));
+    padding-top: max(var(--s-2), var(--safe-top)); }
   .brand { display: flex; }
   .brand__name { overflow: hidden; text-overflow: ellipsis; }
   .brand__tagline, .brand__who { display: none; }
@@ -1879,6 +2010,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 <a href="#main" class="sr">Zum Inhalt</a>
 
 <div class="app">
+  <!-- v1.32: Banner, Kopfzeile und Tagesstreifen bilden einen gemeinsamen
+       Kopf. Am Telefon liegt er als Glasfläche über dem Inhalt (s. .kopf). -->
+  <div class="kopf" id="kopf">
   <div id="banner"></div>
 
   <header class="topbar">
@@ -1903,6 +2037,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   </header>
 
   <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
+  </div>
 
   <div class="main" id="main" role="main" aria-label="Wochenplaner" tabindex="-1">
 
@@ -1951,6 +2086,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
         </div>
         <div class="goals" id="goalsList"></div>
         <div class="goals__foot" id="goalsFoot"></div>
+        <button type="button" class="zusage__einstieg" id="zusageBtn">
+          <span><b>Neue Zusage?</b> Erst durchspielen, was sie deine Woche kostet.</span>
+          <span aria-hidden="true">›</span>
+        </button>
       </section>
 
       <!-- Aufgaben -->
@@ -1971,9 +2110,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
 
     <div class="planwrap">
       <div class="planhead">
-        <div><h1>Deine Woche</h1><p class="planhead__hint">Feste Zeiten. Klare Prioritäten. Luft dazwischen.</p></div>
+        <div><h1>Deine Woche</h1></div>
         <div class="planhead__actions">
-          <button type="button" class="btn" id="weekOverviewBtn">Freie Zeit</button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Eintrag</span>
@@ -2584,6 +2722,10 @@ let syncSettled = false;
    über die volle Breite gezogen. */
 const MOBILE_Q = "(max-width: 1100px)";
 const EINTAG_Q = "(max-width: 640px)";
+// v1.32: Telefon quer — Navigation als senkrechte Leiste (CSS gleichlautend).
+const QUER_Q = "(max-height: 500px) and (max-width: 1000px)";
+// ... und ab 700px Breite steht die Vorschlagsleiste in der Kopfzeile.
+const SUG_OBEN_Q = "(max-height: 500px) and (min-width: 700px) and (max-width: 1000px)";
 let isMobile = window.matchMedia(MOBILE_Q).matches;
 let einTag   = window.matchMedia(EINTAG_Q).matches;
 
@@ -4990,9 +5132,44 @@ function fussbereichMessen() {
     return;
   }
   const hoehe = id => document.getElementById(id).getBoundingClientRect().height;
-  const unten = hoehe("tabbar");
+  // v1.32: quer steht die Tabbar senkrecht am Rand — unten bleibt dann nur
+  // der Bereich des Home-Indikators. Die Vorschlagsleiste zählt nur mit,
+  // solange sie unten steht (sugbarPlatzieren()).
+  const unten = window.matchMedia(QUER_Q).matches ? sicherUnten() : hoehe("tabbar");
+  const sug = document.body.dataset.sugoben === "1" ? 0 : hoehe("sugBar");
   document.body.style.setProperty("--fussleiste", unten + "px");
-  document.body.style.setProperty("--fuss-oben", (unten + hoehe("sugBar")) + "px");
+  document.body.style.setProperty("--fuss-oben", (unten + sug) + "px");
+}
+
+/* env(safe-area-inset-bottom) in Pixeln — CSS kennt den Wert, JS nicht
+   direkt. Ein unsichtbarer Messkörper mit genau dieser Höhe. */
+function sicherUnten() {
+  let m = document.getElementById("sicherMass");
+  if (!m) {
+    m = document.createElement("div");
+    m.id = "sicherMass"; m.setAttribute("aria-hidden", "true");
+    m.style.cssText = "position:fixed;left:0;bottom:0;width:0;visibility:hidden;pointer-events:none;height:var(--safe-bottom)";
+    document.body.appendChild(m);
+  }
+  return m.getBoundingClientRect().height;
+}
+
+/* v1.32: Höhe des Glas-Kopfs, über dem der Inhalt am Telefon liegt. */
+function kopfhoeheMessen() {
+  if (!isMobile) { document.body.style.removeProperty("--kopf-h"); return; }
+  document.body.style.setProperty("--kopf-h", $("#kopf").getBoundingClientRect().height + "px");
+}
+
+/* v1.32: Telefon quer und breit genug — die Vorschlagsleiste wandert in
+   die Kopfzeile (zwischen Wochennavigation und Monatssymbol) und kostet
+   dem Raster keine eigene Zeile mehr. Sonst steht sie wie bisher unten. */
+function sugbarPlatzieren() {
+  const bar = $("#sugBar");
+  const oben = window.matchMedia(SUG_OBEN_Q).matches;
+  document.body.dataset.sugoben = oben ? "1" : "0";
+  if (oben && bar.parentElement.classList.contains("app")) $(".topbar").insertBefore(bar, $("#monthBtn"));
+  if (!oben && !bar.parentElement.classList.contains("app")) $(".app").insertBefore(bar, $("#tabbar"));
+  fussbereichMessen();
 }
 
 /* ============================================================ Ziele-Anzeige */
@@ -5112,6 +5289,205 @@ function verteilenMitGate(verteilen) {
     scrim.style.pointerEvents = "";
     blatt.removeEventListener("keydown", tastenSperre, true);
   }, 300);
+}
+
+/* ============================================================
+   Passt das noch? (v1.32) — erste Fassung von „Was kostet mich dieses
+   Ja?" aus IDEEN.md
+
+   Vor einer Zusage durchspielen, was sie die Woche kostet. Bewusst nur aus
+   dem gebaut, was die App schon weiß — wochenKapazitaet() (dieselbe Marke
+   wie Ampel und Gate), freeGaps() (dieselben Lücken wie der Verteiler) und
+   die offenen Wochenziele. Keine neuen Datenfelder, keine erfundene
+   Rangfolge: welches Ziel weichen soll, entscheidet der Mensch — das Blatt
+   nennt nur, welche offenen Ziele dann um den Platz konkurrieren.
+   Nichts wird still gespeichert: jede Variante öffnet das normale
+   Eintragsblatt vorausgefüllt.
+   ============================================================ */
+
+/* Die Rechnung einer Woche mit (montag) als anchor — anchor wird nur für
+   die Dauer der Rechnung umgestellt und danach zurückgesetzt. */
+function inWoche(montag, fn) {
+  const alt = anchor;
+  anchor = montag;
+  try { return fn(); } finally { anchor = alt; }
+}
+
+function zusageDurchspielen(minuten, areaId, montag) {
+  const area = areaById(areaId);
+  const A = artOf(area);
+  return inWoche(montag, () => {
+    const k = wochenKapazitaet();
+    const pause = Math.ceil(minuten / A.max) * A.pause;
+    const bedarfNeu = k.bedarf + minuten + pause;
+    // Freie Stellen am Stück, je Tag die früheste — Fenster und Anker des
+    // Bereichs gelten für seine Ziele, nicht für eine fremde Zusage;
+    // freigehaltene Tage bleiben tabu.
+    const luecken = [];
+    weekDays().forEach(day => {
+      freeGaps(day, { from: null, to: null, days: [day.i] }, area, { ignoreFenster: true, ignoreAnker: true })
+        .forEach(g => {
+          // Auf die Viertelstunde: „13:20" nach einer 5-Minuten-Pause sagt niemand zu.
+          const start = Math.ceil(g.start / 15) * 15;
+          if (g.end - start >= 15) luecken.push({ day, start, end: g.end, laenge: g.end - start });
+        });
+    });
+    const passend = [];
+    luecken.filter(l => l.laenge >= minuten).forEach(l => {
+      if (passend.length < 3 && !passend.some(p => p.day.i === l.day.i)) passend.push(l);
+    });
+    const groesste = luecken.reduce((m, l) => (!m || l.laenge > m.laenge ? l : m), null);
+    // Offene Ziele dieser Woche — das, was bei einer engen Woche um Platz ringt.
+    const offeneZiele = state.areas
+      .map(a => ({ a, rest: Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false)) }))
+      .filter(x => x.rest >= 15);
+    return {
+      k, pause, bedarfNeu,
+      quoteVor: k.quote, quoteNach: k.wach ? bedarfNeu / k.wach : 9.99,
+      okNach: bedarfNeu <= k.grenze,
+      luft: Math.max(0, Math.floor((k.grenze - k.bedarf) / 15) * 15),
+      ueber: Math.max(0, Math.round(bedarfNeu - k.grenze)),
+      passend, groesste, offeneZiele
+    };
+  });
+}
+
+function zusageSheet() {
+  const heuteMon = mondayOf(new Date());
+  const ersteWoche = mondayOf(anchor) < heuteMon ? heuteMon : mondayOf(anchor);
+  const standardBereich = (state.areas.find(a => /alltag/i.test(a.name)) || state.areas[state.areas.length - 1]).id;
+  let titel = "", minuten = 120, areaId = standardBereich, montag = ersteWoche;
+
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Passt das noch?</h2>" +
+      "<p class='zusage__intro'>Bevor du zusagst: Was kostet es deine Woche? Nichts wird eingetragen, bevor du es bestätigst.</p>" +
+      // Dauer und Woche zuerst, das Ergebnis direkt darunter — am Telefon
+      // sieht man so, was ein Tipp auf „3 h" bewirkt. Titel und Bereich
+      // braucht erst der Eintrag (der Bereich ändert nur Pausen und Wege).
+      "<div class='sheet__row'><span class='label'>Wie lange etwa?</span><div class='chipset' id='zDauer'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Welche Woche?</span><div class='chipset' id='zWoche'></div></div>" +
+      "<div class='zusage' id='zErgebnis' aria-live='polite'></div>" +
+      "<div class='sheet__row' style='margin-top:var(--s-5)'><label class='label' for='zTitel'>Für den Eintrag: worum geht es?</label>" +
+      "<input class='field' id='zTitel' placeholder='z.B. Umzug helfen, Zusatzprojekt' autocomplete='off'></div>" +
+      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='zBereich'></div></div>";
+
+    const chips = (wrap, optionen, aktuell, setzen) => {
+      wrap.innerHTML = "";
+      optionen.forEach(([wert, text]) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(wert === aktuell()));
+        c.textContent = text;
+        c.onclick = () => { setzen(wert); malen(); };
+        wrap.appendChild(c);
+      });
+    };
+    const inp = s.querySelector("#zTitel");
+    inp.addEventListener("input", () => { titel = inp.value.trim(); });
+
+    const slotText = l => DAY_SHORT[l.day.i] + " " + l.day.d.getDate() + "." + (l.day.d.getMonth() + 1) + ". " +
+      fmtTime(l.start) + "–" + fmtTime(Math.min(l.end, l.start + minuten));
+    const eintragen = (tagIdx, datum, start, laenge) => {
+      close();
+      anchor = new Date(datum + "T12:00:00");
+      selectedDayIdx = tagIdx;
+      renderAll();
+      blockSheet({ id: null, title: titel, areaId, day: tagIdx, date: datum, repeat: "none",
+        start, end: Math.min(state.settings.dayEnd * 60, start + laenge), frog: false });
+    };
+    const variante = (kopf, text, knopf, aktion) => {
+      const v = document.createElement("div");
+      v.className = "zusage__var";
+      v.innerHTML = "<div class='zusage__kopf'>" + kopf + "</div><div class='zusage__text'>" + text + "</div>";
+      if (knopf) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "btn btn--sm"; b.textContent = knopf;
+        b.onclick = aktion;
+        v.appendChild(b);
+      }
+      return v;
+    };
+    const pct = q => (q > 2 ? "über 200" : String(Math.round(q * 100))) + " %";
+    // „3 h 15 min" statt „3,3 h" — so sagt man eine Dauer zu.
+    const genau = m => m >= 60 ? Math.floor(m / 60) + " h" + (m % 60 ? " " + (m % 60) + " min" : "") : m + " min";
+
+    const malen = () => {
+      chips(s.querySelector("#zDauer"), [[30, "30 min"], [60, "1 h"], [120, "2 h"], [180, "3 h"], [240, "4 h"], [360, "6 h"]],
+        () => minuten, w => { minuten = w; });
+      chips(s.querySelector("#zBereich"), state.areas.map(a => [a.id, a.name]), () => areaId, w => { areaId = w; });
+      const naechste = addDays(ersteWoche, 7);
+      chips(s.querySelector("#zWoche"), [[iso(ersteWoche), ersteWoche.getTime() === heuteMon.getTime() ? "Diese Woche" : "KW " + isoWeek(ersteWoche)],
+        [iso(naechste), naechste.getTime() === addDays(heuteMon, 7).getTime() ? "Nächste Woche" : "KW " + isoWeek(naechste)]],
+        () => iso(montag), w => { montag = new Date(w + "T12:00:00"); montag = mondayOf(montag); });
+
+      const r = zusageDurchspielen(minuten, areaId, montag);
+      const box = s.querySelector("#zErgebnis");
+      box.innerHTML = "";
+      const lage = document.createElement("p");
+      lage.className = "zusage__lage";
+      lage.innerHTML = "Jetzt zu <b>" + pct(r.quoteVor) + "</b> verplant, mit dieser Zusage zu <b>" + pct(r.quoteNach) + "</b>. " +
+        (r.okNach
+          ? "Das bleibt unter der Marke von " + Math.round(VERPLANT_GRENZE * 100) + " %."
+          : "Das liegt " + fmtDur(r.ueber) + " über der Marke von " + Math.round(VERPLANT_GRENZE * 100) + " %.");
+      box.appendChild(lage);
+
+      // 1) Ganz zusagen
+      const erste = r.passend[0];
+      const folge = r.okNach ? "Keine Folgen für deine Wochenziele."
+        : r.offeneZiele.length
+          ? "Dann konkurrieren deine offenen Ziele um den Rest: " +
+            r.offeneZiele.map(x => escapeHtml(x.a.name) + " " + fmtDur(x.rest)).join(", ") + "."
+          : "Die Woche wird eng — Pausen und Puffer schrumpfen.";
+      box.appendChild(variante(
+        "Ganz zusagen · " + fmtDur(minuten),
+        (erste ? "Frei am Stück: " + r.passend.map(slotText).join(" · ") + ". " : "Am Stück ist dafür keine Lücke frei. ") + folge,
+        erste ? "Eintragen am " + DAY_SHORT[erste.day.i] : null,
+        erste ? () => eintragen(erste.day.i, erste.day.key, erste.start, minuten) : null));
+
+      // 2) Kleiner zusagen — nur, wenn das Ganze nicht folgenlos passt,
+      //    aber ein spürbarer Teil schon: höchstens die Luft bis zur Marke
+      //    und höchstens die größte freie Lücke.
+      if (!r.okNach || !erste) {
+        const kleiner = Math.min(r.luft, r.groesste ? Math.floor(r.groesste.laenge / 15) * 15 : 0, minuten - 15);
+        if (kleiner >= 30) {
+          const l = r.groesste;
+          box.appendChild(variante(
+            "Kleiner zusagen · " + genau(kleiner),
+            "Ein klar begrenzter Teil passt ohne Folgen für deine Ziele, z.B. " +
+              DAY_SHORT[l.day.i] + " " + l.day.d.getDate() + "." + (l.day.d.getMonth() + 1) + ". ab " + fmtTime(l.start) + ".",
+            "Teil eintragen",
+            () => eintragen(l.day.i, l.day.key, l.start, kleiner)));
+        }
+      }
+
+      // 3) Eine Woche später
+      const spaeter = addDays(montag, 7);
+      const r2 = zusageDurchspielen(minuten, areaId, spaeter);
+      const erste2 = r2.passend[0];
+      box.appendChild(variante(
+        "Eine Woche später · KW " + isoWeek(spaeter),
+        "Dort zu " + pct(r2.quoteNach) + " verplant" + (r2.okNach ? ", unter der Marke." : ", " + fmtDur(r2.ueber) + " über der Marke.") +
+          (erste2 ? " Frei am Stück: " + slotText(erste2) + "." : " Am Stück keine Lücke frei."),
+        erste2 ? "Dort eintragen" : null,
+        erste2 ? () => eintragen(erste2.day.i, erste2.day.key, erste2.start, minuten) : null));
+
+      const absagen = document.createElement("p");
+      absagen.className = "zusage__absagen";
+      absagen.textContent = "Und Absagen ist auch eine Variante: Deine Woche bleibt, wie sie ist.";
+      box.appendChild(absagen);
+    };
+    malen();
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const fertig = document.createElement("button");
+    fertig.className = "btn"; fertig.type = "button"; fertig.textContent = "Schließen";
+    fertig.onclick = close;
+    foot.append(sp, fertig);
+    s.appendChild(foot);
+  });
 }
 
 function renderGoals() {
@@ -5957,6 +6333,11 @@ function renderGrid() {
     kopfBeobachter.disconnect();
     if (kopfEl) kopfBeobachter.observe(kopfEl);
   }
+
+  // v1.32: den Glaskopf JETZT messen, nicht erst im ResizeObserver danach —
+  // sein Tagesstreifen erscheint je nach Ansicht, und mit der alten Höhe
+  // wäre der Scrollweg kürzer: die gemerkte Position würde gekappt (scroll.js).
+  kopfhoeheMessen();
 
   scrollMerkSchluessel = scrollSchluessel();
   const gemerkt = scrollMerk[scrollMerkSchluessel];
@@ -7394,6 +7775,7 @@ $("#taskInput").addEventListener("input", () => {
   $("#taskInput").removeAttribute("aria-invalid");
 });
 $("#goalsEdit").onclick = goalsSheet;
+$("#zusageBtn").onclick = () => zusageSheet();
 
 /* ============================================================ Tagesform */
 const ENERGY = {
@@ -7767,10 +8149,9 @@ function renderEnergy() {
   });
   const d = addDays(mondayOf(anchor), selectedDayIdx);
   $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
-  const wichtig = state.tasks.find(t => t.frog && !t.done);
-  let html = ENERGY[lvl || "none"].text;
-  if (wichtig) html += "<br><br><b>Das Wichtigste:</b> " + escapeHtml(wichtig.title);
-  $("#energyHint").innerHTML = html;
+  // v1.32: „Das Wichtigste: …" stand hier ein zweites Mal — dieselbe Karte
+  // nennt den Schwerpunkt schon ganz oben („Heute zählt", renderAgenda()).
+  $("#energyHint").innerHTML = ENERGY[lvl || "none"].text;
   renderEnergyAction();
 
   const freiBox = $("#dayFrei");
@@ -9690,6 +10071,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "?") { e.preventDefault(); kuerzelSheet(); }
   else if (e.key.toLowerCase() === "m") { e.preventDefault(); monatSheet(); }
   else if (e.key.toLowerCase() === "w") { e.preventDefault(); freizeitSheet(); }
+  else if (e.key.toLowerCase() === "z") { e.preventDefault(); zusageSheet(); }
 });
 
 /* Tastenkürzel gab es seit Langem (←/→, T, N) — nur wusste niemand davon.
@@ -9701,6 +10083,7 @@ const TASTENKUERZEL = [
   ["N", "Neuer Eintrag am gewählten Tag"],
   ["W", "Wochenübersicht: freie und belegte Zeit"],
   ["M", "Monatsübersicht"],
+  ["Z", "Passt das noch? Eine neue Zusage durchspielen"],
   ["Esc", "Offenes Blatt schließen"],
   ["?", "Diese Übersicht"]
 ];
@@ -9874,6 +10257,7 @@ window.matchMedia(MOBILE_Q).addEventListener("change", e => {
   isMobile = e.matches;
   if (!isMobile) setView("plan");
   renderAll();
+  kopfhoeheMessen(); fussbereichMessen();
 });
 
 // Beim Drehen wird aus einem Tag die Woche und zurück. renderAll, nicht
@@ -9918,7 +10302,6 @@ document.querySelectorAll("#panelNav button").forEach(b => {
     if (ziel) { ziel.tabIndex = -1; ziel.focus({ preventScroll: true }); }
   };
 });
-$("#weekOverviewBtn").onclick = () => freizeitSheet();
 $("#desktopAdd").onclick = () => $("#fabAdd").onclick();
 
 /* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
@@ -10267,7 +10650,12 @@ $("#syncBadge").onclick = () => {
 if ("ResizeObserver" in window) {
   const fussBeobachter = new ResizeObserver(fussbereichMessen);
   ["tabbar", "sugBar"].forEach(id => fussBeobachter.observe(document.getElementById(id)));
+  new ResizeObserver(kopfhoeheMessen).observe(document.getElementById("kopf"));
 }
+sugbarPlatzieren();
+kopfhoeheMessen();
+window.matchMedia(SUG_OBEN_Q).addEventListener("change", sugbarPlatzieren);
+window.matchMedia(QUER_Q).addEventListener("change", fussbereichMessen);
 
 applyTheme();
 document.body.dataset.tage = einTag ? "1" : "7";

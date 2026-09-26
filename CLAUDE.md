@@ -11,6 +11,31 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.32 vom 2026-09-26
+
+Aktuelle Änderungen: `release/v1.32.md`. Prüfung: `werkzeug/iphone.js`; Kette 60 Skripte.
+PWA-Cache `wp-v1.32`, Datenschema weiterhin 10, keine neuen Felder.
+
+- **Glas-Kopf.** `#banner`, `.topbar` und `#daySwitch` stecken in `<div class="kopf" id="kopf">`.
+  Am Telefon (≤ 1100px) liegt `.kopf` absolut über dem Inhalt; `.panel` und `.planwrap`
+  beginnen per `padding-top: var(--kopf-h)` darunter. `--kopf-h` setzt `kopfhoeheMessen()`
+  (ResizeObserver auf `#kopf`). Wer dort eine eigene `.panel`-Polsterung setzt (Tablet-Regel!),
+  muss `--kopf-h` einrechnen, sonst liegt der Karteninhalt unter dem Kopf.
+  Glas = Tokens `--glas*` in beiden Themes, `@supports (backdrop-filter)` und
+  `prefers-reduced-transparency` fallen auf `--surface` zurück.
+- **Querformat** (`QUER_Q` in JS und gleichlautendes CSS `max-height:500px and max-width:1000px`):
+  Tabbar = senkrechte Leiste (`--rail`, volle Höhe), `.kopf` beginnt rechts davon, `.fab`
+  unten in der Leiste. `fussbereichMessen()` setzt dort `--fussleiste` = Safe-Area unten
+  (`sicherUnten()`), nicht die Tabbar-Höhe. Ab 700px Breite (`SUG_OBEN_Q`) hängt
+  `sugbarPlatzieren()` `#sugBar` in die `.topbar` (`body[data-sugoben="1"]`) und beim Drehen
+  zurück; die Pille zählt dann nicht zu `--fuss-oben`.
+- **Passt das noch?** `zusageDurchspielen(minuten, areaId, montag)` rechnet über `inWoche()`
+  (anchor nur für die Rechnung umgestellt) mit `wochenKapazitaet()` und `freeGaps()`;
+  `zusageSheet()` zeigt Varianten und öffnet nur `blockSheet()` vorausgefüllt — nie still
+  speichern. Keine Rangfolge der Ziele erfinden (s. `IDEEN.md`).
+- Entfernt: `#weekOverviewBtn` („Freie Zeit", doppelt zu `#weekLabel`/`W`), `.planhead__hint`,
+  „Das Wichtigste" in `renderEnergy()` (steht schon in der Agenda).
+
 ### Release v1.31 vom 2026-09-26
 
 Aktuelle Änderungen: `release/v1.31.md`. Prüfung: `werkzeug/uebersicht.js`; die Kette
@@ -213,7 +238,11 @@ Monatsübersicht: Kalenderraster mit KW-Rinne, Serienprojektion, Tages-/KW-Tipp,
 mit exakt/grob/Vorschlag, Zeilen-Tipp in den Tag, Titel-Zoom in den Monat, Gesicht überlebt
 den Zoom-Rundweg), `uebersicht.js` (v1.31: Klebetitel unter dem gemessenen Tageskopf
 auf Desktop/Tablet/Telefon, Stunden und Tastaturwahl im Wochenkopf, Tagesform-Stufen,
-Kalender-Export als .ics, Tastenkürzel `?`/`m`/`w`).
+Kalender-Export als .ics, Tastenkürzel `?`/`m`/`w`), `iphone.js` (v1.32: Safe-Areas des
+iPhone 15 Pro schon beim Laden gesetzt; Glas-Kopf hoch, senkrechte Leiste und Vorschlagspille
+quer, Drehen, aufgeräumter Desktop-Plankopf, „Passt das noch?" in lockerer/knapper/voller Woche).
+Safe-Areas nie nachträglich per Inline-Stil setzen — die App misst ihren Fuß beim Laden,
+nachträglich gesetzte Werte erzeugen Scheinfehler (verdeckte Tab-Symbole).
 
 Abgleich und PWA brauchen einen Server:
 
@@ -237,7 +266,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.31` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.32` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

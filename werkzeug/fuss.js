@@ -55,10 +55,22 @@ async function messen(p) {
       if (r.width === 0 && r.height === 0) return null;
       return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height };
     };
+    // Seit v1.32 steht die Tabbar quer als senkrechte Leiste am Rand, und die
+    // Eintragsaktion sitzt in deren freiem unteren Teil. Die Leiste ist dann
+    // nur noch Behälter — maßgeblich sind ihre vier Knöpfe, von denen
+    // keiner verdeckt werden darf.
+    const leiste = rectOrNull('.tabbar');
+    let tabbar = leiste;
+    if (leiste && leiste.height > leiste.width) {
+      const k = [...document.querySelectorAll('.tabbar button')].map(b => b.getBoundingClientRect());
+      tabbar = { top: Math.min(...k.map(r => r.top)), bottom: Math.max(...k.map(r => r.bottom)),
+        left: Math.min(...k.map(r => r.left)), right: Math.max(...k.map(r => r.right)) };
+      tabbar.width = tabbar.right - tabbar.left; tabbar.height = tabbar.bottom - tabbar.top;
+    }
     return {
       innerHeight: window.innerHeight,
       sugbarFlag: document.body.dataset.sugbar,
-      tabbar: rectOrNull('.tabbar'),
+      tabbar,
       dayswitch: rectOrNull('.dayswitch'),
       gridwrap: rectOrNull('.gridwrap'),
       sugbar: rectOrNull('#sugBar'),

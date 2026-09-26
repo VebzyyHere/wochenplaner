@@ -10,6 +10,12 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.32 ergänzt `iphone.js`: iPhone 15 Pro hoch und quer mit Safe-Areas, die wie auf
+dem Gerät schon beim Laden gelten (Temp-Kopie mit Stilblock), Glas-Kopf, senkrechte Leiste
+im Querformat, Vorschlagspille in der Kopfzeile, Drehen, aufgeräumter Desktop und
+„Passt das noch?". `fuss.js` misst quer die Tab-Knöpfe statt des Leistenbehälters. Die
+vollständige Kette umfasst 60 Skripte.
+
 Version 1.31 ergänzt `uebersicht.js`: klebende Blocktitel unter dem echten
 Tageskopf (Desktop, Tablet, Telefon), Stunden je Tag im Wochenkopf samt
 Tastaturwahl, die Stufenanzeige der Tagesform, den Kalender-Export
