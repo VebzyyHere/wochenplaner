@@ -2122,6 +2122,82 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   #inSwap { min-height: 44px; }
 }
 
+/* ============================================================
+   v1.36 „Moos & Papier" — eine Stilschicht über dem Bestand
+   Warmes Papier als Grund, Moosgrün für Aktionen, Limette als Belohnung
+   (Haken, aktiver Tab, heute). Nur Aussehen: keine Struktur, keine neuen
+   Klassen im Markup — alle Prüfskripte greifen weiter auf dieselben Knoten.
+   ============================================================ */
+:root {
+  --bg:        oklch(0.962 0.011 100);
+  --surface-2: oklch(0.945 0.012 100);
+  --surface-3: oklch(0.915 0.014 100);
+  --border:    oklch(0.895 0.012 100);
+  --ink:       oklch(0.43 0.095 150);
+  --ink-hover: oklch(0.37 0.085 150);
+  --ink-active: oklch(0.32 0.075 150);
+  --selected:  oklch(0.925 0.065 130);
+  --selected-text: oklch(0.32 0.080 145);
+  --lime:      oklch(0.89 0.170 128);
+  --on-lime:   oklch(0.25 0.040 150);
+  --tief:      oklch(0.27 0.035 155);
+  --radius: 20px; --radius-sm: 12px; --radius-lg: 26px;
+  --kopf-flach: #f4f2ea;
+}
+html[data-theme="dark"] {
+  --lime:    oklch(0.86 0.160 128);
+  --on-lime: oklch(0.22 0.035 150);
+  --tief:    oklch(0.34 0.055 150);
+}
+body { background: var(--bg); }
+.card { border-color: transparent; box-shadow: 0 1px 2px oklch(0.3 0.03 120 / .06); }
+html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
+.card__title, .agenda__label { font-family: var(--font-display); font-weight: 800; }
+.btn { border-radius: 999px; }
+.btn--primary { font-weight: 750; }
+
+/* Heute: die Antwort als dunkle Moos-Karte statt als Linie. */
+.agenda__hero {
+  padding: 10px 14px; border-radius: var(--radius);
+  background: var(--tief); color: oklch(0.96 0.01 110);
+  border-bottom: 0;
+}
+.agenda__hero .agenda__hero-status, .agenda__hero .agenda__hero-sub { color: oklch(0.84 0.03 140); }
+.agenda__hero-title { font-family: var(--font-display); font-weight: 800; }
+
+/* Agenda-Zeilen als runde Kärtchen, Haken groß und rund. */
+.agenda__list { gap: 3px; margin-top: 0; }
+.agenda__row {
+  background: var(--surface); border-top: 0; border-radius: 16px;
+  padding: 6px 10px; align-items: center; overflow: hidden;
+}
+.agenda__row.is-on { background: var(--surface-2); }
+.agenda__title { font-weight: 650; }
+.agenda__check {
+  width: 26px; height: 26px; margin-top: 0;
+  border: 2.5px solid var(--border-strong); order: 9;
+  transition: background .18s, border-color .18s, transform .18s;
+}
+.agenda__check:checked { background: var(--ink); border-color: var(--ink); transform: scale(1.04); }
+.agenda__check:checked::after { left: 8px; top: 3.5px; width: 6px; height: 11px; border-width: 0 2.5px 2.5px 0; }
+.agenda__row.is-wisch::before { border-radius: 16px; }
+
+/* Tagesstreifen: runde Kacheln, gewählter Tag dunkel, heute in Limette. */
+.dayswitch__btn { border-radius: 16px; background: var(--surface); }
+.dayswitch__btn span { text-transform: none; letter-spacing: 0; font-weight: 750; }
+.dayswitch__btn b { font-family: var(--font-display); font-weight: 800; }
+.dayswitch__btn.is-today b { background: var(--lime); color: var(--on-lime); }
+.dayswitch__btn[aria-pressed="true"] { background: var(--tief); border-color: var(--tief); color: oklch(0.96 0.01 110); }
+.dayswitch__btn[aria-pressed="true"] span { color: oklch(0.84 0.03 140); }
+.dayswitch__btn[aria-pressed="true"] i { --last-farbe: var(--lime); background-color: oklch(1 0 0 / .18); }
+.dayswitch__btn.is-frei { background: oklch(0.62 0.14 150 / .12); }
+
+@media (max-width: 1100px) {
+  .tabbar button { border-radius: 999px; font-weight: 750; }
+  .tabbar button[aria-current="true"] { background: var(--tief); color: var(--lime); }
+  body[data-mview="plan"] .fab { background: var(--lime); color: var(--on-lime); border-radius: 999px; font-weight: 800; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
