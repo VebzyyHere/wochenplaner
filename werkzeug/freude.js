@@ -156,6 +156,79 @@ const aufbau = () => {
     await ctx.close();
   }
 
+  console.log('f) Wischen zum Abhaken, Überblendung (v1.35)');
+  {
+    const { ctx, p } = await seite('2026-09-09T10:15:00+02:00', { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+    await p.evaluate(() => { setView('heute'); renderAll(); });
+    await p.waitForTimeout(150);
+    // Wischgeste mit Touch-Pointern: Start, Zwischenstand, Ende.
+    const wisch = (id, bis, dy = 0) => p.evaluate(({ id, bis, dy }) => {
+      const row = document.querySelector('#agenda .agenda__check[data-id="' + id + '"]').closest('.agenda__row');
+      const r = row.getBoundingClientRect(), x0 = r.left + 120, y0 = r.top + r.height / 2;
+      const ev = (typ, x, y) => row.dispatchEvent(new PointerEvent(typ, { bubbles: true, pointerType: 'touch', pointerId: 7, clientX: x, clientY: y }));
+      ev('pointerdown', x0, y0);
+      ev('pointermove', x0 + bis / 2, y0 + dy / 2);
+      ev('pointermove', x0 + bis, y0 + dy);
+      const zwischen = { wisch: row.classList.contains('is-wisch'), voll: row.classList.contains('is-wisch-voll'),
+        text: getComputedStyle(row, '::after').content };
+      ev('pointerup', x0 + bis, y0 + dy);
+      return zwischen;
+    }, { id, bis, dy });
+    const erledigt = id => p.evaluate(i => istErledigt(state.blocks.find(b => b.id === i), iso(new Date())), id);
+
+    const kurz = await wisch('lesen', 40);
+    ok(kurz.wisch && !kurz.voll, 'kurzes Wischen zeigt die Zeile in Bewegung, noch unter der Schwelle');
+    ok(!(await erledigt('lesen')), 'kurzes Wischen hakt nicht ab');
+    const lang = await wisch('lesen', 110);
+    ok(lang.voll && /Erledigt/.test(lang.text), 'über der Schwelle steht „Erledigt" hinter der Zeile');
+    ok(await erledigt('lesen'), 'langes Wischen hakt ab');
+    ok(await p.evaluate(() => document.querySelectorAll('.jubel').length > 0), 'und feiert wie ein Tipp auf den Haken');
+    const zurueck = await wisch('lesen', 110);
+    ok(/Wieder offen/.test(zurueck.text) && !(await erledigt('lesen')), 'erneutes Wischen hebt den Haken wieder auf');
+    await wisch('lesen', 110, 90);
+    ok(!(await erledigt('lesen')), 'eine eher senkrechte Bewegung ist Scrollen, kein Abhaken');
+    ok(await p.evaluate(() => !document.querySelector('.agenda__row.is-wisch')), 'nach dem Loslassen steht jede Zeile wieder an ihrem Platz');
+
+    await p.click('#tabbar button[data-view="ziele"]');
+    ok(await p.evaluate(() => $('#main').classList.contains('is-wechsel')), 'Tipp auf die Tabbar blendet die neue Ansicht auf');
+    await p.waitForTimeout(400);
+    ok(await p.evaluate(() => !$('#main').classList.contains('is-wechsel')), 'die Überblendung räumt sich selbst weg');
+    await p.evaluate(() => setView('heute'));
+    ok(await p.evaluate(() => !$('#main').classList.contains('is-wechsel')), 'programmgesteuertes setView() blendet nicht');
+    await ctx.close();
+  }
+
+  console.log('g) Wochenkarte (v1.35)');
+  {
+    const { ctx, p } = await seite('2026-09-09T10:15:00+02:00', { acceptDownloads: true });
+    const bz = await p.evaluate(() => {
+      const heute = iso(new Date());
+      setzeErledigt(state.blocks.find(b => b.id === 'lauf'), heute, true);
+      setzeErledigt(state.blocks.find(b => b.id === 'lesen'), heute, true);
+      save();
+      return wochenBilanz();
+    });
+    ok(bz.ist === 90 && bz.haken === 2 && bz.geschafft === 1 && bz.mitZiel === 1, 'Bilanz: 90 min gemacht, 2 Haken, 1 von 1 Ziel geschafft');
+    ok(await p.evaluate(b => bilanzSatz(b) === 'Jedes Wochenziel geschafft. Legendär.', bz), 'Satz zur Bilanz passt');
+    ok(await p.evaluate(() => { const r = oklchRgb(1, 0, 0); const s = oklchRgb(0, 0, 0); return r === 'rgb(255,255,255)' && s === 'rgb(0,0,0)'; }), 'OKLCH-Umrechnung trifft Weiß und Schwarz');
+    const bild = await p.evaluate(async () => {
+      const k = await wochenkarteZeichnen();
+      const img = new Image(); img.src = URL.createObjectURL(k.blob); await img.decode();
+      return { w: img.naturalWidth, h: img.naturalHeight, groesse: k.blob.size, name: k.dateiname };
+    });
+    ok(bild.w === 1080 && bild.h === 1350 && bild.groesse > 20000, 'Karte ist ein 1080×1350-PNG (' + Math.round(bild.groesse / 1024) + ' KB)');
+    ok(bild.name === 'wochenplaner-kw37.png', 'Dateiname nennt die Woche (' + bild.name + ')');
+    const vorher = await p.evaluate(() => JSON.stringify(state));
+    await p.evaluate(() => setView('ziele'));
+    await p.click('#wochenkarteBtn');
+    await p.waitForSelector('#wkBild img');
+    ok(await p.evaluate(() => $('#wkTeilen').hidden && $('#wkSpeichern').classList.contains('btn--primary')), 'ohne Teilen-Funktion ist „Bild speichern" die Hauptaktion');
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#wkSpeichern')]);
+    ok(dl.suggestedFilename() === 'wochenplaner-kw37.png', '„Bild speichern" lädt die Karte herunter');
+    ok(await p.evaluate(v => JSON.stringify(state) === v, vorher), 'die Karte verändert den Plan nicht');
+    await ctx.close();
+  }
+
   console.log('c2) Bewegung reduziert');
   {
     const { ctx, p } = await seite('2026-09-09T10:15:00+02:00', { reducedMotion: 'reduce' });

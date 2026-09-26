@@ -10,6 +10,10 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.35 erweitert `freude.js` um Wischen zum Abhaken (Touch-Pointer), die
+Überblendung beim Ansichtswechsel und die Wochenkarte (Bilanz, PNG 1080×1350, Download);
+`iphone.js` prüft den festen Kopf im installierten Modus.
+
 Version 1.34 erweitert `freude.js` um den Ring am Termin (Desktop erst beim Überfahren,
 Telefon immer, Abhaken samt Konfetti) und die eingebettete runde Schrift.
 

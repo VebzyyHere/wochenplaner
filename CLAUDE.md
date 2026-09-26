@@ -11,6 +11,21 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.35 vom 2026-09-26
+
+Aktuelle Änderungen: `release/v1.35.md`. PWA-Cache `wp-v1.35`, Datenschema 10, Kette 61 Skripte.
+
+- `.kopf` ist am Telefon `position: fixed` (nicht absolute) — WebKits Randabtaster zählt nur
+  feste/klebende Elemente; installiert trägt auch `html` die Farbe `--kopf-flach`.
+- Agenda-Zeilen: Wischen nach rechts (`WISCH_AB` = 72 px, nur Touch) schaltet den Haken über
+  ein synthetisches `change` am `.agenda__check` — dieselbe Kette wie ein Tipp (`abhaken()`).
+  Die Klick-Sperre nach Wischen/langem Drücken teilt sich eine Stelle.
+- `ansichtWechseln(v)` = `setView(v)` + Überblendung (`#main.is-wechsel`, nur opacity); nur die
+  Nutzerwege (Tabbar, `#panelNav`) nutzen es. Tests und Code rufen weiter `setView()`.
+- `wochenBilanz()`, `bilanzSatz()`, `oklchRgb()`, `wochenkarteZeichnen()`, `wochenkarteSheet()`
+  (vor `renderGoals()`): Canvas-Bild der angezeigten Woche, Knopf `#wochenkarteBtn` in der
+  Ziele-Karte; `navigator.share` mit Datei, sonst Download. Nur lesen.
+
 ### Release v1.34 vom 2026-09-26
 
 Aktuelle Änderungen: `release/v1.34.md`. PWA-Cache `wp-v1.34`, Datenschema 10, Kette 61 Skripte.
@@ -301,7 +316,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.34` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.35` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

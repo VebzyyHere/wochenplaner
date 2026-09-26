@@ -132,6 +132,11 @@ const beispiel = () => {
       }, th);
       ok(app.app === '1' && app.filter === 'none' && !/\/|rgba/.test(app.bg), th + ': installiert ist der Kopf flach und deckend (' + app.bg + ')');
       ok(app.meta === app.kopf, th + ': theme-color entspricht der Kopffarbe (' + app.meta + ' = ' + app.kopf + ')');
+      // v1.35: WebKits Randabtaster zählt nur feste/klebende Elemente — und
+      // auch die Leinwand darunter trägt dieselbe Farbe.
+      const rand = await p.evaluate(() => ({ pos: getComputedStyle(document.getElementById('kopf')).position,
+        html: getComputedStyle(document.documentElement).backgroundColor, kopf: getComputedStyle(document.getElementById('kopf')).backgroundColor }));
+      ok(rand.pos === 'fixed' && rand.html === rand.kopf, th + ': Kopf ist fest (fixed), die Seite darunter hat dieselbe Farbe');
     }
     await p.evaluate(() => { window.laeuftAlsApp = () => false; state.settings.theme = 'light'; applyTheme(); });
     ok(await p.evaluate(() => /blur/.test(getComputedStyle(document.getElementById('kopf')).backdropFilter)), 'im Browser bleibt der Kopf Glas');

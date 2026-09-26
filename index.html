@@ -336,6 +336,9 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
    Kopf wusch das die KW-Zeile aus (iOS 27, Screenshot vom 2026-09-26). Hier
    ist der Kopf deshalb flach und deckend, in genau der theme-color. Das Glas
    bleibt unten (Tab- und Vorschlagsleiste) und im Browser. */
+/* Auch die Leinwand darunter trägt dieselbe Farbe — nichts Andersfarbiges
+   am oberen Rand, das iOS abtasten könnte. */
+html[data-app="1"] { background: var(--kopf-flach); }
 html[data-app="1"] .kopf {
   background: var(--kopf-flach) !important;
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
@@ -558,6 +561,8 @@ html[data-app="1"] .kopf {
 }
 
 .main { display: flex; flex: 1; min-height: 0; }
+@keyframes einblenden { from { opacity: .3; } to { opacity: 1; } }
+.main.is-wechsel > .panel, .main.is-wechsel > .planwrap { animation: einblenden .2s cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* Ein ausgewählter Arbeitsbereich neben dem Kalender. Die Navigation bleibt
    beim Scrollen erreichbar; kein Sprung in einen langen Kartenstapel. */
@@ -711,6 +716,24 @@ html[data-app="1"] .kopf {
   border-top: 1px solid var(--border); cursor: pointer;
 }
 .agenda__row--grob { border-left-style: dotted; }
+/* Wischen zum Abhaken (v1.35): die Zeile folgt dem Finger, dahinter wächst
+   die Bestätigung; ab der Schwelle wird sie satt und sagt, was passiert. */
+.agenda__row:not(.is-vorschlag) { position: relative; touch-action: pan-y; }
+.agenda__row > * { transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1); }
+.agenda__row.is-wisch > * { transform: translateX(var(--wisch, 0px)); transition: none; }
+.agenda__row.is-wisch::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: var(--wisch, 0px);
+  background: var(--selected); pointer-events: none; border-radius: 0 12px 12px 0;
+}
+.agenda__row.is-wisch::after {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 750;
+  color: var(--selected-text); opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.agenda__row.is-wisch[data-wisch-ziel="ab"]::after { content: "Erledigt"; }
+.agenda__row.is-wisch[data-wisch-ziel="zurueck"]::after { content: "Wieder offen"; }
+.agenda__row.is-wisch-voll::before { background: var(--ink); }
+.agenda__row.is-wisch-voll::after { opacity: 1; color: var(--on-ink); }
 .agenda__row.is-on .agenda__title { opacity: .55; text-decoration: line-through; }
 .agenda__check {
   appearance: none; width: 16px; height: 16px; margin-top: 4px; flex: none;
@@ -961,6 +984,12 @@ html[data-theme="dark"] .agenda__loading {
 }
 .zusage__kopf { font-weight: 600; font-size: var(--t-body); color: var(--text); }
 .zusage__text { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.5; }
+/* Wochenkarte (v1.35): Vorschau im Blatt, Seitenverhältnis 4:5 wie das Bild. */
+.card__aktionen { display: flex; align-items: center; gap: 2px; }
+.wochenkarte { aspect-ratio: 4 / 5; max-height: 56vh; margin: 0 auto; display: grid; place-items: center;
+  border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-2); box-shadow: var(--shadow-2); }
+.wochenkarte img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.wochenkarte__lade { font-size: var(--t-sm); color: var(--text-muted); }
 .zusage__absagen { margin: var(--s-1) 0 0; font-size: var(--t-sm); color: var(--text-faint); line-height: 1.5; }
 
 /* Zieleditor */
@@ -1747,7 +1776,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      Scrollmerker und Klebetitel bleiben unberührt). --kopf-h misst
      kopfhoeheMessen() an der echten Höhe, auch mit Speicher-Banner. */
   .app { position: relative; }
-  .kopf { position: absolute; top: 0; left: 0; right: 0; }
+  /* fixed statt absolute (v1.35): WebKits Farbabtaster am oberen Rand zählt
+     nur feste/klebende Elemente — ein absolut gesetzter Kopf galt nicht als
+     Rand, und iOS 26/27 legte trotz deckender Farbe sein Glas darüber. */
+  .kopf { position: fixed; top: 0; left: 0; right: 0; }
   .panel { padding-top: calc(var(--kopf-h, 0px) + var(--s-3)); scroll-padding-top: var(--kopf-h, 0px); }
   .planwrap { padding-top: var(--kopf-h, 0px); }
   body[data-mview="plan"] .panel { display: none; }
@@ -2171,7 +2203,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       <section class="card" data-card="ziele">
         <div class="card__head">
           <h2 class="card__title">Wochenziele</h2>
-          <button class="btn btn--sm btn--ghost" id="goalsEdit">Bearbeiten</button>
+          <div class="card__aktionen">
+            <button class="btn btn--icon btn--ghost" id="wochenkarteBtn" type="button" aria-label="Woche als Karte teilen" title="Woche als Karte teilen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
+            <button class="btn btn--sm btn--ghost" id="goalsEdit">Bearbeiten</button>
+          </div>
         </div>
         <div class="goals" id="goalsList"></div>
         <div class="goals__foot" id="goalsFoot"></div>
@@ -5671,6 +5706,215 @@ function zusageSheet() {
   });
 }
 
+/* ============================================================
+   Wochenkarte (v1.35)
+
+   Die Woche als Bild zum Teilen — für die Story, den Chat mit der
+   Lerngruppe oder einfach das eigene Fotoalbum. Gezählt wird, was
+   wirklich passiert ist (abgehakt), daneben, was geplant war; dieselben
+   Regeln wie im Wochenrückblick: Vorschläge zählen nicht, eine Serie zählt
+   an jedem ihrer Tage. Liest nur, schreibt nichts in state.
+
+   Gezeichnet wird auf ein Canvas (1080 × 1350, 4:5) in der eingebetteten
+   runden Schrift — die gibt es auf jedem Gerät, auch dort, wo das Canvas
+   ui-rounded nicht kennt. Bereichsfarben werden aus OKLCH in sRGB
+   umgerechnet, weil nicht jedes Canvas OKLCH versteht.
+   ============================================================ */
+function wochenBilanz() {
+  const tage = weekDays();
+  const bereiche = [];
+  let ist = 0, geplant = 0, haken = 0;
+  state.areas.forEach(a => {
+    let aIst = 0, aPlan = 0;
+    tage.forEach(d => state.blocks.forEach(b => {
+      if (b.areaId !== a.id || b.sug || !onDay(b, d.key, d.i)) return;
+      aPlan += dauerVon(b);
+      if (istErledigt(b, d.key)) { aIst += dauerVon(b); haken++; }
+    }));
+    ist += aIst; geplant += aPlan;
+    const ziel = a.plan.goal * 60;
+    if (ziel > 0 || aIst > 0) bereiche.push({ name: a.name, hue: a.hue, ist: aIst, plan: aPlan, ziel });
+  });
+  bereiche.sort((x, y) => (y.ziel > 0) - (x.ziel > 0) || y.ist - x.ist);
+  const mitZiel = bereiche.filter(x => x.ziel > 0);
+  const geschafft = mitZiel.filter(x => x.ist >= x.ziel).length;
+  return { ist, geplant, haken, bereiche, mitZiel: mitZiel.length, geschafft };
+}
+
+function bilanzSatz(bz) {
+  if (bz.mitZiel && bz.geschafft === bz.mitZiel) return "Jedes Wochenziel geschafft. Legendär.";
+  if (bz.mitZiel && bz.geschafft * 2 >= bz.mitZiel) return "Mehr als die Hälfte der Ziele geschafft. Läuft.";
+  if (bz.haken === 1) return "Der erste Haken ist gesetzt. Weiter so.";
+  if (bz.haken) return "Jeder Haken zählt – " + bz.haken + " sind es schon.";
+  return "Frische Woche. Alles ist drin.";
+}
+
+/* OKLCH → sRGB (Björn Ottosson, OKLab), fürs Canvas. */
+function oklchRgb(L, C, h, alpha) {
+  const hr = h * Math.PI / 180, a = C * Math.cos(hr), b = C * Math.sin(hr);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  const kanal = x => {
+    x = Math.max(0, Math.min(1, x));
+    return Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055));
+  };
+  const r = kanal(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+  const g = kanal(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+  const bl = kanal(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
+  return alpha == null ? "rgb(" + r + "," + g + "," + bl + ")" : "rgba(" + r + "," + g + "," + bl + "," + alpha + ")";
+}
+
+async function wochenkarteZeichnen() {
+  const B = 1080, H = 1350, SCHRIFT = '"Wochenplaner Rund", ui-rounded, system-ui, sans-serif';
+  if (document.fonts && document.fonts.load) {
+    try { await Promise.all([document.fonts.load('800 160px "Wochenplaner Rund"'), document.fonts.load('600 40px "Wochenplaner Rund"')]); } catch (e) {}
+  }
+  const bz = wochenBilanz();
+  const mon = mondayOf(anchor), so = addDays(mon, 6);
+  const c = document.createElement("canvas");
+  c.width = B; c.height = H;
+  const x = c.getContext("2d");
+  const schrift = (gewicht, px) => { x.font = gewicht + " " + px + "px " + SCHRIFT; };
+  const kuerzen = (text, breite) => {
+    if (x.measureText(text).width <= breite) return text;
+    while (text.length > 1 && x.measureText(text + "…").width > breite) text = text.slice(0, -1);
+    return text + "…";
+  };
+  const pille = (px, py, w, h, farbe) => {
+    x.fillStyle = farbe; x.beginPath();
+    if (x.roundRect) x.roundRect(px, py, w, h, h / 2); else x.rect(px, py, w, h);
+    x.fill();
+  };
+
+  // Grund: ruhiges Salbei, dazu große weiche Farbflecken in den Tönen der Woche.
+  x.fillStyle = oklchRgb(0.975, 0.018, 150); x.fillRect(0, 0, B, H);
+  const toene = bz.bereiche.length ? bz.bereiche.map(b => b.hue) : [150, 280, 30];
+  [[B * 0.92, 120, 330], [80, H * 0.62, 260], [B * 0.78, H * 0.94, 300]].forEach(([cx, cy, r], i) => {
+    x.fillStyle = oklchRgb(0.82, 0.12, toene[i % toene.length], 0.35);
+    x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+  });
+
+  // Marke
+  const gruen = oklchRgb(0.36, 0.08, 150);
+  pille(80, 80, 64, 64, gruen);
+  x.strokeStyle = "#ffffff"; x.lineWidth = 6; x.lineCap = "round";
+  [[98, 124, 108], [112, 124, 96], [126, 124, 112]].forEach(([sx, y1, y2]) => { x.beginPath(); x.moveTo(sx, y1); x.lineTo(sx, y2); x.stroke(); });
+  x.fillStyle = oklchRgb(0.25, 0.03, 150); schrift(700, 38); x.textBaseline = "middle";
+  x.fillText("Wochenplaner", 164, 114);
+
+  // Woche
+  x.textBaseline = "alphabetic";
+  x.fillStyle = oklchRgb(0.22, 0.04, 150); schrift(800, 170);
+  x.fillText("KW " + isoWeek(mon), 76, 370);
+  x.fillStyle = oklchRgb(0.45, 0.03, 150); schrift(600, 46);
+  const monat = m => MONTHS[m.getMonth()];
+  x.fillText(mon.getDate() + ". " + (mon.getMonth() === so.getMonth() ? "" : monat(mon) + " ") + "– " + so.getDate() + ". " + monat(so) + " " + so.getFullYear(), 82, 440);
+
+  // Die Zahl der Woche
+  const zahl = bz.ist > 0 ? bz.ist : bz.geplant;
+  x.fillStyle = gruen; schrift(800, 128);
+  const zahlText = fmtDur(zahl);
+  x.fillText(zahlText, 76, 610);
+  const zb = x.measureText(zahlText).width;
+  x.fillStyle = oklchRgb(0.35, 0.04, 150); schrift(650, 44);
+  x.fillText(bz.ist > 0 ? "wirklich gemacht" : "eingeplant", 76 + zb + 24, 606);
+  x.fillStyle = oklchRgb(0.3, 0.03, 150); schrift(600, 42);
+  x.fillText(kuerzen(bilanzSatz(bz), B - 160), 80, 690);
+
+  // Bereiche
+  let y = 800;
+  // Vier Zeilen passen über den Fuß; der Rest wird genannt, nicht gequetscht.
+  const zeilen = bz.bereiche.slice(0, 4);
+  if (!zeilen.length) {
+    x.fillStyle = oklchRgb(0.45, 0.03, 150); schrift(600, 40);
+    x.fillText("Noch keine Wochenziele – die nächste Woche wartet.", 80, y);
+  }
+  zeilen.forEach(bb => {
+    const voll = bb.ziel > 0 ? bb.ziel : Math.max(bb.plan, bb.ist, 1);
+    const anteil = Math.max(0, Math.min(1, bb.ist / voll));
+    x.fillStyle = oklchRgb(0.62, 0.15, bb.hue);
+    x.beginPath(); x.arc(92, y - 14, 12, 0, Math.PI * 2); x.fill();
+    x.fillStyle = oklchRgb(0.25, 0.03, 150); schrift(700, 40);
+    x.fillText(kuerzen(bb.name, 560), 120, y);
+    x.fillStyle = oklchRgb(0.45, 0.03, 150); schrift(600, 36);
+    const wert = fmtDur(bb.ist) + (bb.ziel > 0 ? " / " + fmtDur(bb.ziel) : "") + (bb.ziel > 0 && bb.ist >= bb.ziel ? " · geschafft" : "");
+    x.textAlign = "right"; x.fillText(wert, B - 80, y); x.textAlign = "left";
+    pille(80, y + 22, B - 160, 24, oklchRgb(0.9, 0.015, 150));
+    if (anteil > 0) pille(80, y + 22, Math.max(24, (B - 160) * anteil), 24, oklchRgb(0.66, 0.15, bb.hue));
+    y += 104;
+  });
+  if (bz.bereiche.length > 4) {
+    x.fillStyle = oklchRgb(0.5, 0.03, 150); schrift(600, 32);
+    const rest = bz.bereiche.length - 4;
+    x.fillText("+ " + rest + (rest === 1 ? " weiterer Bereich" : " weitere Bereiche"), 80, y - 10);
+  }
+
+  // Fuß
+  x.fillStyle = oklchRgb(0.35, 0.04, 150); schrift(700, 40);
+  x.fillText(bz.haken === 1 ? "1 Termin abgehakt" : bz.haken + " Termine abgehakt", 80, H - 90);
+  x.fillStyle = oklchRgb(0.55, 0.03, 150); schrift(600, 30);
+  x.textAlign = "right"; x.fillText("geplant mit dem Wochenplaner", B - 80, H - 92); x.textAlign = "left";
+
+  const blob = await new Promise(res => c.toBlob(res, "image/png"));
+  return { blob, bilanz: bz, dateiname: "wochenplaner-kw" + isoWeek(mon) + ".png" };
+}
+
+function wochenkarteSheet() {
+  let karte = null, url = null;
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Deine Woche als Karte</h2>" +
+      "<p class='zusage__intro'>Zum Teilen oder Aufheben. Gezählt wird, was du abgehakt hast.</p>" +
+      "<div class='wochenkarte' id='wkBild'><span class='wochenkarte__lade'>Karte wird gezeichnet …</span></div>";
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const zu = document.createElement("button");
+    zu.className = "btn"; zu.type = "button"; zu.textContent = "Schließen";
+    zu.onclick = () => { if (url) URL.revokeObjectURL(url); close(); };
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const speichern = document.createElement("button");
+    speichern.className = "btn"; speichern.type = "button"; speichern.id = "wkSpeichern";
+    speichern.textContent = "Bild speichern"; speichern.disabled = true;
+    const teilen = document.createElement("button");
+    teilen.className = "btn btn--primary"; teilen.type = "button"; teilen.id = "wkTeilen";
+    teilen.textContent = "Teilen"; teilen.disabled = true;
+    foot.append(zu, sp, speichern, teilen);
+    s.appendChild(foot);
+
+    speichern.onclick = () => {
+      if (!karte) return;
+      const a = document.createElement("a");
+      a.href = url; a.download = karte.dateiname;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast("Wochenkarte gespeichert");
+    };
+    teilen.onclick = async () => {
+      if (!karte) return;
+      const datei = new File([karte.blob], karte.dateiname, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+        try { await navigator.share({ files: [datei], title: "Meine Woche" }); }
+        catch (e) { /* abgebrochen: nichts zu tun */ }
+      } else speichern.onclick();
+    };
+
+    wochenkarteZeichnen().then(k => {
+      if (!s.isConnected) return;
+      karte = k;
+      url = URL.createObjectURL(k.blob);
+      const bild = s.querySelector("#wkBild");
+      bild.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = url; img.alt = "Wochenkarte KW " + isoWeek(mondayOf(anchor)) + ": " + fmtDur(k.bilanz.ist) + " gemacht, " + k.bilanz.haken + " Termine abgehakt";
+      bild.appendChild(img);
+      speichern.disabled = false; teilen.disabled = false;
+      // Ohne Teilen-Funktion (die meisten Desktop-Browser) ist Speichern der Weg.
+      const kannTeilen = !!(navigator.canShare && navigator.canShare({ files: [new File([k.blob], k.dateiname, { type: "image/png" })] }));
+      if (!kannTeilen) { teilen.hidden = true; speichern.className = "btn btn--primary"; }
+    });
+  });
+}
+
 function renderGoals() {
   const list = $("#goalsList");
   const foot = $("#goalsFoot");
@@ -6890,6 +7134,7 @@ function attachColumnHandlers(col, hourH) {
    Loslassen — vorher zu handeln erzeugt genau die Fehlauslösungen, über
    die man dann stolpert.
    ============================================================ */
+const WISCH_AB = 72;     // so weit nach rechts wischen, um eine Agenda-Zeile abzuhaken (v1.35)
 const TAP_SLOP = 10;      // Pixel Wackeln, die noch als Tipp durchgehen
 const TAP_TIME = 700;     // länger gehalten ist kein Tipp mehr
 const HOLD_TIME = 380;    // so lange drücken für einen neuen Eintrag
@@ -7958,6 +8203,7 @@ $("#taskInput").addEventListener("input", () => {
 });
 $("#goalsEdit").onclick = goalsSheet;
 $("#zusageBtn").onclick = () => zusageSheet();
+$("#wochenkarteBtn").onclick = () => wochenkarteSheet();
 
 /* ============================================================ Tagesform */
 const ENERGY = {
@@ -8316,11 +8562,52 @@ function renderAgenda() {
         if (b) moveSheet(b.id);
       }, HOLD_TIME);
     });
+    // v1.35: Wischen nach rechts hakt ab (oder hebt den Haken auf) — nur mit
+    // dem Finger; die Zeile folgt ihm, dahinter erscheint die Bestätigung.
+    // Ab WISCH_AB px gilt es beim Loslassen. Senkrecht bleibt Scrollen, das
+    // lange Drücken bricht wie bisher bei Bewegung ab (move oben).
+    let wx = 0, wy = 0, wachse = null, wdx = 0, gewischt = false, wAktiv = false;
+    const cb = row.querySelector(".agenda__check");
+    const wischZeigen = dx => {
+      row.style.setProperty("--wisch", dx + "px");
+      row.classList.toggle("is-wisch", dx > 0);
+      row.classList.toggle("is-wisch-voll", dx >= WISCH_AB);
+    };
+    row.addEventListener("pointerdown", e => {
+      if (e.pointerType === "mouse" || e.target.closest(".agenda__check")) return;
+      wx = e.clientX; wy = e.clientY; wachse = null; wdx = 0; wAktiv = true;
+      row.dataset.wischZiel = cb.checked ? "zurueck" : "ab";
+    });
+    row.addEventListener("pointermove", e => {
+      if (!wAktiv) return;
+      const dx = e.clientX - wx, dy = e.clientY - wy;
+      if (wachse === null) {
+        if (Math.hypot(dx, dy) < 10) return;
+        wachse = Math.abs(dx) > Math.abs(dy) * 1.5 && dx > 0 ? "x" : "y";
+        if (wachse === "y") { wAktiv = false; return; }
+      }
+      wdx = clamp(dx, 0, 140);
+      wischZeigen(wdx);
+    });
+    const wischEnde = () => {
+      if (!wAktiv) return;
+      wAktiv = false;
+      if (wachse === "x") {
+        gewischt = true;
+        if (wdx >= WISCH_AB) {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event("change"));
+        }
+      }
+      wischZeigen(0);
+    };
+    row.addEventListener("pointerup", wischEnde);
+    row.addEventListener("pointercancel", wischEnde);
     // Der Klick, der nach dem Loslassen folgt, würde sonst als Label-Klick
-    // den Haken umschalten — genau das soll nach einem langen Druck nicht
-    // mehr passieren.
+    // den Haken umschalten — genau das soll nach einem langen Druck oder
+    // einem Wischen nicht mehr passieren.
     row.addEventListener("click", e => {
-      if (longPressed) { e.preventDefault(); longPressed = false; }
+      if (longPressed || gewischt) { e.preventDefault(); longPressed = false; gewischt = false; }
     });
   });
 }
@@ -10477,12 +10764,28 @@ function setView(v) {
   renderSugBar();
 }
 
+/* v1.35: ein Tipp auf die Navigation blendet die neue Ansicht kurz auf —
+   nur Deckkraft, keine Bewegung: Positionen stehen sofort fest (für Finger
+   wie für Messungen). Programmgesteuerte setView()-Aufrufe blenden nicht. */
+function ansichtWechseln(v) {
+  const wechsel = v !== mview;
+  setView(v);
+  if (!wechsel) return;
+  const main = $("#main");
+  main.classList.remove("is-wechsel");
+  void main.offsetWidth;          // Animation neu starten, auch beim schnellen Hin und Her
+  main.classList.add("is-wechsel");
+}
+$("#main").addEventListener("animationend", e => {
+  if (e.animationName === "einblenden") $("#main").classList.remove("is-wechsel");
+});
+
 document.querySelectorAll("#tabbar button").forEach(b => {
-  b.onclick = () => setView(b.dataset.view);
+  b.onclick = () => ansichtWechseln(b.dataset.view);
 });
 document.querySelectorAll("#panelNav button").forEach(b => {
   b.onclick = () => {
-    setView(b.dataset.panel);
+    ansichtWechseln(b.dataset.panel);
     const ziel = document.querySelector('.card[data-card="' + b.dataset.panel + '"]:not([hidden])');
     if (ziel) { ziel.tabIndex = -1; ziel.focus({ preventScroll: true }); }
   };
