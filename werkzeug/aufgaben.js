@@ -172,6 +172,11 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   // innerhalbTag geprueft wird: das Raster reicht ueberhaupt nicht in die Nacht hinein.
   const yOben = 2;
   await p.locator('#panelNav [data-panel="aufgaben"]').click();
+  // Das Raster erbt sonst die gemerkte Scrollposition der Abschnitte davor
+  // (scrollMerk["woche"]) — dann liegt der oberste Spaltenrand unter dem
+  // klebenden Tageskopf, und y=2 traf bis v1.30 nur zufällig (0,2 px Luft)
+  // noch die Spalte. Oben ist oben: Tagesanfang wie oben beschrieben.
+  await p.evaluate(() => { $('#gridWrap').scrollTop = 0; });
   await p.dragAndDrop('.task', '#zielSpalteE', { targetPosition: { x: 60, y: yOben } });
   await p.waitForTimeout(400);
   const e = await p.evaluate(() => {

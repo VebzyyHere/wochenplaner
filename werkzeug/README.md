@@ -10,6 +10,12 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.31 ergänzt `uebersicht.js`: klebende Blocktitel unter dem echten
+Tageskopf (Desktop, Tablet, Telefon), Stunden je Tag im Wochenkopf samt
+Tastaturwahl, die Stufenanzeige der Tagesform, den Kalender-Export
+(`kalenderIcs()`: RRULE, EXDATE, Faltung, Maskierung, Download) und die
+Tastenkürzel `?`, `m`, `w`. Die vollständige Kette umfasst 59 Skripte.
+
 Version 1.28 ergänzt `abschluss.js`: 17 Zusicherungen zu Arbeitsbereichen,
 Tablet-Drehung, Datenerhalt, Touch-Navigation und Speicherwarnungen. Die aktuelle
 vollständige Kette umfasst 57 Skripte. Desktop-Dragtests öffnen vor dem Ziehen

@@ -553,6 +553,12 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 .energy__bars i:nth-child(1) { height: 8px; }
 .energy__bars i:nth-child(2) { height: 14px; }
 .energy__bars i:nth-child(3) { height: 20px; }
+/* v1.31: unausgewählt sahen alle drei Knöpfe gleich aus — dreimal dieselben
+   grauen Balken. Jetzt zeigt jeder seine Stufe wie eine Signalanzeige; die
+   Farbe bleibt der Auswahl vorbehalten (Regeln darunter). */
+.energy__opt[data-lvl="low"] .energy__bars i:nth-child(1),
+.energy__opt[data-lvl="mid"] .energy__bars i:nth-child(-n+2),
+.energy__opt[data-lvl="high"] .energy__bars i { background: var(--text-faint); }
 .energy__opt[data-lvl="low"][aria-pressed="true"] .energy__bars i:nth-child(1) { background: var(--warn); }
 .energy__opt[data-lvl="mid"][aria-pressed="true"] .energy__bars i:nth-child(-n+2) { background: var(--focus); }
 .energy__opt[data-lvl="high"][aria-pressed="true"] .energy__bars i { background: var(--success); }
@@ -922,7 +928,7 @@ html[data-theme="dark"] .agenda__loading {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background: var(--area-bg); opacity: .55;
 }
-.block.is-sug .block__title { opacity: .9; padding-right: 44px; }
+.block.is-sug .block__title { opacity: .9; padding-right: 44px; background: none; }
 .block.is-sug .block__time { opacity: .6; }
 .block__sug { position: absolute; right: 3px; top: 3px; display: flex; gap: 3px; z-index: 3; }
 .block__sug button {
@@ -1114,10 +1120,36 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
 }
 .dayhead.is-today .dayhead__num { background: var(--ink); color: var(--on-ink); }
 .dayhead.is-today .dayhead__name { color: var(--text); }
+/* v1.31: der Kopf ist der Tageswähler des Desktops (Agenda links folgt ihm)
+   — also sieht er aus und verhält sich wie der Tagesstreifen am Telefon:
+   gewählter Tag hinterlegt, per Tastatur erreichbar. */
+.dayhead:not(.dayhead--gutter) { cursor: pointer; }
+.dayhead:not(.dayhead--gutter):hover { background: var(--surface-2); }
+.dayhead[aria-pressed="true"], .dayhead[aria-pressed="true"]:hover { background: var(--surface-3); }
+.dayhead:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+/* Wie voll ist der Tag — dieselbe tagesAuslastung() und dieselbe 65-%-Marke
+   wie der Balken im Tagesstreifen. Die Zahl steht daneben, weil am Desktop
+   Platz dafür ist: „wo ist noch Luft" liest man so, ohne zu rechnen. */
+.dayhead__last {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 4px; min-height: 16px;
+}
+.dayhead__last i {
+  width: 22px; height: 3px; border-radius: 2px; flex: none;
+  background: linear-gradient(to right,
+    var(--last-farbe, var(--text-faint)) 0 var(--last, 0%),
+    var(--surface-3) var(--last, 0%) 100%);
+}
+.dayhead[aria-pressed="true"] .dayhead__last i { background: linear-gradient(to right,
+    var(--last-farbe, var(--ink)) 0 var(--last, 0%), var(--border) var(--last, 0%) 100%); }
+.dayhead.is-voll .dayhead__last i { --last-farbe: var(--warn); }
+.dayhead__std { font-size: var(--t-xs); font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
+.dayhead.is-voll .dayhead__std { color: var(--text); font-weight: 600; }
 .dayhead__energy {
   display: none; align-items: flex-end; gap: 2px; height: 11px; margin-top: 4px;
 }
 .dayhead[data-energy] .dayhead__energy { display: inline-flex; }
+.dayhead__last .dayhead__energy { margin-top: 0; }
 .dayhead__energy i { width: 3px; border-radius: 1px; background: var(--border-strong); }
 .dayhead__energy i:nth-child(1){height:5px} .dayhead__energy i:nth-child(2){height:8px} .dayhead__energy i:nth-child(3){height:11px}
 .dayhead[data-energy="low"] .dayhead__energy i:nth-child(1){background:var(--warn)}
@@ -1178,8 +1210,13 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.12); }
   overflow-wrap: normal; word-break: normal; hyphens: auto;
   /* Laeuft ein langer Block oben aus dem Bild, bleibt die Beschriftung
      stehen statt unsichtbar zu werden - unterhalb der Tagesleiste,
-     sonst verschwindet sie dahinter */
-  position: sticky; top: 58px;
+     sonst verschwindet sie dahinter. --kopf misst renderGrid() am echten
+     Tageskopf (v1.31: die feste 58px lag am Desktop hinter dem ~89px hohen
+     Kopf, und am Telefon, wo es im Raster keinen Kopf gibt, 58px zu tief). */
+  position: sticky; top: var(--kopf, 58px);
+  /* Die Zeitzeile läuft beim Kleben darunter durch statt durch den Titel
+     hindurch — derselbe Grund wie der Block, unsichtbar, solange nichts klebt. */
+  background: var(--area-bg); z-index: 1;
 }
 .block__time { font-size: var(--t-xs); opacity: .78; font-variant-numeric: tabular-nums; }
 /* Begründungszeile (Stufe 11) — dieselbe Idee wie .agenda__sub (Ort-/Wegzeit-
@@ -1318,6 +1355,22 @@ html[data-theme="dark"] .rest {
 .dayswitch__btn.is-voll i { --last-farbe: var(--warn); }
 .dayswitch__btn[aria-pressed="true"] i { --last-farbe: var(--ink); }
 .dayswitch__btn[aria-pressed="true"].is-voll i { --last-farbe: var(--warn); }
+
+/* Tastenkürzel (v1.31, kuerzelSheet) */
+.kuerzel { margin: 0; display: grid; gap: 2px; }
+.kuerzel__zeile {
+  display: grid; grid-template-columns: 88px 1fr; gap: var(--s-3); align-items: baseline;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.kuerzel__zeile:last-child { border-bottom: 0; }
+.kuerzel dt { margin: 0; white-space: nowrap; }
+.kuerzel dd { margin: 0; font-size: var(--t-body); color: var(--text-muted); line-height: 1.45; }
+.kuerzel kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: inherit; font-size: var(--t-sm); font-weight: 600; line-height: 1.4; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-bottom-width: 2px; border-radius: 6px;
+}
 
 /* ============================================================ Sheet / Modal */
 .scrim {
@@ -1610,7 +1663,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   @media (min-width: 390px) {
     .grid { --hourh: 60px; }
   }
-  .block__title { top: 0; }
+  /* Tablets zeigen hier weiterhin sieben Tage MIT Tageskopf — deshalb die
+     gemessene Kopfhöhe (0 in der Eintagesansicht) statt eines festen 0. */
+  .block__title { top: var(--kopf, 0px); }
   .brand { display: none; }
   .weeknav { margin-right: auto; min-width: 0; }
   /* Datum und Woche in eine Zeile: die zweite Zeile kostete zwölf Pixel
@@ -1688,6 +1743,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .dayhead__num { font-size: var(--t-body); width: 24px; height: 24px; line-height: 24px; margin-top: 0; }
   .dayhead__frei { font-size: var(--t-xs); }
   .dayhead__energy { display: none; }
+  .dayhead__last { margin-top: 1px; min-height: 0; }
+  .dayhead__std { display: none; }
   /* Sieben Spalten auf 844 Pixeln heisst rund hundert Pixel je Tag. Zwei
      fingergerechte Haken passen da nicht neben einen Titel, ohne ihn zu
      verdecken — und ein Vorschlag, den man nicht lesen kann, ist keiner.
@@ -5715,6 +5772,9 @@ function renderLoose() {
 // Scrollbereich über alle sieben Spalten.
 const scrollMerk = {};
 let scrollMerkSchluessel = null;
+// Höhe des Tageskopfs für die klebenden Blocktitel (--kopf, s. renderGrid).
+let kopfMessen = () => {};
+const kopfBeobachter = window.ResizeObserver ? new ResizeObserver(() => kopfMessen()) : null;
 function scrollSchluessel() {
   return einTag ? iso(addDays(mondayOf(anchor), selectedDayIdx)) : "woche";
 }
@@ -5748,15 +5808,40 @@ function renderGrid() {
     const d = addDays(mon, i);
     const h = document.createElement("div");
     const frei = istFrei(iso(d));
-    h.className = "dayhead" + (iso(d) === todayIso ? " is-today" : "") + (frei ? " is-frei" : "");
+    // v1.31: dieselbe Auslastung wie im Tagesstreifen (renderDaySwitch) —
+    // am Desktop mit Stundenzahl, weil dort Platz dafür ist.
+    const last = tagesAuslastung({ key: iso(d), i });
+    h.className = "dayhead" + (iso(d) === todayIso ? " is-today" : "") + (frei ? " is-frei" : "")
+      + (!frei && last.quote > 1 ? " is-voll" : "");
     const en = state.days[iso(d)] && state.days[iso(d)].energy;
     if (en) h.dataset.energy = en;
+    const energie = "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
     h.innerHTML =
       "<div class='dayhead__name'>" + DAY_SHORT[i] + "</div>" +
       "<div class='dayhead__num'>" + d.getDate() + "</div>" +
-      (frei ? "<span class='dayhead__frei'>frei</span>" : "") +
-      "<span class='dayhead__energy' aria-hidden='true'><i></i><i></i><i></i></span>";
-    h.onclick = () => { selectedDayIdx = i; renderEnergy(); renderDaySwitch(); renderAgenda(); if (einTag) renderGrid(); };
+      (frei
+        ? "<span class='dayhead__frei'>frei</span>" + energie
+        : "<span class='dayhead__last' aria-hidden='true' style='--last:" + Math.round(clamp(last.quote, 0, 1) * 100) + "%'>" +
+            "<i></i><span class='dayhead__std'>" + (last.min < 15 ? "–" : fmtDur(last.min)) + "</span>" + energie + "</span>");
+    // Der Kopf wählt den Tag für die Agenda daneben — bisher nur per Maus
+    // und ohne sichtbare Rückmeldung, welcher Tag gerade gewählt ist.
+    const wieVoll = frei ? "freigehalten"
+      : last.min < 15 ? "nichts geplant"
+      : fmtDur(last.min) + " geplant" + (last.quote > 1 ? " — das wird eng" : "");
+    h.setAttribute("role", "button");
+    h.tabIndex = 0;
+    h.setAttribute("aria-pressed", String(i === selectedDayIdx));
+    h.setAttribute("aria-label", DAY_LONG[i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ". · " + wieVoll);
+    h.title = h.getAttribute("aria-label");
+    const waehlen = () => {
+      selectedDayIdx = i;
+      grid.querySelectorAll(".dayhead[aria-pressed]").forEach((k, j) => k.setAttribute("aria-pressed", String(j === i)));
+      renderEnergy(); renderDaySwitch(); renderAgenda(); if (einTag) renderGrid();
+    };
+    h.onclick = waehlen;
+    h.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); waehlen(); }
+    });
     grid.appendChild(h);
   });
   }
@@ -5857,6 +5942,22 @@ function renderGrid() {
   // passenden Startzeit), 0 heißt „stand ganz oben" — das eine ist keine
   // Abkürzung fürs andere, sonst risse der Minutentakt jeden, der bewusst
   // ganz nach oben gescrollt hat, wieder zur aktuellen Uhrzeit zurück.
+  // Klebende Blocktitel bleiben unter dem Tageskopf stehen — gemessen statt
+  // geschätzt, weil seine Höhe von Schriftgröße, „frei"-Zeile und Querformat
+  // abhängt. Ohne Kopf (Eintagesansicht) kleben sie am oberen Rand. Ein
+  // gerade verborgenes Raster (Tablet, andere Ansicht) misst 0 — dann misst
+  // der Beobachter nach, sobald der Kopf sichtbar wird.
+  const kopfEl = grid.querySelector(".dayhead");
+  kopfMessen = () => {
+    if (!kopfEl) grid.style.setProperty("--kopf", "0px");
+    else if (kopfEl.offsetHeight) grid.style.setProperty("--kopf", kopfEl.offsetHeight + "px");
+  };
+  kopfMessen();
+  if (kopfBeobachter) {
+    kopfBeobachter.disconnect();
+    if (kopfEl) kopfBeobachter.observe(kopfEl);
+  }
+
   scrollMerkSchluessel = scrollSchluessel();
   const gemerkt = scrollMerk[scrollMerkSchluessel];
   wrap.scrollTop = gemerkt != null ? gemerkt : (hatEintraege ? startScroll(hourH) : 0);
@@ -8406,7 +8507,11 @@ $("#settingsBtn").onclick = () => {
         "<div class='chipset' id='sOrtNeu' style='margin-top:10px'></div>" +
         "<div id='sWege' style='margin-top:14px'></div></div>" +
       "<div class='sheet__row' data-page='ansicht'><span class='label'>Darstellung</span>" +
-        "<div class='chipset' id='sTheme'></div></div>" +
+        "<div class='chipset' id='sTheme'></div>" +
+        (window.matchMedia("(pointer: fine)").matches
+          ? "<button class='btn btn--sm btn--ghost' id='sKuerzel' type='button' style='margin-top:14px'>Tastenkürzel anzeigen</button>"
+          : "") +
+      "</div>" +
       "<div class='sheet__row' data-page='daten'><span class='label'>Daten</span>" +
       "<div style='display:flex;gap:8px;flex-wrap:wrap'>" +
       "<button class='btn btn--sm' id='sExport' type='button'>Sicherung speichern</button>" +
@@ -8414,6 +8519,14 @@ $("#settingsBtn").onclick = () => {
       "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
       "</div><div id='sStore' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
       "<div id='sVorV9' style='margin-top:10px'></div></div>" +
+      "<div class='sheet__row' data-page='kalender'><span class='label'>In deinen Kalender</span>" +
+      "<p style='margin:0 0 12px;font-size:var(--t-body);color:var(--text-muted);line-height:1.6'>" +
+      "Speichert alle Termine mit fester Uhrzeit als Kalenderdatei (.ics). Google, Apple und " +
+      "Outlook können sie importieren. Serien bleiben Serien, ausgelassene Tage bleiben ausgelassen.</p>" +
+      "<button class='btn btn--sm' id='sKalender' type='button'>Kalenderdatei speichern</button>" +
+      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>" +
+      "Ohne grob geplante Zeit und ohne offene Vorschläge. Ein einmaliger Export — " +
+      "spätere Änderungen hier kommen erst mit dem nächsten Export dort an.</div></div>" +
       "<div class='sheet__row' data-page='app'><span class='label'>Auf den Startbildschirm</span>" +
       "<p style='margin:0 0 12px;font-size:var(--t-body);color:var(--text-muted);line-height:1.6'>" +
       "Dann startet der Planer ohne Browserleiste, mit eigenem Symbol — und er geht auch " +
@@ -8628,6 +8741,9 @@ $("#settingsBtn").onclick = () => {
       save(); paint(); renderAll();
     };
     s.querySelector("#sExport").onclick = exportData;
+    s.querySelector("#sKalender").onclick = kalenderExport;
+    const kuerzelKnopf = s.querySelector("#sKuerzel");
+    if (kuerzelKnopf) kuerzelKnopf.onclick = () => { close(); kuerzelSheet(); };
     s.querySelector("#sImport").onclick = importData;
     s.querySelector("#sReset").onclick = () => {
       close();
@@ -8740,6 +8856,10 @@ const SETTINGS_SEITEN = [
   { id: "daten",    name: "Daten und Sicherung", kurz: () => (
       state.backupAt ? "zuletzt gesichert am " + new Date(state.backupAt).toLocaleDateString("de-DE")
                      : "noch nie gesichert") },
+  { id: "kalender", name: "Kalender-Export",     kurz: () => {
+      const n = state.blocks.filter(b => !b.grob && !b.sug).length;
+      return n ? "Termine für Google, Apple oder Outlook" : "noch keine Termine";
+    } },
   // Nur zeigen, solange die App im Browser läuft — wer sie schon auf dem
   // Startbildschirm hat, braucht die Anleitung nicht mehr.
   { id: "app",      name: "Auf den Startbildschirm", kurz: () => "wie eine App öffnen",
@@ -8986,6 +9106,106 @@ function exportData() {
   state.backupAt = Date.now();
   save();
   toast("Sicherung gespeichert");
+}
+
+/* ============================================================
+   Kalender-Export (v1.31)
+
+   Der Plan lebt hier — der Rest des Lebens oft in Google, Apple oder
+   Outlook. Eine .ics-Datei ist der einzige Weg, der ohne Konto, ohne
+   Server und auch über file:// funktioniert.
+
+   Was hinausgeht und was nicht:
+   - Nur Blöcke mit fester Uhrzeit. Grobe Blöcke haben keine; eine
+     erfundene Uhrzeit im fremden Kalender wäre genau das, was das Band
+     unter dem Raster vermeiden soll.
+   - Keine offenen Vorschläge (b.sug) — die gelten erst nach „Übernehmen".
+   - Serien bleiben Serien (RRULE, INTERVAL=2 für zweiwöchentlich), einzeln
+     ausgelassene Tage (b.ausnahmen) werden EXDATE. Der erste Termin wird
+     über onDay() gesucht statt nachgerechnet — so gilt dieselbe Parität
+     wie überall sonst in der App, auch über die Sommerzeit.
+   - Lokale „schwebende" Zeiten ohne Zone: der Plan kennt nur Wanduhrzeit,
+     und jeder Kalender legt sie in seine eigene Zone.
+   - UID hängt an der Block-id: ein erneuter Import aktualisiert in den
+     meisten Kalendern, statt zu verdoppeln.
+   Liest nur, schreibt nichts in state — deshalb auch kein save().
+   ============================================================ */
+function icsText(t) {
+  return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+function icsZeit(datum, minuten) {
+  const d = addDays(datum, Math.floor(minuten / 1440));
+  const m = minuten % 1440;
+  return iso(d).replace(/-/g, "") + "T" + pad2(Math.floor(m / 60)) + pad2(m % 60) + "00";
+}
+/* RFC 5545: höchstens 75 Oktette je Zeile, Fortsetzung mit einem
+   Leerzeichen. Gezählt wird in UTF-8, getrennt nie mitten in einem Zeichen. */
+function icsFalten(zeile) {
+  const enc = new TextEncoder();
+  const teile = [];
+  let akt = "", bytes = 0, grenze = 75;
+  for (const z of zeile) {
+    const n = enc.encode(z).length;
+    if (bytes + n > grenze) { teile.push(akt); akt = ""; bytes = 0; grenze = 74; }
+    akt += z; bytes += n;
+  }
+  teile.push(akt);
+  return teile.join("\r\n ");
+}
+function kalenderIcs() {
+  const jetzt = new Date();
+  const stempel = jetzt.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const zeilen = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wochenplaner//DE",
+    "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Wochenplaner"];
+  const orte = new Map((state.orte || []).map(o => [o.id, o.name]));
+  state.blocks.forEach(b => {
+    if (b.grob || b.sug || !(b.end > b.start)) return;
+    let erster = null;
+    if (istSerie(b)) {
+      // Ab since (sonst ab dem gespeicherten Datum bzw. dieser Woche) den
+      // ersten Tag suchen, an dem onDay() den Block wirklich zeigt.
+      const ab = new Date((b.since || b.date || iso(mondayOf(new Date()))) + "T12:00:00");
+      for (let k = 0; k < 21 && !erster; k++) {
+        const d = addDays(ab, k);
+        if (onDay(b, iso(d), (d.getDay() + 6) % 7)) erster = d;
+      }
+      if (!erster) return;
+    } else {
+      if (!b.date) return;
+      erster = new Date(b.date + "T12:00:00");
+    }
+    const area = areaById(b.areaId);
+    zeilen.push("BEGIN:VEVENT",
+      "UID:" + b.id + "@wochenplaner",
+      "DTSTAMP:" + stempel,
+      "DTSTART:" + icsZeit(erster, b.start),
+      "DTEND:" + icsZeit(erster, b.end),
+      "SUMMARY:" + icsText(b.title || (area && area.name) || "Eintrag"));
+    if (area) zeilen.push("CATEGORIES:" + icsText(area.name));
+    if (b.ortId && orte.has(b.ortId)) zeilen.push("LOCATION:" + icsText(orte.get(b.ortId)));
+    if (istSerie(b)) {
+      zeilen.push("RRULE:FREQ=WEEKLY" + (b.repeat === "2wochen" ? ";INTERVAL=2" : ""));
+      (b.ausnahmen || []).slice().sort().forEach(a => {
+        zeilen.push("EXDATE:" + icsZeit(new Date(a + "T12:00:00"), b.start));
+      });
+    }
+    zeilen.push("END:VEVENT");
+  });
+  zeilen.push("END:VCALENDAR");
+  return zeilen.map(icsFalten).join("\r\n") + "\r\n";
+}
+function kalenderExport() {
+  const ics = kalenderIcs();
+  const anzahl = (ics.match(/BEGIN:VEVENT/g) || []).length;
+  if (!anzahl) { toast("Noch keine Termine mit fester Uhrzeit"); return; }
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "wochenplaner-termine-" + iso(new Date()) + ".ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(anzahl === 1 ? "1 Termin exportiert" : anzahl + " Termine exportiert");
 }
 
 /* ============================================================
@@ -9463,7 +9683,46 @@ document.addEventListener("keydown", e => {
     const s = clamp(snap(new Date().getHours() * 60), state.settings.dayStart * 60, state.settings.dayEnd * 60 - 60);
     newBlock(selectedDayIdx, iso(d), s, s + 60);
   }
+  // v1.31: die beiden Übersichten und die Liste aller Kürzel. Mit
+  // Strg/Alt/Cmd bleiben die Tasten beim Browser (Strg+M, Cmd+W …).
+  // Beide Blätter öffnen ohne Argument und bewegen anchor nicht.
+  if (e.ctrlKey || e.metaKey || e.altKey || e.target.isContentEditable) return;
+  if (e.key === "?") { e.preventDefault(); kuerzelSheet(); }
+  else if (e.key.toLowerCase() === "m") { e.preventDefault(); monatSheet(); }
+  else if (e.key.toLowerCase() === "w") { e.preventDefault(); freizeitSheet(); }
 });
+
+/* Tastenkürzel gab es seit Langem (←/→, T, N) — nur wusste niemand davon.
+   Die Liste steht hier genau einmal; der Einstiegspunkt in den
+   Einstellungen (Darstellung) erscheint nur mit Maus/Trackpad. */
+const TASTENKUERZEL = [
+  ["← →", "Vorheriger / nächster Tag, in der Wochenansicht die Woche"],
+  ["T", "Zurück zu heute"],
+  ["N", "Neuer Eintrag am gewählten Tag"],
+  ["W", "Wochenübersicht: freie und belegte Zeit"],
+  ["M", "Monatsübersicht"],
+  ["Esc", "Offenes Blatt schließen"],
+  ["?", "Diese Übersicht"]
+];
+function kuerzelSheet() {
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Tastenkürzel</h2>" +
+      "<dl class='kuerzel'>" + TASTENKUERZEL.map(([k, t]) =>
+        "<div class='kuerzel__zeile'><dt>" + k.split(" ").map(x => "<kbd>" + escapeHtml(x) + "</kbd>").join(" ") +
+        "</dt><dd>" + escapeHtml(t) + "</dd></div>").join("") + "</dl>" +
+      "<p style='margin:var(--s-3) 0 0;font-size:var(--t-sm);color:var(--text-faint);line-height:1.5'>" +
+      "Gelten, solange kein Eingabefeld und kein Blatt offen ist.</p>";
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Fertig";
+    ok.onclick = close;
+    foot.append(sp, ok);
+    s.appendChild(foot);
+  });
+}
 
 /* ============================================================
    Wischen wechselt den Tag

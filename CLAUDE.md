@@ -11,6 +11,22 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.31 vom 2026-09-26
+
+Aktuelle Änderungen: `release/v1.31.md`. Prüfung: `werkzeug/uebersicht.js`; die Kette
+hat damit 59 Skripte. PWA-Cache `wp-v1.31`, Datenschema weiterhin 10, keine neuen Felder.
+
+- Der Desktop-/Tablet-Wochenkopf (`.dayhead` in `renderGrid()`) zeigt je Tag die Stunden
+  aus `tagesAuslastung()` — dieselbe Rechnung wie der Tagesstreifen-Balken, nicht
+  auseinanderlaufen lassen. Die Köpfe sind Knöpfe mit `aria-pressed` für `selectedDayIdx`.
+- Klebende Blocktitel stehen bei `top: var(--kopf)`. `renderGrid()` misst die Kopfhöhe
+  (Modul-`ResizeObserver` `kopfBeobachter`, 0 ohne Kopf). Kein fester Pixelwert mehr,
+  auch nicht in der `max-width: 1100px`-Regel — Tablets zeigen dort sieben Tage MIT Kopf.
+- `kalenderIcs()`/`kalenderExport()` (hinter `exportData()`): nur Blöcke mit Uhrzeit, ohne
+  `sug`; Serien als RRULE, erster Termin über `onDay()`, `b.ausnahmen` als EXDATE,
+  schwebende Ortszeit. Liest nur, kein `save()`. Einstellungsseite `kalender`.
+- Tastenkürzel stehen einmal in `TASTENKUERZEL` (`kuerzelSheet()`), neu `?`, `W`, `M`.
+
 ### Release v1.30 vom 2026-09-25
 
 Aktuelle Änderungen und visuelle Prüfbeschränkungen: `release/v1.30.md`.
@@ -195,7 +211,9 @@ Monatsübersicht: Kalenderraster mit KW-Rinne, Serienprojektion, Tages-/KW-Tipp,
 „+"-Vorausplanen durchs Gate, Titel-Einzeiligkeit bei 320 px, Jahresgrenzen),
 `wochenzeilen.js` (das zweigesichtige Wochen-Blatt: Frei/Belegt-Umschalter, Segmentleisten
 mit exakt/grob/Vorschlag, Zeilen-Tipp in den Tag, Titel-Zoom in den Monat, Gesicht überlebt
-den Zoom-Rundweg).
+den Zoom-Rundweg), `uebersicht.js` (v1.31: Klebetitel unter dem gemessenen Tageskopf
+auf Desktop/Tablet/Telefon, Stunden und Tastaturwahl im Wochenkopf, Tagesform-Stufen,
+Kalender-Export als .ics, Tastenkürzel `?`/`m`/`w`).
 
 Abgleich und PWA brauchen einen Server:
 
@@ -219,7 +237,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.30` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.31` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
