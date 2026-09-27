@@ -2158,7 +2158,7 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
 
 /* Heute: die Antwort als dunkle Moos-Karte statt als Linie. */
 .agenda__hero {
-  padding: 10px 14px; border-radius: var(--radius);
+  padding: 8px 14px; border-radius: var(--radius);
   background: var(--tief); color: oklch(0.96 0.01 110);
   border-bottom: 0;
 }
@@ -2191,6 +2191,62 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
 .dayswitch__btn[aria-pressed="true"] span { color: oklch(0.84 0.03 140); }
 .dayswitch__btn[aria-pressed="true"] i { --last-farbe: var(--lime); background-color: oklch(1 0 0 / .18); }
 .dayswitch__btn.is-frei { background: oklch(0.62 0.14 150 / .12); }
+
+/* Fortschrittsring in der Agenda-Kopfzeile */
+.agenda__kopfrechts { display: inline-flex; align-items: center; gap: 10px; }
+.agenda__fort { display: inline-flex; align-items: center; gap: 5px; line-height: 1; font-family: var(--font-display); font-size: var(--t-sm); color: var(--text); }
+.agenda__fort svg { width: 18px; height: 18px; transform: rotate(-90deg); fill: none; stroke-width: 3.5; }
+.agenda__fort circle { stroke: var(--surface-3); }
+.agenda__fort .agenda__fortbogen { stroke: var(--ink); stroke-linecap: round; transition: stroke-dasharray .4s cubic-bezier(.16,1,.3,1); }
+.agenda__fort b { font-weight: 800; }
+.agenda__fortbogen[stroke-dasharray^="0.0 "] { stroke: none; }
+
+/* Blätter: Griff oben; am Telefon kommen sie von unten (Bottom Sheet). */
+.tabbar__plus { display: none; }
+.sheet__griff { display: none; }
+@media (max-width: 640px) and (pointer: coarse) {
+  .scrim { align-items: flex-end; padding: 0; }
+  .sheet {
+    max-width: none; border-radius: 28px 28px 0 0; border-bottom: 0;
+    max-height: calc(var(--sicht-hoehe) - 64px) !important;
+    padding-bottom: calc(var(--s-5) + var(--safe-bottom));
+    animation: hochfahren .2s cubic-bezier(.16,1,.3,1);
+    transition: transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .sheet__griff { display: block; width: 40px; height: 5px; border-radius: 3px; margin: -8px auto 10px; background: var(--border-strong); }
+}
+@keyframes hochfahren { from { transform: translateY(40%); opacity: .6 } }
+
+/* Schwebende Tabbar mit „+" in der Mitte — nicht im Querformat (Leiste). */
+@media (max-width: 1100px) and (min-height: 501px) {
+  .tabbar {
+    grid-template-columns: repeat(2, 1fr) auto repeat(2, 1fr);
+    align-items: center; gap: 2px;
+    padding: 3px 12px; padding-bottom: max(5px, var(--safe-bottom));
+    border-top: 0; box-shadow: none; background: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+    position: relative; isolation: isolate;
+  }
+  .tabbar::before {
+    content: ""; position: absolute; z-index: -1;
+    left: 12px; right: 12px; top: 3px; bottom: max(5px, var(--safe-bottom));
+    border-radius: 999px; background: oklch(0.24 0.03 155);
+    box-shadow: 0 10px 28px oklch(0.25 0.04 155 / .30);
+  }
+  .tabbar button { color: oklch(0.80 0.03 140); min-height: 46px; margin: 2px 0; }
+  .tabbar button[aria-current="true"] { background: oklch(0.34 0.05 150); color: var(--lime); }
+  .tabbar button:active { background: oklch(0.30 0.04 150); }
+  .tabbar .tabbar__plus {
+    display: flex; width: 50px; height: 50px; min-height: 50px; margin: 0 4px; padding: 0;
+    border-radius: 50%; background: var(--lime); color: var(--on-lime);
+    transition: transform .15s;
+  }
+  .tabbar .tabbar__plus:active { transform: scale(.92); background: var(--lime); }
+  .tabbar .tabbar__plus svg { width: 26px; height: 26px; stroke-width: 2.8; }
+  /* Das „+" steht jetzt in der Tabbar; der Plankopf braucht keinen zweiten. */
+  body[data-mview="plan"] .planhead .fab { display: none; }
+}
+@media (prefers-reduced-transparency: reduce) { .tabbar { background: transparent !important; } }
 
 @media (max-width: 1100px) {
   .tabbar button { border-radius: 999px; font-weight: 750; }
@@ -2342,6 +2398,9 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
     <button type="button" data-view="plan">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
       Plan
+    </button>
+    <button type="button" class="tabbar__plus" id="tabAdd" aria-label="Neuer Eintrag">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
     </button>
     <button type="button" data-view="ziele">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
@@ -3139,6 +3198,7 @@ function modal(builder, opts = {}) {
     sheet.setAttribute("aria-labelledby", titleEl.id);
   }
   scrim.addEventListener("pointerdown", e => { if (e.target === scrim) { closeModal(); schluckeNaechstenClick(); } });
+  blattZiehenEinrichten(sheet);
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
   setAppInert(true);
@@ -3148,6 +3208,33 @@ function modal(builder, opts = {}) {
   const focusable = sheet.querySelector("input, select, textarea, button");
   if (focusable && window.matchMedia("(pointer: fine)").matches) setTimeout(() => focusable.focus(), 40);
   return sheet;
+}
+/* v1.36: Blatt nach unten ziehen schließt es — wie überall auf iOS. Nur
+   Touch, nur wenn das Blatt ganz oben steht und nicht in einem Eingabefeld
+   begonnen wurde. Unter der Schwelle federt es zurück. */
+function blattZiehenEinrichten(sheet) {
+  const griff = document.createElement("div");
+  griff.className = "sheet__griff"; griff.setAttribute("aria-hidden", "true");
+  sheet.prepend(griff);
+  let y0 = null, dy = 0;
+  sheet.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1 || sheet.scrollTop > 0 || e.target.closest("input, textarea, select")) { y0 = null; return; }
+    y0 = e.touches[0].clientY; dy = 0;
+  }, { passive: true });
+  sheet.addEventListener("touchmove", e => {
+    if (y0 === null) return;
+    dy = Math.max(0, e.touches[0].clientY - y0);
+    if (sheet.scrollTop > 0) dy = 0;
+    sheet.style.transition = "none";
+    sheet.style.transform = dy ? "translateY(" + dy + "px)" : "";
+  }, { passive: true });
+  sheet.addEventListener("touchend", () => {
+    if (y0 === null) return;
+    y0 = null; sheet.style.transition = "";
+    if (dy > 110) { closeModal(); schluckeNaechstenClick(); }
+    else sheet.style.transform = "";
+    dy = 0;
+  });
 }
 // Tab läuft nicht hinter den Scrim — gilt für modal() wie für modalPush(),
 // da beide denselben openModal-Knoten belegen.
@@ -3168,6 +3255,10 @@ document.addEventListener("keydown", e => {
 // wenn gerade ein Blatt beiseitegelegt ist. Sonst würde z.B. Escape
 // während einer beiseitegelegten Verschieben-Ansicht nur das obere Blatt
 // schließen und die andere unsichtbar im Speicher hängen lassen.
+// v1.36: wann zuletzt ein Blatt schloss — das „+" der Tabbar liegt dort, wo
+// die Fußknöpfe eines Bottom Sheets stehen; ein hastiger Doppeltipp auf
+// „Speichern"/„Woche anlegen" soll nicht sofort das nächste Blatt öffnen.
+let zuletztGeschlossen = -1e9;
 function closeModal() {
   if (stashedModal) { stashedModal.remove(); stashedModal = null; }
   if (openModal) {
@@ -3175,6 +3266,7 @@ function closeModal() {
     // goalsSheet()) — hier lösen deshalb nur die übrigen Schließwege aus.
     if (modalOnCancel) { modalOnCancel(); modalOnCancel = null; }
     openModal.remove(); openModal = null;
+    zuletztGeschlossen = performance.now();
     setAppInert(false);
     if (modalOpener && modalOpener.isConnected) modalOpener.focus();
     modalOpener = null;
@@ -8321,13 +8413,23 @@ function renderAgenda() {
   // korrekt "Sonntag, 9.8." nennt) wäre "Heute" schlicht falsch.
   // v1.33: die Begrüßung steht in derselben Zeile wie „Heute zählt" —
   // nur am heutigen Tag, und ohne eine Zeile Höhe zu kosten.
+  const eintraege = tagesAgenda(dayKey, dayIdx);
+  // v1.36: kleiner Fortschrittsring „x/y" neben der Begrüßung — nur lesen,
+  // gezählt wird über istErledigt() wie beim Abhaken. Kostet keine Zeile.
+  const fertigZahl = eintraege.filter(e => istErledigt(e.block, dayKey)).length;
+  const umfang = 2 * Math.PI * 9;
+  const fortHtml = eintraege.length
+    ? "<span class='agenda__fort' aria-label='" + fertigZahl + " von " + eintraege.length + " erledigt'>"
+      + "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='9'/><circle class='agenda__fortbogen' cx='12' cy='12' r='9' stroke-dasharray='"
+      + (umfang * fertigZahl / eintraege.length).toFixed(1) + " " + umfang.toFixed(1) + "'/></svg>"
+      + "<b class='num'>" + fertigZahl + "/" + eintraege.length + "</b></span>"
+    : "";
   let html = "<div class='agenda__kopfzeile'><div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
-    + (heute ? "<span class='agenda__gruss'>" + escapeHtml(gruss()) + "</span>" : "") + "</div>"
+    + "<span class='agenda__kopfrechts'>" + (heute ? "<span class='agenda__gruss'>" + escapeHtml(gruss()) + "</span>" : "") + fortHtml + "</span></div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
     + (wichtig ? "<span class='agenda__frogtext' style=\"background-image:" + kringel((areaById(wichtig.areaId) || { hue: 150 }).hue) + "\">" + escapeHtml(wichtig.title) + "</span>" : "Schwerpunkt wählen") + "</button>"
     + (wichtig && wichtig.schritt ? "<div class='agenda__step'><b>Erster Schritt:</b> " + escapeHtml(wichtig.schritt) + "</div>" : "");
 
-  const eintraege = tagesAgenda(dayKey, dayIdx);
   const laufend = heute
     ? eintraege.find(e => !e.grob && e.block.start <= jetzt && jetzt < e.block.end)
     : null;
@@ -10824,7 +10926,7 @@ function setView(v) {
   document.body.dataset.mview = v;
   if (v !== "plan") document.body.dataset.panel = v;
   else if (!document.body.dataset.panel) document.body.dataset.panel = "heute";
-  document.querySelectorAll("#tabbar button").forEach(b => {
+  document.querySelectorAll("#tabbar button[data-view]").forEach(b => {
     const on = b.dataset.view === v;
     b.setAttribute("aria-current", String(on));
   });
@@ -10856,9 +10958,14 @@ $("#main").addEventListener("animationend", e => {
   if (e.animationName === "einblenden") $("#main").classList.remove("is-wechsel");
 });
 
-document.querySelectorAll("#tabbar button").forEach(b => {
+document.querySelectorAll("#tabbar button[data-view]").forEach(b => {
   b.onclick = () => ansichtWechseln(b.dataset.view);
 });
+// v1.36: das „+" mitten in der Tabbar — derselbe Weg wie #fabAdd.
+$("#tabAdd").onclick = () => {
+  if (performance.now() - zuletztGeschlossen < 450) return;
+  $("#fabAdd").onclick();
+};
 document.querySelectorAll("#panelNav button").forEach(b => {
   b.onclick = () => {
     ansichtWechseln(b.dataset.panel);

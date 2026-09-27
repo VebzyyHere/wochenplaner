@@ -11,6 +11,20 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.36/v1.37 vom 2026-09-27
+
+PWA-Cache `wp-v1.37`, Datenschema 10, Kette 61 Skripte. Look „Moos & Papier": eigene
+Stilschicht am Ende des `<style>`-Blocks (Banner „v1.36"), Tokens `--lime`/`--on-lime`/`--tief`.
+
+- Tabbar (Hochformat, `min-height: 501px`) ist eine schwebende dunkle Pille (`::before`) mit
+  `#tabAdd` („+") in der Mitte; es ruft `#fabAdd.onclick` auf, der Plankopf-FAB ist dort
+  ausgeblendet. Tab-Schleifen nutzen `#tabbar button[data-view]`. Innerhalb von 450 ms nach
+  `closeModal()` (`zuletztGeschlossen`) ignoriert `#tabAdd` Tipps (Doppeltipp-Schutz).
+- Blätter sind am Telefon (≤ 640px, coarse) Bottom Sheets mit Griff; `blattZiehenEinrichten()`
+  in `modal()` schließt beim Herunterziehen > 110 px.
+- Agenda-Kopfzeile: Fortschrittsring `.agenda__fort` (x/y über `istErledigt()`).
+- Falz-Vertrag hält knapp (~2 px): Agenda-Abstände und Tabbar-Höhe nicht vergrößern.
+
 ### Release v1.35 vom 2026-09-26
 
 Aktuelle Änderungen: `release/v1.35.md`. PWA-Cache `wp-v1.35`, Datenschema 10, Kette 61 Skripte.
@@ -316,7 +330,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.36` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.37` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

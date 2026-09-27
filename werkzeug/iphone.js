@@ -108,8 +108,10 @@ const beispiel = () => {
     ok(panel.top < kopf.bottom, 'der scrollende Bereich reicht hinter den Kopf (Inhalt läuft unter das Glas)');
     const tabKnopf = await rect(p, '#tabbar button');
     ok(tab.bottom === 852 && tabKnopf.bottom <= 852 - 34 + 0.5, 'Tabbar hält den Home-Indikator frei (Knopf endet bei ' + Math.round(tabKnopf.bottom) + ')');
-    const glas = await p.evaluate(() => ['#kopf', '#tabbar', '#sugBar'].map(s => getComputedStyle(document.querySelector(s)).backdropFilter));
-    ok(glas.every(g => /blur/.test(g)), 'Kopf, Tabbar und Vorschlagsleiste sind Glas (' + glas.join(' | ') + ')');
+    // v1.36: die Tabbar ist eine deckende, schwebende Pille (::before) — Glas bleiben Kopf und Leiste.
+    const glas = await p.evaluate(() => ['#kopf', '#sugBar'].map(s => getComputedStyle(document.querySelector(s)).backdropFilter));
+    ok(glas.every(g => /blur/.test(g)), 'Kopf und Vorschlagsleiste sind Glas (' + glas.join(' | ') + ')');
+    ok(await p.evaluate(() => getComputedStyle(document.querySelector('#tabbar'), '::before').borderRadius !== '0px'), 'Tabbar ist eine schwebende Pille');
     const sug = await rect(p, '#sugBar');
     ok(sug && Math.abs(sug.bottom - tab.top) < 1, 'Vorschlagsleiste steht direkt über der Tabbar');
     await p.evaluate(() => { document.querySelector('.panel').scrollTop = 150; });
@@ -150,7 +152,7 @@ const beispiel = () => {
     await p.evaluate(() => { setView('plan'); renderAll(); });
     await p.waitForTimeout(250);
     const leiste = await rect(p, '#tabbar'), kopf = await rect(p, '#kopf'), grid = await rect(p, '#gridWrap');
-    const tabs = await p.evaluate(() => [...document.querySelectorAll('#tabbar button')].map(b => { const r = b.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; }));
+    const tabs = await p.evaluate(() => [...document.querySelectorAll('#tabbar button[data-view]')].map(b => { const r = b.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; }));
     const fab = await rect(p, '#fabAdd');
     ok(leiste.height > leiste.width && leiste.top === 0 && leiste.bottom === 393, 'Navigation ist eine senkrechte Leiste über die volle Höhe');
     ok(tabs.every(t => t.left >= 59), 'Tabs liegen neben der Kamera-Aussparung (links ≥ 59)');

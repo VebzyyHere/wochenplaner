@@ -64,7 +64,7 @@ const messen = () => {
       clip.push((e.textContent || '').trim().slice(0, 30));
     }
   });
-  const tabs = [...document.querySelectorAll('.tabbar button')].map(b => {
+  const tabs = [...document.querySelectorAll('.tabbar button[data-view]')].map(b => {
     const label = b.querySelector('svg') ? [...b.childNodes].filter(n => n.nodeType === 3 || n.tagName !== 'svg').map(n => n.textContent).join('').trim() : b.textContent.trim();
     return { text: label, w: Math.round(R(b).width), h: Math.round(R(b).height), abgeschnitten: b.scrollWidth > b.clientWidth + 1 };
   });

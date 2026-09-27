@@ -62,7 +62,7 @@ async function messen(p) {
     const leiste = rectOrNull('.tabbar');
     let tabbar = leiste;
     if (leiste && leiste.height > leiste.width) {
-      const k = [...document.querySelectorAll('.tabbar button')].map(b => b.getBoundingClientRect());
+      const k = [...document.querySelectorAll('.tabbar button[data-view]')].map(b => b.getBoundingClientRect());
       tabbar = { top: Math.min(...k.map(r => r.top)), bottom: Math.max(...k.map(r => r.bottom)),
         left: Math.min(...k.map(r => r.left)), right: Math.max(...k.map(r => r.right)) };
       tabbar.width = tabbar.right - tabbar.left; tabbar.height = tabbar.bottom - tabbar.top;
@@ -75,6 +75,7 @@ async function messen(p) {
       gridwrap: rectOrNull('.gridwrap'),
       sugbar: rectOrNull('#sugBar'),
       fab: rectOrNull('.fab'),
+      plus: rectOrNull('#tabAdd'),
       toast: rectOrNull('.toasts .toast:last-child'),
     };
   });
@@ -113,7 +114,8 @@ async function pruefeFall(p, tag, quer) {
 
   ok(mit.sugbarFlag === '1', 'data-sugbar=1, solange Vorschlaege offen sind');
   ok(!!mit.sugbar, 'Vorschlagsleiste ist sichtbar');
-  ok(!!mit.fab || quer, 'FAB ist sichtbar (nur Hochformat erwartet)');
+  // v1.36: im Hochformat ist das „+" in der Tabbar (#tabAdd), der Plankopf-FAB entfällt.
+  ok(!!mit.fab || quer || !!mit.plus, 'Eintrag-Knopf ist sichtbar');
   ok(!!mit.toast, 'Toast ist sichtbar');
   // Ansicht 'plan' bei 320px Breite/Hoehe (hoch wie quer) liegt unter der
   // (max-width:640px)-Schwelle fuer einTag — der Tagesstreifen muss also da sein.

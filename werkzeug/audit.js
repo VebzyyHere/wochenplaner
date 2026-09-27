@@ -86,7 +86,7 @@ const mess = () => {
   // Dialoge
   await p.evaluate(() => setView('plan'));
   await p.waitForTimeout(200);
-  await p.click('#fabAdd'); await p.waitForTimeout(400);
+  await p.click(await p.locator('#fabAdd').isVisible() ? '#fabAdd' : '#tabAdd'); await p.waitForTimeout(400);
   await zeig('Eintrag neu', 'd-neu');
   await p.evaluate(() => { document.querySelector('#bGenau button:last-child').click(); });
   await p.waitForTimeout(300);

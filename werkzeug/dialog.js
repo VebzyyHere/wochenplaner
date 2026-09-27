@@ -128,7 +128,9 @@ async function appIsInert(p) {
   // #fabAdd ist nur in der Ansicht "plan" sichtbar (body[data-mview="plan"]).
   await p.evaluate(() => setView('plan'));
   await p.waitForTimeout(200);
-  await pruefeEinEbene('Neuer Eintrag (#fabAdd)', '#fabAdd');
+  // v1.36: im Hochformat trägt die Tabbar das „+" (#tabAdd) statt des Plankopf-FAB.
+  const neuSel = await p.locator('#fabAdd').isVisible() ? '#fabAdd' : '#tabAdd';
+  await pruefeEinEbene('Neuer Eintrag (' + neuSel + ')', neuSel);
 
   /* ---- modalPush(): Serien-Rückfrage beim Löschen ---------------------- */
   console.log('\n## modalPush() — Serien-Rückfrage beim Löschen eines wöchentlichen Eintrags');
