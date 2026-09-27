@@ -2143,13 +2143,32 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   --tief:      oklch(0.27 0.035 155);
   --radius: 20px; --radius-sm: 12px; --radius-lg: 26px;
   --kopf-flach: #f4f2ea;
+  /* Glas im Papierton statt Salbei — der Kopf gehört zum Grund. */
+  --glas:       oklch(0.972 0.010 100 / 0.82);
+  --glas-kante: oklch(1 0 0 / 0.70);
+  --glas-linie: oklch(0.55 0.02 100 / 0.16);
 }
 html[data-theme="dark"] {
+  /* Im Dunkeln trägt die Aktion dieselbe Limette wie Tab, Heute und „+" —
+     vorher stand dort ein kühles Mint, das neben der Limette fremd wirkte. */
+  --ink:        oklch(0.85 0.140 132);
+  --ink-hover:  oklch(0.90 0.120 130);
+  --ink-active: oklch(0.79 0.140 134);
+  --focus:      oklch(0.85 0.140 132);
+  --selected:   oklch(0.31 0.045 145);
+  --selected-text: oklch(0.91 0.110 130);
+  --success:    oklch(0.80 0.150 140);
+  --glas:       oklch(0.20 0.014 155 / 0.82);
   --lime:    oklch(0.86 0.160 128);
   --on-lime: oklch(0.22 0.035 150);
   --tief:    oklch(0.34 0.055 150);
 }
 body { background: var(--bg); }
+/* Einstellungen als gruppierte Liste wie in iOS: eine Fläche, Haarlinien
+   dazwischen — keine gerundeten Einzelzeilen mit gebogenen Linien. */
+.setmenu { margin: 0; background: var(--surface-2); border-radius: var(--radius); overflow: hidden; gap: 0; padding-bottom: 0; }
+.setmenu__item { border-radius: 0; padding-left: var(--s-4); padding-right: var(--s-4); }
+.sheet > .setmenu { margin-bottom: var(--s-3); }
 .card { border-color: transparent; box-shadow: 0 1px 2px oklch(0.3 0.03 120 / .06); }
 html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
 .card__title, .agenda__label { font-family: var(--font-display); font-weight: 800; }

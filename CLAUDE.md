@@ -13,7 +13,7 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ### Release v1.36/v1.37 vom 2026-09-27
 
-PWA-Cache `wp-v1.37`, Datenschema 10, Kette 61 Skripte. Look „Moos & Papier": eigene
+PWA-Cache `wp-v1.38` (v1.38: Farbabgleich, Dunkel-Aktion = Limette, Glas im Papierton, Einstellungen als gruppierte Liste), Datenschema 10, Kette 61 Skripte. Look „Moos & Papier": eigene
 Stilschicht am Ende des `<style>`-Blocks (Banner „v1.36"), Tokens `--lime`/`--on-lime`/`--tief`.
 
 - Tabbar (Hochformat, `min-height: 501px`) ist eine schwebende dunkle Pille (`::before`) mit
@@ -330,7 +330,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.37` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.38` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
