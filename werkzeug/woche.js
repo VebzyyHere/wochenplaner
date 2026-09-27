@@ -29,7 +29,7 @@ const path = require('path');
   await p.waitForTimeout(350);
 
   const balken = await p.evaluate(() => {
-    return [...document.querySelectorAll('.dayswitch__btn')].map((b, i) => ({
+    return [...document.querySelectorAll('.dayswitch__btn.is-woche')].map((b, i) => ({
       tag: DAY_SHORT[i],
       fuellung: b.style.getPropertyValue('--last'),
       voll: b.classList.contains('is-voll'),
@@ -47,21 +47,21 @@ const path = require('path');
   console.log('2) Maßstab Montag:', JSON.stringify(mass));
 
   // Vorschläge müssen den Balken sofort bewegen
-  const vorher = await p.evaluate(() => [...document.querySelectorAll('.dayswitch__btn')]
+  const vorher = await p.evaluate(() => [...document.querySelectorAll('.dayswitch__btn.is-woche')]
     .map(b => b.style.getPropertyValue('--last')).join(' '));
   await p.evaluate(() => {
     state.areas.find(a => a.id === "a2").plan.goal = 10;
     save(); buildSuggestions(); save(); renderAll();
   });
   await p.waitForTimeout(300);
-  const nachher = await p.evaluate(() => [...document.querySelectorAll('.dayswitch__btn')]
+  const nachher = await p.evaluate(() => [...document.querySelectorAll('.dayswitch__btn.is-woche')]
     .map(b => b.style.getPropertyValue('--last')).join(' '));
   console.log('3) Vor dem Verteilen: ', vorher);
   console.log('   Nach dem Verteilen:', nachher, vorher !== nachher ? '→ bewegt sich' : '→ UNVERÄNDERT');
 
   // Größe und Sichtbarkeit
   const geo = await p.evaluate(() => {
-    const b = document.querySelector('.dayswitch__btn');
+    const b = document.querySelector('.dayswitch__btn.is-woche');
     const i = b.querySelector('i');
     const r = i.getBoundingClientRect();
     return { balkenBreite: Math.round(r.width), balkenHoehe: Math.round(r.height),

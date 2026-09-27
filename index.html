@@ -1481,17 +1481,33 @@ html[data-theme="dark"] .rest {
 
 /* ============================================================ Mobile day switcher */
 .dayswitch {
-  display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px;
-  padding: 4px; border-top: 1px solid var(--glas-linie);
-  background: transparent; overflow: hidden;
-  /* pinch-zoom dazu wie beim Raster (.daycol, Kommentar dort) -- "none"
-     wuerde auch senkrechtes Seitenscrollen kapern, das der Streifen selbst
-     gar nicht braucht, aber die Seite drumherum vielleicht. Das
-     Streifen-Wischen (streifenwischenEinrichten) greift nur ein, wenn es
-     selbst dx/dy als waagerecht erkennt -- touch-action blockiert nichts
-     per se. */
-  touch-action: pan-y pinch-zoom;
+  display: none; grid-template-columns: minmax(0, 1fr);
+  padding: 4px 0; border-top: 1px solid var(--glas-linie);
+  background: transparent; overflow: hidden; position: relative;
 }
+/* v1.41: das Band scrollt selbst (waagerecht, mit Schwung), rastet je Tag
+   ein und zeigt immer sieben Tage. Die Leiste darum läuft nie über. */
+.dayswitch__band {
+  --band-rand: 4px;
+  position: relative;
+  display: grid; grid-auto-flow: column; gap: 3px;
+  grid-auto-columns: calc((100% - 6 * 3px) / 7);   /* 100 % = Inhaltsbreite, Rand schon abgezogen */
+  padding: 0 var(--band-rand); scroll-padding: 0 var(--band-rand);
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.dayswitch__band::-webkit-scrollbar { display: none; }
+.dayswitch__band > .dayswitch__btn { scroll-snap-align: start; }
+.dayswitch__heute {
+  position: absolute; top: 50%; right: 8px; transform: translateY(-50%); z-index: 2;
+  min-height: 36px; padding: 0 14px; border: none; border-radius: 999px;
+  background: var(--lime); color: var(--on-lime);
+  font-family: var(--font-display); font-size: var(--t-sm); font-weight: 800;
+  box-shadow: 0 6px 18px oklch(0.25 0.04 155 / .25);
+}
+.dayswitch__heute.is-links { right: auto; left: 8px; }
+.dayswitch__heute::before { content: ""; position: absolute; inset: -4px; }
 /* Die Woche wird bereits über die Pfeile im Kopf gewechselt. Ohne zweite
    Pfeilreihe bekommen alle sieben Tage auch auf 320px eine Trefferfläche
    nahe 44px; Tastatur- und sichtbare Reihenfolge bleiben gleich. */
@@ -1873,7 +1889,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .weeknav__label small { display: inline; font-size: var(--t-sm); }
   .weeknav__label small::before { content: " · "; }
   @media (max-width: 359px) {
-    .dayswitch { gap: 0; padding-left: 3px; padding-right: 3px; }
+    .dayswitch__band { gap: 0; --band-rand: 3px; grid-auto-columns: calc(100% / 7); }
     .planhead__weekday { display: none; }
   }
   /* Unter 360 Pixeln bricht das Datum mitten durch. Die Tage stehen
@@ -1927,7 +1943,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .tabbar button { min-height: 44px; font-size: 0; gap: 0; padding: 4px; }
   .tabbar svg { width: 20px; height: 20px; }
   .grid { --hourh: 46px; }
-  .dayswitch { padding: 2px; }
+  .dayswitch { padding: 2px 0; }
   .dayswitch__btn { min-height: 40px; padding: 2px; }
   .dayswitch__btn b { font-size: var(--t-body); }
   /* Bei 390 Pixeln Höhe ist jeder Erklärsatz eine Stunde Plan */
@@ -2454,8 +2470,8 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
       Heute
     </button>
     <button type="button" data-view="plan">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-      Plan
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3.5"/><path d="M3 9h18M7.5 12.5v5M12 12.5v5M16.5 12.5v5"/></svg>
+      Woche
     </button>
     <button type="button" class="tabbar__plus" id="tabAdd" aria-label="Neuer Eintrag">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -3782,23 +3798,43 @@ function tagesAuslastung(day) {
   return { min, grenze, quote: min / grenze };
 }
 
+/* v1.41: der Tagesstreifen ist ein frei ziehbares Band über viele Wochen
+   (natives waagerechtes Scrollen mit Einrasten je Tag). Ziehen allein ändert
+   nichts — wie beim Monats- und Wochen-Blatt bewegt erst ein Tipp auf einen
+   Tag anchor/selectedDayIdx. Die sieben Tage der gezeigten Woche tragen
+   .is-woche; nur einer davon ist aria-pressed. */
+const BAND_ZURUECK = 8, BAND_VOR = 12;   // Wochen um die aktuelle Woche herum
+
 function renderDaySwitch() {
   const wrap = $("#daySwitch");
+  const altBand = wrap.querySelector(".dayswitch__band");
+  const altScroll = altBand ? altBand.scrollLeft : null;
   wrap.innerHTML = "";
-  const mon = mondayOf(anchor);
+  const band = document.createElement("div");
+  band.className = "dayswitch__band";
+  const mon = mondayOf(anchor), monIso = iso(mon);
   const todayIso = iso(new Date());
+  const heuteMo = mondayOf(new Date());
+  let start = addDays(heuteMo, -7 * BAND_ZURUECK), ende = addDays(heuteMo, 7 * BAND_VOR);
+  if (iso(mon) < iso(start)) start = mon;
+  if (iso(mon) >= iso(ende)) ende = addDays(mon, 7);
 
-  for (let i = 0; i < 7; i++) {
-    const d = addDays(mon, i);
+  for (let d = start; iso(d) < iso(ende); d = addDays(d, 1)) {
+    const i = (d.getDay() + 6) % 7;
     const key = iso(d);
+    const woche = iso(mondayOf(d)) === monIso;
     const frei = istFrei(key);
     const last = tagesAuslastung({ key, i });
     const heute = key === todayIso;
 
     const b = document.createElement("button");
-    b.className = "dayswitch__btn" + (frei ? " is-frei" : "")
-      + (last.quote > 1 ? " is-voll" : "") + (heute ? " is-today" : "");
-    b.setAttribute("aria-pressed", String(i === selectedDayIdx));
+    b.type = "button";
+    b.className = "dayswitch__btn" + (woche ? " is-woche" : "")
+      + (frei ? " is-frei" : "") + (last.quote > 1 ? " is-voll" : "") + (heute ? " is-today" : "");
+    b.dataset.tag = key;
+    b.setAttribute("aria-pressed", String(woche && i === selectedDayIdx));
+    // Ein Tab-Stopp für das ganze Band (der gewählte Tag), Pfeiltasten wandern.
+    b.tabIndex = woche && i === selectedDayIdx ? 0 : -1;
     b.style.setProperty("--last", Math.round(clamp(last.quote, 0, 1) * 100) + "%");
     b.innerHTML = "<span>" + DAY_SHORT[i] + "</span><b>" + d.getDate() + "</b><i></i>";
 
@@ -3809,11 +3845,88 @@ function renderDaySwitch() {
     b.title = DAY_LONG[i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ". · " + wieVoll;
     b.setAttribute("aria-label", b.title);
 
-    // Seit Stufe 3 steht der Tagwechsler auch in „Heute" — dessen Agenda
-    // hängt genauso an selectedDayIdx wie das Raster.
-    b.onclick = () => { selectedDayIdx = i; renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); };
-    wrap.appendChild(b);
+    const tag = new Date(d);
+    b.onclick = () => {
+      selectedDayIdx = i;
+      if (woche) { renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); }
+      else { anchor = tag; renderAll(); }
+    };
+    band.appendChild(b);
   }
+  band.addEventListener("keydown", e => {
+    const schritt = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (!schritt || !e.target.classList.contains("dayswitch__btn")) return;
+    const ziel = schritt < 0 ? e.target.previousElementSibling : e.target.nextElementSibling;
+    if (!ziel) return;
+    e.preventDefault();
+    e.target.tabIndex = -1; ziel.tabIndex = 0; ziel.focus({ preventScroll: true });
+    ziel.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+  wrap.appendChild(band);
+
+  const zuHeute = document.createElement("button");
+  zuHeute.type = "button";
+  zuHeute.className = "dayswitch__heute";
+  zuHeute.hidden = true;
+  zuHeute.onclick = () => {
+    anchor = new Date(); selectedDayIdx = (new Date().getDay() + 6) % 7;
+    renderAll();
+    bandAusrichten(null, true);
+  };
+  wrap.appendChild(zuHeute);
+  let ruhe = null;
+  band.addEventListener("scroll", () => {
+    requestAnimationFrame(heuteKnopfZeigen);
+    clearTimeout(ruhe);
+    ruhe = setTimeout(() => bandEinrasten(band), 160);
+  }, { passive: true });
+  bandAusrichten(altScroll);
+}
+
+/* Band so stellen, dass der gewählte Tag sichtbar ist: die bisherige
+   Position bleibt, solange er drinsteht (ein Tipp springt nie weg);
+   sonst beginnt das Band am Montag seiner Woche. Ohne Breite (Band
+   ausgeblendet) passiert nichts — setView() ruft erneut. */
+function bandAusrichten(altScroll, sanft) {
+  const band = $("#daySwitch .dayswitch__band");
+  if (!band || !band.clientWidth) return;
+  const sel = band.querySelector('[aria-pressed="true"]') || band.querySelector(".is-woche");
+  if (!sel) return;
+  const drin = altScroll != null && sel.offsetLeft >= altScroll - 1
+    && sel.offsetLeft + sel.offsetWidth <= altScroll + band.clientWidth + 1;
+  const woche = band.querySelector(".is-woche");
+  const ziel = drin ? altScroll
+    : band.scrollLeft + woche.getBoundingClientRect().left - band.getBoundingClientRect().left - parseFloat(getComputedStyle(band).paddingLeft || 0);
+  if (sanft && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) band.scrollTo({ left: ziel, behavior: "smooth" });
+  else band.scrollLeft = ziel;
+  heuteKnopfZeigen();
+}
+
+/* Einrasten als Rückfall: CSS-Scroll-Snap erledigt das normalerweise; bleibt
+   das Band nach dem Schwung zwischen zwei Tagen stehen (Bruchteil-Breiten,
+   manche WebViews), richtet es sich hier am nächsten Tag aus. */
+function bandEinrasten(band) {
+  const rand = band.getBoundingClientRect().left + parseFloat(getComputedStyle(band).paddingLeft || 0);
+  let best = null;
+  for (const c of band.children) {
+    const d = c.getBoundingClientRect().left - rand;
+    if (best === null || Math.abs(d) < Math.abs(best)) best = d;
+  }
+  if (best !== null && Math.abs(best) > 1) band.scrollBy({ left: best, behavior: "smooth" });
+}
+
+/* „Heute"-Knopf, sobald heute aus dem Band gescrollt ist — mit Pfeil in
+   die Richtung, in der heute liegt. */
+function heuteKnopfZeigen() {
+  const band = $("#daySwitch .dayswitch__band"), knopf = $("#daySwitch .dayswitch__heute");
+  if (!band || !knopf) return;
+  const t = band.querySelector(".is-today");
+  if (!t || !band.clientWidth) { knopf.hidden = true; return; }
+  const links = t.offsetLeft + t.offsetWidth <= band.scrollLeft + 2;
+  const rechts = t.offsetLeft >= band.scrollLeft + band.clientWidth - 2;
+  knopf.hidden = !(links || rechts);
+  knopf.textContent = links ? "‹ Heute" : "Heute ›";
+  knopf.classList.toggle("is-links", links);
 }
 
 /* ============================================================
@@ -10903,55 +11016,6 @@ function wischenEinrichten() {
   wrap.addEventListener("pointercancel", ende, { passive: true });
 }
 
-/* Derselbe Wisch auch auf dem Tagesstreifen selbst -- bisher liess sich
-   dort nur tippen (Chips, Randpfeile), nicht wischen. Dieselbe Achsen-,
-   Schwellen- und Geschwindigkeitslogik wie wischenEinrichten() oben (10px
-   Achsentscheid, |dx|>|dy|*1.7, Ausloesung ab 25% Breite oder 0,4px/ms),
-   bewusst dieselben Zahlen -- keine zweite Konstante fuer dieselbe Geste.
-   tagWechseln() traegt den Wochenrand schon (i>6/i<0 -> anchor +-7 Tage,
-   Idx 0/6), deshalb reicht hier ein einziger Aufruf fuer den nahtlosen
-   Wochenuebergang, denselben wie beim Inhalts-Wischen. Kein
-   Transform-Vorschau -- der Streifen ist keine einzelne verschiebbare
-   Flaeche wie #grid, sondern sieben einzelne Chips;
-   „schlichter Wechsel" (Auftrag W1) statt einer erfundenen Animation. */
-function streifenwischenEinrichten() {
-  const wrap = $("#daySwitch");
-  if (!wrap || wrap.dataset.wisch) return;
-  wrap.dataset.wisch = "1";
-
-  let x0 = 0, y0 = 0, t0 = 0, aktiv = false, achse = null;
-
-  wrap.addEventListener("pointerdown", e => {
-    if (e.pointerType === "mouse") return;   // Maus tippt nur, wischt nicht
-    x0 = e.clientX; y0 = e.clientY; t0 = e.timeStamp;
-    aktiv = true; achse = null;
-  }, { passive: true });
-
-  wrap.addEventListener("pointermove", e => {
-    if (!aktiv) return;
-    const dx = e.clientX - x0, dy = e.clientY - y0;
-
-    if (achse === null) {
-      if (Math.hypot(dx, dy) < 10) return;
-      achse = Math.abs(dx) > Math.abs(dy) * 1.7 ? "x" : "y";
-      if (achse === "y") { aktiv = false; return; }   // senkrecht: nicht unseres
-    }
-    if (achse !== "x") return;
-
-    const breite = wrap.clientWidth || 1;
-    const t = e.timeStamp - t0;
-    const v = t > 0 ? Math.abs(dx) / t : 0;   // px/ms
-    if (Math.abs(dx) / breite >= 0.25 || v >= 0.4) {
-      aktiv = false;
-      tagWechseln(dx < 0 ? 1 : -1);
-    }
-  }, { passive: true });
-
-  const ende = () => { aktiv = false; achse = null; };
-  wrap.addEventListener("pointerup", ende, { passive: true });
-  wrap.addEventListener("pointercancel", ende, { passive: true });
-}
-
 /* Einen Tag weiter oder zurück — über den Wochenrand hinweg. */
 function tagWechseln(richtung) {
   let i = selectedDayIdx + richtung;
@@ -11007,6 +11071,7 @@ function setView(v) {
   }
   if (v === "plan") renderGrid();
   renderSugBar();
+  bandAusrichten(null);
 }
 
 /* v1.35: ein Tipp auf die Navigation blendet die neue Ansicht kurz auf —
@@ -11354,7 +11419,6 @@ function maybeWelcome() {
 function renderAll() {
   renderHeader();
   wischenEinrichten();
-  streifenwischenEinrichten();
   renderLoose();
   renderDaySwitch();
   renderGrid();

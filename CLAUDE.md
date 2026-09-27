@@ -11,6 +11,21 @@ Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
 
 ## Die eine Datei
 
+### Release v1.41 vom 2026-09-27
+
+PWA-Cache `wp-v1.41`, Datenschema 10, Kette 61 Skripte.
+
+- **Tagesband statt Tagesstreifen-Wisch.** `renderDaySwitch()` baut `.dayswitch__band` über
+  `BAND_ZURUECK`/`BAND_VOR` Wochen um heute (plus die gezeigte Woche, falls weiter weg);
+  natives waagerechtes Scrollen mit `scroll-snap` je Tag, `bandEinrasten()` als Rückfall.
+  **Ziehen bewegt `anchor` nie** — erst ein Tipp (andere Woche → `anchor = Tag`, `renderAll()`).
+  Die sieben Tage der gezeigten Woche tragen `.is-woche` (Tests zählen nur diese).
+  `bandAusrichten()` hält die Scrollposition, solange der gewählte Tag sichtbar ist
+  (auch aus `setView()`); `.dayswitch__heute` erscheint, wenn heute außer Sicht ist.
+  Tastatur: ein Tab-Stopp (Roving tabindex), Pfeile wandern. `streifenwischenEinrichten()` ist entfallen;
+  `tagWechseln()` bleibt fürs Inhalts-Wischen. Die Leiste `.dayswitch` läuft nie über (diag7/sicht).
+- Tab „Plan" heißt „Woche" (neues Symbol); `data-view` bleibt `plan`.
+
 ### Release v1.40 vom 2026-09-27
 
 PWA-Cache `wp-v1.40`, Datenschema 10, Kette 61 Skripte.
@@ -343,7 +358,7 @@ Anmeldung, abgeschalteter Netzzugang im Offline-Test).
 
 ## Veröffentlichen
 
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.40` — die nächste Veröffentlichung zählt von dort
+1. `V` in `sw.js` hochzählen (aktuell `wp-v1.41` — die nächste Veröffentlichung zählt von dort
    aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
    ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
 2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").

@@ -1,5 +1,5 @@
 /* ============================================================
-   Pruefskript Streifen-Wischen (Auftrag "Der Tagesstreifen lernt Wischen")
+   Pruefskript Tagesband (v1.41: frei ziehbares Band statt Tag-für-Tag-Wisch)
 
    .dayswitch (der Tagesstreifen mit sieben Tageschips) hatte bis hierher
    KEINE Wisch-Geste, nur Taps. Dieses Skript
@@ -78,46 +78,68 @@ function zustand(p) {
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
 
-  // ---- a/b/c: Wischen auf dem Streifen selbst -----------------------
+  // ---- a/b/c (v1.41): das Band zieht frei, erst ein Tipp wählt ------
   {
     const { ctx, p, errs } = await neueSeite(b);
     const cdp = await ctx.newCDPSession(p);
-    const geste = macheGeste(p, cdp);
-
-    const start = await zustand(p);
-    console.log('Start:                     ', JSON.stringify(start));
-
-    let vorher = start;
-    let r = await geste(-120, 0);
-    console.log('(a) Wischen links (-120):  ', JSON.stringify(r), '→ ein Tag weiter');
-    ok(r.idx === vorher.idx + 1, '(a) Wischen links auf dem Streifen: selectedDayIdx+1');
-    vorher = r;
-
-    r = await geste(120, 0);
-    console.log('(c) Wischen rechts (+120): ', JSON.stringify(r), '→ ein Tag zurück');
-    ok(r.idx === vorher.idx - 1, '(c) Wischen rechts auf dem Streifen: selectedDayIdx-1');
-
-    // Inhalt folgt: dieselbe Tagesnummer muss im Raster als aktiver Chip stehen
-    const chipAktiv = await p.evaluate(() => {
-      const btn = document.querySelectorAll('.dayswitch__btn')[selectedDayIdx];
-      return btn && btn.getAttribute('aria-pressed') === 'true';
+    const band = () => p.evaluate(() => {
+      const b = document.querySelector('#daySwitch .dayswitch__band');
+      return { links: Math.round(b.scrollLeft), breite: b.clientWidth, tage: b.children.length,
+        heuteKnopf: !document.querySelector('#daySwitch .dayswitch__heute').hidden };
     });
-    ok(chipAktiv, 'Nach dem Wischen steht der passende Chip auf aria-pressed=true (Inhalt folgt)');
+    const ziehen = async dx => {
+      const r = await p.evaluate(() => { const rr = document.getElementById('daySwitch').getBoundingClientRect(); return { x: rr.left + rr.width / 2, y: rr.top + rr.height / 2 }; });
+      // echter Finger: Touch-Start, zehn Züge, loslassen (Schwung inklusive)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: r.x, y: r.y }] });
+      for (let i = 1; i <= 10; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: r.x + dx * i / 10, y: r.y }] }); await p.waitForTimeout(16); }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      // Schwung und Einrasten abwarten: bis scrollLeft 400 ms lang stillsteht
+      let vorher = -1;
+      for (let t = 0; t < 20; t++) {
+        await p.waitForTimeout(200);
+        const jetzt = await p.evaluate(() => document.querySelector('#daySwitch .dayswitch__band').scrollLeft);
+        if (jetzt === vorher && t > 2) break;
+        vorher = jetzt;
+      }
+    };
+    const start = await zustand(p), b0 = await band();
+    console.log('Start:', JSON.stringify(start), JSON.stringify(b0));
+    ok(b0.tage >= 7 * 20, '(a) Das Band trägt viele Wochen (' + b0.tage + ' Tage)');
+    ok(await p.evaluate(() => document.querySelectorAll('.dayswitch__btn.is-woche').length === 7), '(a) genau sieben Tage gehören zur gezeigten Woche');
+    ok(await p.evaluate(() => { const d = document.querySelector('.dayswitch'); return d.scrollWidth <= d.clientWidth + 1; }), '(a) die Leiste selbst läuft nicht über');
 
-    // Über den Wochenrand: von Sonntag nach links -> Montag der Folgewoche
-    await p.evaluate(() => { selectedDayIdx = 6; renderAll(); });
-    const vorSonntag = await zustand(p);
-    r = await geste(-120, 0);
-    console.log('(b) Sonntag → links:       ', JSON.stringify(r), '→ Montag der Folgewoche, EIN Wisch');
-    ok(r.idx === 0 && r.woche !== vorSonntag.woche, '(b) Wisch über Sonntag hinaus: anchor Folgewoche, idx 0, ein Wisch');
-    ok(r.label !== vorSonntag.label, '(b) Topbar-Label wechselt mit');
+    await ziehen(-300);
+    const b1 = await band(), z1 = await zustand(p);
+    ok(b1.links > b0.links + 200, '(a) Ziehen nach links scrollt das Band frei weiter (' + b0.links + ' → ' + b1.links + ')');
+    ok(z1.idx === start.idx && z1.woche === start.woche, '(a) bloßes Ziehen ändert weder Tag noch Woche');
+    ok(b1.heuteKnopf, '(b) ist heute aus dem Bild, erscheint der Heute-Knopf');
+    ok(await p.evaluate(() => { const b = document.querySelector('#daySwitch .dayswitch__band'), l = b.getBoundingClientRect().left + parseFloat(getComputedStyle(b).paddingLeft); return [...b.children].some(c => Math.abs(c.getBoundingClientRect().left - l) < 2); }), '(a) das Band rastet an einem Tag ein');
 
-    // Rückwärts über den Wochenrand: von Montag nach rechts -> Sonntag der Vorwoche
-    await p.evaluate(() => { selectedDayIdx = 0; renderAll(); });
-    const vorMontag = await zustand(p);
-    r = await geste(120, 0);
-    console.log('(c) Montag → rechts:       ', JSON.stringify(r), '→ Sonntag der Vorwoche, EIN Wisch');
-    ok(r.idx === 6 && r.woche !== vorMontag.woche, '(c) rueckwaerts ueber den Wochenrand: anchor Vorwoche, idx 6, ein Wisch');
+    // Tipp auf einen sichtbaren Tag einer späteren Woche
+    const tipp = await p.evaluate(() => {
+      const b = document.querySelector('#daySwitch .dayswitch__band');
+      const t = [...b.children].find(c => c.offsetLeft >= b.scrollLeft + b.clientWidth / 2 && !c.classList.contains('is-woche'));
+      const r = t.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, tag: t.dataset.tag };
+    });
+    // Chromium verwirft den ersten Tipp nach einem per CDP erzeugten Schwung
+    // (Tap-Unterdrückung nach Fling) — deshalb erst ein Tipp ins Leere.
+    await p.waitForTimeout(600);
+    const leer = await p.evaluate(() => { const r = document.querySelector('.planhead h1, .planhead').getBoundingClientRect(); return { x: r.left + 10, y: r.top + r.height / 2 }; });
+    await p.touchscreen.tap(leer.x, leer.y);   // erster Tipp nach dem Schwung: ins Leere
+    await p.waitForTimeout(300);
+    await p.touchscreen.tap(tipp.x, tipp.y);
+    await p.waitForTimeout(300);
+    const z2 = await zustand(p), b2 = await band();
+    ok(z2.woche !== start.woche && await p.evaluate(t => currentDayIso() === t, tipp.tag), '(c) Tipp auf einen Tag einer anderen Woche wählt genau diesen Tag');
+    ok(Math.abs(b2.links - b1.links) < 3, '(c) das Band springt beim Tipp nicht weg');
+    ok(z2.label !== start.label, '(c) die Kopfzeile nennt die neue Woche');
+
+    await p.click('#daySwitch .dayswitch__heute');
+    await p.waitForTimeout(700);
+    const z3 = await zustand(p), b3 = await band();
+    ok(z3.woche === start.woche && z3.idx === start.idx, '(b) Heute-Knopf holt Woche und Tag von heute zurück');
+    ok(!b3.heuteKnopf, '(b) danach verschwindet der Heute-Knopf');
 
     console.log('Konsolenfehler:', errs.length ? errs : 'keine');
     fehler.push(...errs);
@@ -132,13 +154,13 @@ function zustand(p) {
     const vor = await zustand(p);
     const ziel = (vor.idx + 3) % 7;   // ein anderer Chip als der aktuelle
     const box = await p.evaluate(z => {
-      const btn = document.querySelectorAll('.dayswitch__btn')[z];
+      const btn = document.querySelectorAll('.dayswitch__btn.is-woche')[z];
       const r = btn.getBoundingClientRect();
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }, ziel);
 
     // Fuenf Pixel Wackeln (unter TAP_SLOP=10 und unter der 10px-Achsen-
-    // schwelle von streifenwischenEinrichten) -- muss als Tipp durchgehen,
+    // schwelle) -- muss als Tipp durchgehen,
     // NICHT als Wisch gewertet werden.
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: box.x + 5, y: box.y }] });
@@ -169,6 +191,12 @@ function zustand(p) {
     const nachPrev = await zustand(p);
     ok(nachPrev.woche === vor.woche, '(e) Pfeil "Woche zurück" funktioniert weiterhin');
     ok(await p.locator('.dayswitch__nav').count() === 0, '(e) Keine doppelten Wochenpfeile im Tagesstreifen');
+    // Tastatur: ein Tab-Stopp im Band, Pfeiltasten wandern, Enter wählt
+    ok(await p.evaluate(() => document.querySelectorAll('#daySwitch .dayswitch__btn[tabindex="0"]').length === 1), '(e) Band hat genau einen Tab-Stopp');
+    await p.focus('#daySwitch .dayswitch__btn[tabindex="0"]');
+    await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight'); await p.keyboard.press('Enter');
+    await p.waitForTimeout(150);
+    ok((await zustand(p)).idx === (vor.idx + 2) % 7, '(e) Pfeil rechts zweimal + Enter wählt den übernächsten Tag');
 
     console.log('Konsolenfehler:', errs.length ? errs : 'keine');
     fehler.push(...errs);
@@ -194,8 +222,8 @@ function zustand(p) {
   {
     const { ctx, p, errs } = await neueSeite(b);
     const geo = await p.evaluate(() => {
-      const chips = [...document.querySelectorAll('.dayswitch__btn')].map(c => Math.round(c.getBoundingClientRect().width));
-      const cs = getComputedStyle(document.querySelector('.dayswitch'));
+      const chips = [...document.querySelectorAll('.dayswitch__btn.is-woche')].map(c => Math.round(c.getBoundingClientRect().width));
+      const cs = getComputedStyle(document.querySelector('.dayswitch__band'));
       const sug = document.querySelector('.agenda__sugacts button');
       const blockSug = document.querySelector('.block__sug button');
       return {
@@ -225,8 +253,8 @@ function zustand(p) {
   {
     const { ctx, p, errs } = await neueSeite(b, { width: 320, height: 568 });
     const geo = await p.evaluate(() => {
-      const chips = [...document.querySelectorAll('.dayswitch__btn')].map(n => n.getBoundingClientRect().width);
-      const cs = getComputedStyle(document.querySelector('.dayswitch'));
+      const chips = [...document.querySelectorAll('.dayswitch__btn.is-woche')].map(n => n.getBoundingClientRect().width);
+      const cs = getComputedStyle(document.querySelector('.dayswitch__band'));
       const sug = document.querySelector('.agenda__sugacts button');
       const blockSug = document.querySelector('.block__sug button');
       const hourh = getComputedStyle(document.querySelector('.grid')).getPropertyValue('--hourh').trim();
@@ -248,55 +276,21 @@ function zustand(p) {
     await ctx.close();
   }
 
-  // ---- i: prefers-reduced-motion -- Wechsel funktioniert ohne Transform ---
+  // ---- i: prefers-reduced-motion -- Heute-Knopf springt ohne Animation ---
   {
     const { ctx, p, errs } = await neueSeite(b, { reducedMotion: true });
-    const cdp = await ctx.newCDPSession(p);
-    const geste = macheGeste(p, cdp);
-    const vor = await zustand(p);
-    const nach = await geste(-120, 0);
-    console.log('(i) reduced-motion, Wisch: ', JSON.stringify(nach));
-    ok(nach.idx === vor.idx + 1, '(i) Streifen-Wisch wechselt den Tag auch mit prefers-reduced-motion');
-
+    await p.evaluate(() => { const b = document.querySelector('#daySwitch .dayswitch__band'); b.scrollLeft = b.scrollWidth; });
+    await p.waitForTimeout(200);
+    await p.click('#daySwitch .dayswitch__heute');
+    await p.waitForTimeout(150);
+    ok(await p.evaluate(() => { const b = document.querySelector('#daySwitch .dayswitch__band'), t = b.querySelector('.is-today');
+      return t.offsetLeft >= b.scrollLeft && t.offsetLeft + t.offsetWidth <= b.scrollLeft + b.clientWidth + 1; }), '(i) reduced-motion: Heute-Knopf bringt heute sofort ins Bild');
     console.log('Konsolenfehler:', errs.length ? errs : 'keine');
     fehler.push(...errs);
     await ctx.close();
   }
 
   await b.close();
-
-  // ---- Rot-Beweis fuer a/b/d ------------------------------------------
-  // Sicherungskopie-Verfahren (Hausvertrag): Kopie der geaenderten Datei,
-  // Aenderung zurueckgenommen (streifenwischenEinrichten NICHT mehr
-  // aufgerufen -- die Funktion existiert, wird aber nie eingerichtet, wie
-  // vor W1), gemessen, zurueckgelegt. Kein git stash: das Verfahren gilt
-  // auch fuer diesen Baum, obwohl er sauber ist.
-  console.log('\n--- Rot-Beweis (a/b/d): #daySwitch ohne streifenwischenEinrichten ---');
-  const original = fs.readFileSync(INDEX, 'utf8');
-  const marker = '  streifenwischenEinrichten();';
-  if (!original.includes(marker)) {
-    console.log('   FEHLER  Rot-Beweis: Aufrufstelle nicht gefunden, Verfahren übersprungen');
-    fehler.push('Rot-Beweis: Aufrufstelle nicht gefunden');
-  } else {
-    const roterStand = original.replace(marker, '');
-    fs.writeFileSync(INDEX, roterStand, 'utf8');
-    try {
-      const br2 = await chromium.launch({ executablePath: process.env.WP_CHROMIUM });
-      const { ctx, p } = await neueSeite(br2);
-      const cdp = await ctx.newCDPSession(p);
-      const geste = macheGeste(p, cdp);
-      const vor = await zustand(p);
-      const nach = await geste(-120, 0);
-      const rot = nach.idx === vor.idx;   // ohne Einrichtung DARF sich nichts ändern
-      console.log('   Ohne streifenwischenEinrichten() wechselt der Wisch NICHT:', rot, '(soll: true — das ist der Beweis, dass a/b/d echt an der neuen Funktion hängen)');
-      if (!rot) { fehler.push('Rot-Beweis fehlgeschlagen: Wisch wechselt den Tag auch ohne streifenwischenEinrichten()'); }
-      await ctx.close();
-      await br2.close();
-    } finally {
-      fs.writeFileSync(INDEX, original, 'utf8');
-      console.log('   index.html wiederhergestellt.');
-    }
-  }
 
   console.log('\n' + (fehler.length ? fehler.length + ' FEHLER:' : 'Alle Pruefungen bestanden.'));
   fehler.forEach(f => console.log(' - ' + f));

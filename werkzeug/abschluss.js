@@ -27,7 +27,7 @@ const ok = (wert, text) => { assert.ok(wert, text); anzahl++; console.log('OK ' 
     }
     await page.setViewportSize({ width: 820, height: 1180 });
     await page.locator('#tabbar [data-view="heute"]').tap();
-    await page.locator('#daySwitch .dayswitch__btn').nth(4).tap();
+    await page.locator('#daySwitch .dayswitch__btn.is-woche').nth(4).tap();
     ok(await page.evaluate(() => selectedDayIdx === 4), 'Tag im Tablet-Arbeitsbereich per Touch auswählbar');
     await page.locator('#tabbar [data-view="plan"]').tap();
     ok(await page.evaluate(() => document.querySelectorAll('.daycol').length === 7 && document.querySelector('#gridWrap').scrollWidth <= document.querySelector('#gridWrap').clientWidth + 1), 'Tablet zeigt alle sieben Tage ohne seitliches Scrollen');
