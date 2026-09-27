@@ -60,9 +60,9 @@ const aufbau = () => {
   };
 
   console.log('a) Begrüßung');
-  const zeiten = [['2026-09-09T08:00:00+02:00', 'Moin, Alex'], ['2026-09-09T12:30:00+02:00', 'Mahlzeit, Alex'],
-    ['2026-09-09T15:00:00+02:00', 'Hey, Alex'], ['2026-09-09T20:00:00+02:00', 'Guten Abend, Alex'],
-    ['2026-09-09T23:30:00+02:00', 'Noch wach, Alex?']];
+  const zeiten = [['2026-09-09T08:00:00+02:00', 'Einen wunderschönen guten Morgen, Alex ☀️'], ['2026-09-09T12:30:00+02:00', 'Mahlzeit, Alex'],
+    ['2026-09-09T15:00:00+02:00', 'Hallihallöchen, Alex'], ['2026-09-09T20:00:00+02:00', 'Guten Abend, Alex'],
+    ['2026-09-09T22:30:00+02:00', 'Schlaf was Schönes, Alex ✨'], ['2026-09-09T23:30:00+02:00', 'Schlaf was Schönes, Alex ✨']];
   for (const [uhr, erwartet] of zeiten) {
     const { ctx, p } = await seite(uhr);
     const r = await p.evaluate(() => {
@@ -72,10 +72,12 @@ const aufbau = () => {
       return { lab: lab.textContent, gruss: g && g.textContent, gleicheZeile: g && Math.abs(g.getBoundingClientRect().bottom - lab.getBoundingClientRect().bottom) < 4, ohne };
     });
     ok(r.gruss === erwartet, uhr.slice(11, 16) + ' Uhr: „' + r.gruss + '"');
-    ok(r.lab === 'Heute zählt' && r.gleicheZeile, uhr.slice(11, 16) + ' Uhr: erstes Etikett bleibt „Heute zählt", Gruß in derselben Zeile');
-    if (uhr.includes('23:30')) ok(r.ohne === 'Noch wach?', 'ohne Namen: „' + r.ohne + '"');
+    // v1.40: lange Grüße (Morgen, Nacht) stehen bewusst in einer eigenen Zeile darunter.
+    const lang = erwartet.length > 22;
+    ok(r.lab === 'Heute zählt' && (lang ? !r.gleicheZeile : r.gleicheZeile), uhr.slice(11, 16) + ' Uhr: erstes Etikett bleibt „Heute zählt", Gruß ' + (lang ? 'darunter' : 'in derselben Zeile'));
+    if (uhr.includes('23:30')) ok(r.ohne === 'Schlaf was Schönes ✨', 'ohne Namen: „' + r.ohne + '"');
     if (uhr.includes('08:00')) {
-      ok(r.ohne === 'Moin', 'ohne Namen: „' + r.ohne + '"');
+      ok(r.ohne === 'Einen wunderschönen guten Morgen ☀️', 'ohne Namen: „' + r.ohne + '"');
       const anderer = await p.evaluate(() => { selectedDayIdx = (selectedDayIdx + 1) % 7; renderAgenda(); return !document.querySelector('#agenda .agenda__gruss'); });
       ok(anderer, 'an einem anderen Tag keine Begrüßung');
     }
@@ -188,6 +190,13 @@ const aufbau = () => {
     await wisch('lesen', 110, 90);
     ok(!(await erledigt('lesen')), 'eine eher senkrechte Bewegung ist Scrollen, kein Abhaken');
     ok(await p.evaluate(() => !document.querySelector('.agenda__row.is-wisch')), 'nach dem Loslassen steht jede Zeile wieder an ihrem Platz');
+    // v1.40: nach links wischen öffnet „Verschieben" — ohne etwas zu speichern.
+    const vorher = await p.evaluate(() => JSON.stringify(state.blocks));
+    const links = await wisch('lesen', -110);
+    ok(links.voll && /Verschieben/.test(links.text), 'nach links über der Schwelle steht „Verschieben" hinter der Zeile');
+    ok(await p.evaluate(() => !!document.querySelector('.scrim .sheet')), 'Wischen nach links öffnet das Verschieben-Blatt');
+    ok(await p.evaluate(v => JSON.stringify(state.blocks) === v, vorher) && !(await erledigt('lesen')), 'dabei wird nichts abgehakt oder verändert');
+    await p.evaluate(() => closeModal());
 
     await p.click('#tabbar button[data-view="ziele"]');
     ok(await p.evaluate(() => $('#main').classList.contains('is-wechsel')), 'Tipp auf die Tabbar blendet die neue Ansicht auf');

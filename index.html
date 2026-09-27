@@ -659,7 +659,7 @@ html[data-app="1"] .kopf {
   color: var(--text); margin: 14px 0 6px;
 }
 /* Begrüßung in derselben Zeile wie „Heute zählt" — kostet keine Höhe. */
-.agenda__kopfzeile { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.agenda__kopfzeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--s-2); }
 .agenda__kopfzeile .agenda__label { margin-top: 0; }
 .agenda__gruss {
   font-family: var(--font-display); font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
@@ -733,6 +733,8 @@ html[data-app="1"] .kopf {
 .agenda__row.is-wisch[data-wisch-ziel="ab"]::after { content: "Erledigt"; }
 .agenda__row.is-wisch[data-wisch-ziel="zurueck"]::after { content: "Wieder offen"; }
 .agenda__row.is-wisch-voll::before { background: var(--ink); }
+.agenda__row.is-wisch.is-wisch-links::before { left: auto; right: 0; width: var(--wisch-links, 0px); border-radius: 12px 0 0 12px; }
+.agenda__row.is-wisch.is-wisch-links::after { content: "Verschieben"; left: auto; right: 12px; }
 .agenda__row.is-wisch-voll::after { opacity: 1; color: var(--on-ink); }
 .agenda__row.is-on .agenda__title { opacity: .55; text-decoration: line-through; }
 .agenda__check {
@@ -2175,9 +2177,24 @@ body { background: var(--bg); }
 .sheet > .setmenu { margin-bottom: var(--s-3); }
 .card { border-color: transparent; box-shadow: 0 1px 2px oklch(0.3 0.03 120 / .06); }
 html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
+/* Sprungziel des Desktop-Reiters: kein eckiger Fokusrahmen nach einem Klick,
+   für die Tastatur ein runder. */
+.card:focus:not(:focus-visible) { outline: none; }
+.card:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .card__title, .agenda__label { font-family: var(--font-display); font-weight: 800; }
 .btn { border-radius: 999px; }
 .btn--primary { font-weight: 750; }
+
+/* Hinweise (Toasts) tragen dieselbe dunkle Pille wie die Tabbar, die Aktion
+   darin ist Limette — in beiden Modi gleich statt Aktionsfarbe als Fläche. */
+.toast { background: var(--pille); color: oklch(0.96 0.01 110); font-weight: 600; }
+.toast__act { color: var(--lime); }
+/* Tagesform: Kacheln wie die übrigen Karten — Fläche statt Rahmen. */
+.energy__opt { border-color: transparent; border-radius: var(--radius); background: var(--surface-2); }
+.energy__opt[aria-pressed="true"] { border-color: var(--ink); }
+/* Desktop: gewählter Tag im Wochenkopf in derselben Auswahlfarbe wie überall. */
+.dayhead[aria-pressed="true"], .dayhead[aria-pressed="true"]:hover { background: var(--selected); }
+.dayhead.is-today .dayhead__num { background: var(--lime); color: var(--on-lime); }
 
 /* Heute: die Antwort als dunkle Moos-Karte statt als Linie. */
 .agenda__hero {
@@ -2216,7 +2233,25 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
 .dayswitch__btn.is-frei { background: oklch(0.62 0.14 150 / .12); }
 
 /* Fortschrittsring in der Agenda-Kopfzeile */
-.agenda__kopfrechts { display: inline-flex; align-items: center; gap: 10px; }
+/* Kopfzeile: „Heute zählt" links, Gruß und Ring rechts. Ein langer Gruß
+   (Morgen, Nacht) steht darunter in einer eigenen Zeile, der Ring bleibt oben. */
+.agenda__kopfzeile .agenda__gruss { margin-left: auto; }
+.agenda__kopfzeile.is-lang .agenda__fort { order: 1; }
+.agenda__kopfzeile.is-lang .agenda__gruss { order: 2; margin-left: 0; }
+#restTagBtn { margin-top: 10px; }
+.agenda__kopfzeile.is-lang { row-gap: 0; line-height: 1.15; }
+/* Die zweite Grußzeile kostet Höhe — der Falz-Vertrag (agenda.js) verlangt,
+   dass „Danach" trotzdem über der Tabbar steht. Deshalb rücken nur in diesem
+   Fall Schwerpunkt, erster Schritt und laufender Eintrag enger zusammen. */
+@media (max-width: 1100px) {
+  .agenda__kopfzeile.is-lang ~ .agenda__frog { padding: 0 0 6px; }
+  .agenda__kopfzeile.is-lang ~ .agenda__step { margin-top: 2px; margin-bottom: 0; line-height: 1.35; }
+  .agenda__kopfzeile.is-lang ~ .agenda__hero { margin-top: 4px; }
+  #agenda .agenda__kopfzeile.is-lang ~ .agenda__label { margin-top: 2px; }
+  #agenda .agenda__kopfzeile.is-lang ~ .agenda__foot { margin-top: 0; }
+  #agenda .agenda__kopfzeile.is-lang ~ #restTagBtn { margin-top: 2px; }
+}
+.agenda__kopfzeile.is-lang .agenda__gruss { flex-basis: 100%; white-space: normal; line-height: 1.2; margin-top: -2px; }
 .agenda__fort { display: inline-flex; align-items: center; gap: 5px; line-height: 1; font-family: var(--font-display); font-size: var(--t-sm); color: var(--text); }
 .agenda__fort svg { width: 18px; height: 18px; transform: rotate(-90deg); fill: none; stroke-width: 3.5; }
 .agenda__fort circle { stroke: var(--surface-3); }
@@ -4211,8 +4246,10 @@ function kringel(hue) {
 function gruss() {
   const h = new Date().getHours();
   const name = (state.profile && state.profile.name || "").trim();
-  if (h >= 23 || h < 5) return name ? "Noch wach, " + name + "?" : "Noch wach?";
-  const wort = h < 11 ? "Moin" : h < 14 ? "Mahlzeit" : h < 18 ? "Hey" : "Guten Abend";
+  // v1.40: morgens und nachts mit Zeichen — Sonne bzw. Glitzersterne.
+  if (h >= 22 || h < 5) return (name ? "Schlaf was Schönes, " + name : "Schlaf was Schönes") + " ✨";
+  if (h < 11) return (name ? "Einen wunderschönen guten Morgen, " + name : "Einen wunderschönen guten Morgen") + " ☀️";
+  const wort = h < 14 ? "Mahlzeit" : h < 18 ? "Hallihallöchen" : "Guten Abend";
   return name ? wort + ", " + name : wort;
 }
 
@@ -8447,8 +8484,9 @@ function renderAgenda() {
       + (umfang * fertigZahl / eintraege.length).toFixed(1) + " " + umfang.toFixed(1) + "'/></svg>"
       + "<b class='num'>" + fertigZahl + "/" + eintraege.length + "</b></span>"
     : "";
-  let html = "<div class='agenda__kopfzeile'><div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
-    + "<span class='agenda__kopfrechts'>" + (heute ? "<span class='agenda__gruss'>" + escapeHtml(gruss()) + "</span>" : "") + fortHtml + "</span></div>"
+  const grussText = heute ? gruss() : "";
+  let html = "<div class='agenda__kopfzeile" + (grussText.length > 22 ? " is-lang" : "") + "'><div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
+    + (heute ? "<span class='agenda__gruss'>" + escapeHtml(grussText) + "</span>" : "") + fortHtml + "</div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
     + (wichtig ? "<span class='agenda__frogtext' style=\"background-image:" + kringel((areaById(wichtig.areaId) || { hue: 150 }).hue) + "\">" + escapeHtml(wichtig.title) + "</span>" : "Schwerpunkt wählen") + "</button>"
     + (wichtig && wichtig.schritt ? "<div class='agenda__step'><b>Erster Schritt:</b> " + escapeHtml(wichtig.schritt) + "</div>" : "");
@@ -8595,7 +8633,7 @@ function renderAgenda() {
     const feierabendJetzt = restSpans().filter(r => r.end >= 1440).map(r => r.start);
     const feierabendGrenze = Math.min(state.settings.dayEnd * 60, ...(feierabendJetzt.length ? feierabendJetzt : [1440]));
     if (heute && jetzt < feierabendGrenze && restDesTagesMoeglich()) {
-      html += "<button type='button' class='btn btn--sm btn--ghost' id='restTagBtn' style='width:100%;margin-top:10px'>" +
+      html += "<button type='button' class='btn btn--sm btn--ghost' id='restTagBtn' style='width:100%'>" +
         "Tag durcheinander? Rest neu vorschlagen</button>";
     }
   }
@@ -8769,10 +8807,13 @@ function renderAgenda() {
     // lange Drücken bricht wie bisher bei Bewegung ab (move oben).
     let wx = 0, wy = 0, wachse = null, wdx = 0, gewischt = false, wAktiv = false;
     const cb = row.querySelector(".agenda__check");
+    // v1.40: nach links = Verschieben (dieselbe Tür wie langes Drücken).
     const wischZeigen = dx => {
       row.style.setProperty("--wisch", dx + "px");
-      row.classList.toggle("is-wisch", dx > 0);
-      row.classList.toggle("is-wisch-voll", dx >= WISCH_AB);
+      row.style.setProperty("--wisch-links", -dx + "px");
+      row.classList.toggle("is-wisch", dx !== 0);
+      row.classList.toggle("is-wisch-links", dx < 0);
+      row.classList.toggle("is-wisch-voll", Math.abs(dx) >= WISCH_AB);
     };
     row.addEventListener("pointerdown", e => {
       if (e.pointerType === "mouse" || e.target.closest(".agenda__check")) return;
@@ -8784,10 +8825,10 @@ function renderAgenda() {
       const dx = e.clientX - wx, dy = e.clientY - wy;
       if (wachse === null) {
         if (Math.hypot(dx, dy) < 10) return;
-        wachse = Math.abs(dx) > Math.abs(dy) * 1.5 && dx > 0 ? "x" : "y";
+        wachse = Math.abs(dx) > Math.abs(dy) * 1.5 ? "x" : "y";
         if (wachse === "y") { wAktiv = false; return; }
       }
-      wdx = clamp(dx, 0, 140);
+      wdx = clamp(dx, -140, 140);
       wischZeigen(wdx);
     });
     const wischEnde = () => {
@@ -8798,6 +8839,9 @@ function renderAgenda() {
         if (wdx >= WISCH_AB) {
           cb.checked = !cb.checked;
           cb.dispatchEvent(new Event("change"));
+        } else if (wdx <= -WISCH_AB) {
+          const b = state.blocks.find(x => x.id === id);
+          if (b) moveSheet(b.id);
         }
       }
       wischZeigen(0);
