@@ -2133,14 +2133,16 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   --surface-2: oklch(0.945 0.012 100);
   --surface-3: oklch(0.915 0.014 100);
   --border:    oklch(0.895 0.012 100);
-  --ink:       oklch(0.43 0.095 150);
-  --ink-hover: oklch(0.37 0.085 150);
-  --ink-active: oklch(0.32 0.075 150);
+  --ink:       oklch(0.34 0.070 152);
+  --ink-hover: oklch(0.29 0.060 152);
+  --ink-active: oklch(0.25 0.050 152);
   --selected:  oklch(0.925 0.065 130);
   --selected-text: oklch(0.32 0.080 145);
   --lime:      oklch(0.89 0.170 128);
   --on-lime:   oklch(0.25 0.040 150);
-  --tief:      oklch(0.27 0.035 155);
+  --tief:      oklch(0.34 0.070 152);
+  --pille:     oklch(0.30 0.060 152);
+  --pille-an:  oklch(0.40 0.075 150);
   --radius: 20px; --radius-sm: 12px; --radius-lg: 26px;
   --kopf-flach: #f4f2ea;
   /* Glas im Papierton statt Salbei — der Kopf gehört zum Grund. */
@@ -2162,6 +2164,8 @@ html[data-theme="dark"] {
   --lime:    oklch(0.86 0.160 128);
   --on-lime: oklch(0.22 0.035 150);
   --tief:    oklch(0.34 0.055 150);
+  --pille:   oklch(0.25 0.030 155);
+  --pille-an: oklch(0.34 0.050 150);
 }
 body { background: var(--bg); }
 /* Einstellungen als gruppierte Liste wie in iOS: eine Fläche, Haarlinien
@@ -2249,12 +2253,12 @@ html[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
   .tabbar::before {
     content: ""; position: absolute; z-index: -1;
     left: 12px; right: 12px; top: 3px; bottom: max(5px, var(--safe-bottom));
-    border-radius: 999px; background: oklch(0.24 0.03 155);
+    border-radius: 999px; background: var(--pille);
     box-shadow: 0 10px 28px oklch(0.25 0.04 155 / .30);
   }
   .tabbar button { color: oklch(0.80 0.03 140); min-height: 46px; margin: 2px 0; }
-  .tabbar button[aria-current="true"] { background: oklch(0.34 0.05 150); color: var(--lime); }
-  .tabbar button:active { background: oklch(0.30 0.04 150); }
+  .tabbar button[aria-current="true"] { background: var(--pille-an); color: var(--lime); }
+  .tabbar button:active { background: var(--pille-an); }
   .tabbar .tabbar__plus {
     display: flex; width: 50px; height: 50px; min-height: 50px; margin: 0 4px; padding: 0;
     border-radius: 50%; background: var(--lime); color: var(--on-lime);
