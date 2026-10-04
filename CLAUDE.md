@@ -1,590 +1,219 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Projekt
 
-Wochenplaner — die Woche in **Stunden** statt nur in Terminen: feste Termine, Wochenziele
-je Bereich, ein Verteil-Vorschlag, Schlaf- und Ruhezeit. Deutsch ist die Sprache von allem:
-Oberfläche, Bezeichner, Kommentare, Commits. Live auf GitHub Pages:
+Wochenplaner — die Woche in **Stunden** statt nur in Terminen: feste Termine, Wochenziele je
+Bereich, ein Verteil-Vorschlag, Schlaf- und Ruhezeit. Owner: Sunny. Live auf GitHub Pages:
 `https://vebzyyhere.github.io/wochenplaner/` (Repo `VebzyyHere/wochenplaner`, Branch `main`).
+UI-Texte, Kommentare und Commits auf Deutsch; Bezeichner folgen dem Umfeld.
 
 ## Die eine Datei
 
-### Release v1.41 vom 2026-09-27
+`index.html` **ist** das Produkt: Stil, Markup und Hauptskript in einer Datei. Default: eine
+HTML-Datei ohne Build, weil sie offline und per `file://` laufen soll (Sunnys README seit v1.4).
+Build, Framework oder externe Assets (z. B. Webfont) sind eine bewusste Entscheidung mit Sunny —
+deshalb steckt die runde Schrift als Base64-`@font-face` am Anfang des `<style>`-Blocks.
 
-PWA-Cache `wp-v1.41`, Datenschema 10, Kette 61 Skripte.
+- Landkarte: `grep -nE "^\s*/\* ={3,}" index.html`. Die Datei ist groß — nur mit `offset`/`limit`
+  lesen. Viele Abschnittsbanner erklären, *warum* etwas so ist — vor dem Ändern lesen.
+- Daneben: `sw.js`, `manifest.json`, vier Icon-PNGs (`werkzeug/icon.py`, Python + Pillow, hier
+  nicht installiert), `werkzeug/` (Prüfskripte), `release/` (Notizen je Fassung, lokale Vorschau
+  `node release/preview.cjs`). Release-Verlauf v1.27–v1.41: `RELEASES.md`.
 
-- **Tagesband statt Tagesstreifen-Wisch.** `renderDaySwitch()` baut `.dayswitch__band` über
-  `BAND_ZURUECK`/`BAND_VOR` Wochen um heute (plus die gezeigte Woche, falls weiter weg);
-  natives waagerechtes Scrollen mit `scroll-snap` je Tag, `bandEinrasten()` als Rückfall.
-  **Ziehen bewegt `anchor` nie** — erst ein Tipp (andere Woche → `anchor = Tag`, `renderAll()`).
-  Die sieben Tage der gezeigten Woche tragen `.is-woche` (Tests zählen nur diese).
-  `bandAusrichten()` hält die Scrollposition, solange der gewählte Tag sichtbar ist
-  (auch aus `setView()`); `.dayswitch__heute` erscheint, wenn heute außer Sicht ist.
-  Tastatur: ein Tab-Stopp (Roving tabindex), Pfeile wandern. `streifenwischenEinrichten()` ist entfallen;
-  `tagWechseln()` bleibt fürs Inhalts-Wischen. Die Leiste `.dayswitch` läuft nie über (diag7/sicht).
-- Tab „Plan" heißt „Woche" (neues Symbol); `data-view` bleibt `plan`.
+## Befehle und Prüfkette
 
-### Release v1.40 vom 2026-09-27
+Nichts zu bauen — entwickeln heißt Datei im Browser öffnen. Geprüft wird mit Playwright in
+`werkzeug/`; was jedes Skript prüft, steht in `werkzeug/README.md`. Einrichten einmal je Klon
+(`package.json`/`node_modules` sind gitignored; vorhandenes Chrome: `$env:WP_CHROMIUM = "..."`):
+`cd werkzeug && npm init -y && npm install --save-dev playwright && npx playwright install chromium`
 
-PWA-Cache `wp-v1.40`, Datenschema 10, Kette 61 Skripte.
-
-- `gruss()`: 5–11 „Einen wunderschönen guten Morgen, Name ☀️", 14–18 „Hallihallöchen",
-  ab 22 Uhr „Schlaf was Schönes, Name ✨" (Nutzerwunsch, wörtlich). Grüße > 22 Zeichen setzen
-  `.agenda__kopfzeile.is-lang`: Gruß in eigener Zeile, Ring bleibt oben. Nur am Telefon rücken
-  dann Schwerpunkt/Schritt/Hero/„Danach"/`#restTagBtn` enger — sonst reißt der Falz (agenda.js).
-- Agenda-Zeile nach links wischen (≥ `WISCH_AB`) öffnet `moveSheet()` — dieselbe Tür wie
-  langes Drücken, speichert nichts (Prüfung: freude.js f).
-- Toasts = dunkle Pille (`--pille`) mit Limetten-Aktion; Tagesform-Kacheln flächig; Desktop-Tageskopf
-  gewählt = `--selected`, heute = Limette.
-
-### Release v1.36/v1.37 vom 2026-09-27
-
-PWA-Cache `wp-v1.39` (v1.39: hell ein Moosgruen fuer --ink/--tief, Tabbar-Pille ueber --pille/--pille-an; v1.38: Farbabgleich, Dunkel-Aktion = Limette, Glas im Papierton, Einstellungen als gruppierte Liste), Datenschema 10, Kette 61 Skripte. Look „Moos & Papier": eigene
-Stilschicht am Ende des `<style>`-Blocks (Banner „v1.36"), Tokens `--lime`/`--on-lime`/`--tief`.
-
-- Tabbar (Hochformat, `min-height: 501px`) ist eine schwebende dunkle Pille (`::before`) mit
-  `#tabAdd` („+") in der Mitte; es ruft `#fabAdd.onclick` auf, der Plankopf-FAB ist dort
-  ausgeblendet. Tab-Schleifen nutzen `#tabbar button[data-view]`. Innerhalb von 450 ms nach
-  `closeModal()` (`zuletztGeschlossen`) ignoriert `#tabAdd` Tipps (Doppeltipp-Schutz).
-- Blätter sind am Telefon (≤ 640px, coarse) Bottom Sheets mit Griff; `blattZiehenEinrichten()`
-  in `modal()` schließt beim Herunterziehen > 110 px.
-- Agenda-Kopfzeile: Fortschrittsring `.agenda__fort` (x/y über `istErledigt()`).
-- Falz-Vertrag hält knapp (~2 px): Agenda-Abstände und Tabbar-Höhe nicht vergrößern.
-
-### Release v1.35 vom 2026-09-26
-
-Aktuelle Änderungen: `release/v1.35.md`. PWA-Cache `wp-v1.35`, Datenschema 10, Kette 61 Skripte.
-
-- `.kopf` ist am Telefon `position: fixed` (nicht absolute) — WebKits Randabtaster zählt nur
-  feste/klebende Elemente; installiert trägt auch `html` die Farbe `--kopf-flach`.
-- Agenda-Zeilen: Wischen nach rechts (`WISCH_AB` = 72 px, nur Touch) schaltet den Haken über
-  ein synthetisches `change` am `.agenda__check` — dieselbe Kette wie ein Tipp (`abhaken()`).
-  Die Klick-Sperre nach Wischen/langem Drücken teilt sich eine Stelle.
-- `ansichtWechseln(v)` = `setView(v)` + Überblendung (`#main.is-wechsel`, nur opacity); nur die
-  Nutzerwege (Tabbar, `#panelNav`) nutzen es. Tests und Code rufen weiter `setView()`.
-- `wochenBilanz()`, `bilanzSatz()`, `oklchRgb()`, `wochenkarteZeichnen()`, `wochenkarteSheet()`
-  (vor `renderGoals()`): Canvas-Bild der angezeigten Woche, Knopf `#wochenkarteBtn` in der
-  Ziele-Karte; `navigator.share` mit Datei, sonst Download. Nur lesen.
-
-### Release v1.34 vom 2026-09-26
-
-Aktuelle Änderungen: `release/v1.34.md`. PWA-Cache `wp-v1.34`, Datenschema 10, Kette 61 Skripte.
-
-- `.block__done` ist ein sichtbarer Ring (Touch immer, Maus bei Hover/Fokus); Blöcke unter
-  52 px tragen `.is-knapp` und halten rechts Platz frei; in der Sieben-Tage-Ansicht auf
-  `pointer: coarse` fehlt der Ring an knappen/kurzen Blöcken.
-- Am Anfang des `<style>`-Blocks steht ein `@font-face` „Wochenplaner Rund" (Nunito, OFL,
-  Base64, ~52 KB) — deshalb ist `index.html` jetzt ~575 KB. `--font-display` nennt es nach
-  `ui-rounded`; Apple-Geräte dekodieren es nie. Nicht durch eine externe Webfont ersetzen
-  (Offline-/Einzeldatei-Vertrag).
-
-### Release v1.33 vom 2026-09-26
-
-Aktuelle Änderungen: `release/v1.33.md`. Prüfung: `werkzeug/freude.js`; Kette 61 Skripte.
-PWA-Cache `wp-v1.33`, Datenschema weiterhin 10.
-
-- **Installiert kein Glas oben.** iOS 26/27 legt in Home-Bildschirm-Web-Apps einen
-  Liquid-Glass-Effekt über jeden nicht flachen oberen Rand. `applyTheme()` setzt
-  `html[data-app]` (über `laeuftAlsApp()`) und meldet `--kopf-flach` als `theme-color`;
-  `html[data-app="1"] .kopf` ist deckend in genau dieser Farbe. Beide Werte nur gemeinsam
-  ändern. Kein `black-translucent`. Nach Änderungen an diesen Angaben muss das
-  Home-Bildschirm-Symbol neu angelegt werden (iOS speichert sie mit dem Symbol).
-- **Gestaltung „Frisch & verspielt"** (vom Nutzer gewählt, Zielgruppe 20–30): `--font-display`
-  (`ui-rounded`) für Zahlen/Titel; keine `text-transform: uppercase`-Etiketten außer
-  Wochentags-Kürzeln; Agenda-Kopf ist `.agenda__kopfzeile` mit `gruss()` rechts — das erste
-  `.agenda__label` bleibt wörtlich „Heute zählt" (Tests); Welle `kringel(hue)` unter dem
-  Schwerpunkt; runde Haken.
-- **Freude beim Abhaken:** UI-Haken laufen über `abhaken(b, dayKey, on, el)` statt direkt
-  `setzeErledigt()` — Konfetti `jubel()`, einmalige Ziel- und Tagesmeldung (`gefeiert`,
-  nur Sitzung, nie in `state`). Nie beim Aufheben, nie bei reduzierter Bewegung.
-- **Lehre aus dieser Runde:** während `alles.js` läuft, `index.html` nicht bearbeiten —
-  `pwaupd.js` stellt die Datei auf den Stand bei seinem Start zurück und verschluckt
-  Zwischenänderungen still.
-
-### Release v1.32 vom 2026-09-26
-
-Aktuelle Änderungen: `release/v1.32.md`. Prüfung: `werkzeug/iphone.js`; Kette 60 Skripte.
-PWA-Cache `wp-v1.32`, Datenschema weiterhin 10, keine neuen Felder.
-
-- **Glas-Kopf.** `#banner`, `.topbar` und `#daySwitch` stecken in `<div class="kopf" id="kopf">`.
-  Am Telefon (≤ 1100px) liegt `.kopf` absolut über dem Inhalt; `.panel` und `.planwrap`
-  beginnen per `padding-top: var(--kopf-h)` darunter. `--kopf-h` setzt `kopfhoeheMessen()`
-  (ResizeObserver auf `#kopf`). Wer dort eine eigene `.panel`-Polsterung setzt (Tablet-Regel!),
-  muss `--kopf-h` einrechnen, sonst liegt der Karteninhalt unter dem Kopf.
-  Glas = Tokens `--glas*` in beiden Themes, `@supports (backdrop-filter)` und
-  `prefers-reduced-transparency` fallen auf `--surface` zurück.
-- **Querformat** (`QUER_Q` in JS und gleichlautendes CSS `max-height:500px and max-width:1000px`):
-  Tabbar = senkrechte Leiste (`--rail`, volle Höhe), `.kopf` beginnt rechts davon, `.fab`
-  unten in der Leiste. `fussbereichMessen()` setzt dort `--fussleiste` = Safe-Area unten
-  (`sicherUnten()`), nicht die Tabbar-Höhe. Ab 700px Breite (`SUG_OBEN_Q`) hängt
-  `sugbarPlatzieren()` `#sugBar` in die `.topbar` (`body[data-sugoben="1"]`) und beim Drehen
-  zurück; die Pille zählt dann nicht zu `--fuss-oben`.
-- **Passt das noch?** `zusageDurchspielen(minuten, areaId, montag)` rechnet über `inWoche()`
-  (anchor nur für die Rechnung umgestellt) mit `wochenKapazitaet()` und `freeGaps()`;
-  `zusageSheet()` zeigt Varianten und öffnet nur `blockSheet()` vorausgefüllt — nie still
-  speichern. Keine Rangfolge der Ziele erfinden (s. `IDEEN.md`).
-- Entfernt: `#weekOverviewBtn` („Freie Zeit", doppelt zu `#weekLabel`/`W`), `.planhead__hint`,
-  „Das Wichtigste" in `renderEnergy()` (steht schon in der Agenda).
-
-### Release v1.31 vom 2026-09-26
-
-Aktuelle Änderungen: `release/v1.31.md`. Prüfung: `werkzeug/uebersicht.js`; die Kette
-hat damit 59 Skripte. PWA-Cache `wp-v1.31`, Datenschema weiterhin 10, keine neuen Felder.
-
-- Der Desktop-/Tablet-Wochenkopf (`.dayhead` in `renderGrid()`) zeigt je Tag die Stunden
-  aus `tagesAuslastung()` — dieselbe Rechnung wie der Tagesstreifen-Balken, nicht
-  auseinanderlaufen lassen. Die Köpfe sind Knöpfe mit `aria-pressed` für `selectedDayIdx`.
-- Klebende Blocktitel stehen bei `top: var(--kopf)`. `renderGrid()` misst die Kopfhöhe
-  (Modul-`ResizeObserver` `kopfBeobachter`, 0 ohne Kopf). Kein fester Pixelwert mehr,
-  auch nicht in der `max-width: 1100px`-Regel — Tablets zeigen dort sieben Tage MIT Kopf.
-- `kalenderIcs()`/`kalenderExport()` (hinter `exportData()`): nur Blöcke mit Uhrzeit, ohne
-  `sug`; Serien als RRULE, erster Termin über `onDay()`, `b.ausnahmen` als EXDATE,
-  schwebende Ortszeit. Liest nur, kein `save()`. Einstellungsseite `kalender`.
-- Tastenkürzel stehen einmal in `TASTENKUERZEL` (`kuerzelSheet()`), neu `?`, `W`, `M`.
-
-### Release v1.30 vom 2026-09-25
-
-Aktuelle Änderungen und visuelle Prüfbeschränkungen: `release/v1.30.md`.
-Am Telefon steht der Tagesstreifen nun vor dem Inhalt. Die Eintragsaktion
-gehört zum Plankopf statt zum schwebenden Fußbereich; `fussbereichMessen()`
-zählt nur noch Tabbar und Vorschlagsleiste. Der Termin-Dialog priorisiert Tag
-und Uhrzeit. PWA-Cache: `wp-v1.30`; Datenschema weiterhin 10.
-
-### Release v1.28 vom 2026-09-10
-
-Aktuelle Änderungen: `release/v1.28.md`. Der lokale Abnahmebericht liegt in
-`release/abschluss-2026-09-10/ABNAHME.md` (gitignored).
-
-- `MOBILE_Q` und das CSS wechseln gemeinsam bei **1100px** zu eigenständigen
-  Arbeitsflächen mit unterer Navigation. `EINTAG_Q` bleibt bei 640px: ein
-  Tablet zeigt weiterhin sieben Kalendertage. In der Tablet-Heute-Ansicht bleibt
-  die Tagesauswahl erreichbar.
-- Am Desktop zeigt `body.dataset.panel` den gewählten Arbeitsbereich neben
-  dem Raster. `setView()` setzt nur Ansichtsstatus; keine neuen Datenfelder.
-  Vor echten Klicks/Ziehen auf Aufgaben muss auch ein Test den Aufgabenbereich öffnen.
-- Die Breite der Desktop-Arbeitsfläche liegt zwischen 352 und 440px. Alle
-  Kalenderspalten passen in die verbleibende Fläche; kurze Titel werden gekürzt.
-- `--safe-top/right/bottom/left` übernehmen die Plattform-Inset-Werte.
-  App, schwebende Leiste und Dialoge beachten seitliche Ränder. `#banner` ist
-  ein Flex-Kind der App, damit Speicherwarnungen die Navigation nicht verdrängen.
-- `werkzeug/abschluss.js` ergänzt 17 Regressionen zu Navigation, Tablet-Drehung,
-  Datenerhalt und Speicherwarnung. Die vollständige Kette umfasst 57 Skripte.
-- Interner Worker-Stand: `wp-v1.28`. Datenschema weiterhin 10. Keine sichtbaren
-  Versionsnummern im Produkt; keine Umsetzung der geparkten Idee in `IDEEN.md`.
-
-### Release v1.27 vom 2026-09-06
-
-Änderungen und Prüfungsumfang stehen in `release/v1.27.md`. Der ausführliche
-lokale Produktreview liegt zusätzlich in `release/PROJEKTBERICHT.md` (gitignored).
-Der Nutzer hat grüne Akzente ausdrücklich beauftragt; ältere Hinweise auf rein
-achromatischen Chrome sind damit überholt. Waldgrün steht für Aktionen, dezente
-Salbeiflächen für Auswahl. Bereichsfarben behalten ihre inhaltliche Bedeutung.
-
-- Migration endet jetzt bei **version 10**. `task.schritt` ist optionaler Text
-  bis 240 Zeichen, wertbasiert abgesichert; es gibt kein neues Wurzelfeld.
-- `aufgabeAbhaken()` schreibt Aufgabe und zugehörigen Termin gemeinsam. Ein
-  ausdrücklich abgehakter Vorschlag wird dabei als durchgeführt bestätigt.
-- `planTask()` öffnet bei vorhandener Verknüpfung den bestehenden Termin in
-  seiner tatsächlichen Woche. Dasselbe gilt für einen erneuten Drop. Alte
-  doppelte Termine bleiben erhalten; `migrate()` entfernt nur nichtkanonische
-  Aufgabenverweise (maßgeblich ist `task.geplant`).
-- Aufgaben unterscheiden „Ohne Platz“, „Vorgeschlagen“, „Eingeplant“, „Andere
-  Wochen“ und „Erledigt“. Nur bestätigte Termine in der gezeigten Woche zählen
-  im Fuß. Datumsangaben nennen Tag und Monat, grobe Termine ihren Abschnitt.
-- `#panelNav` scrollt am Desktop direkt zum jeweiligen Abschnitt; der Kalender
-  bleibt daneben. `setView()` bringt dort jetzt auch programmgesteuert Aufgaben
-  und Ziele ins Bild. Mobile Ansichten und Navigation bleiben erhalten.
-- `fussbereichMessen()` setzt die beiden bestehenden CSS-Fußvariablen aus
-  tatsächlichen Höhen (`ResizeObserver`). Die festen CSS-Werte bleiben Fallback.
-  Den sichtbaren Dialogbereich liefert `visualViewport` bei unvergrößerter Seite.
-- `werkzeug/release.js` prüft diese Abläufe einschließlich Datenerhalt,
-  Titelsynchronisierung, Migration, Tastaturweg und großer Schrift. Die vollständige
-  Kette hat damit 56 Skripte. Ein übersprungener Server-Test lässt `alles.js`
-  ebenfalls fehlschlagen, statt eine unvollständige Kette als grün auszugeben.
-- Lokale Vorschau: `node release/preview.cjs`, Port 8902, nur `127.0.0.1`.
-  `/` liefert die echte App, `/beispiel` eine flüchtige Beispielwoche mit fixierter
-  Uhr, isoliertem Speicherdummy, deaktiviertem Cloudabgleich und ohne SW-Registrierung.
-  Die Vorschau wird durch `release/vorschau-pruefen.cjs` geprüft.
-
-Die Worker-Version für diesen Release lautet `wp-v1.27`.
-Die darunterstehenden Zeilennummern beschreiben teilweise den vorherigen Stand;
-für aktuelle Stellen die Abschnittsbanner oder Funktionsnamen suchen.
-
-`index.html` **ist** das Produkt — 9915 Zeilen, ~478 KB, Vanilla JS, kein Build, kein npm,
-kein Framework, kein Bundler. Sie läuft auch als heruntergeladene Einzeldatei über `file://`.
-Die Zahlen und alle Zeilenangaben in diesem Dokument gelten für den Stand, an dem sie gemessen
-wurden — die Datei wächst laufend. Immer per `grep -nE "^\s*/\* ={3,}" index.html` gegenprüfen,
-das gibt die aktuelle Landkarte der Abschnittsbanner.
-
-| Zeilen | Inhalt |
-|---|---|
-| 21–31 | Kopf-Skript: hängt Manifest und Icons **nur bei `http(s)`** ein — sonst drei vergebliche Abrufe in der Einzeldatei-Fassung |
-| 32–1800 | `<style>`: Design-Tokens (OKLCH), Chrome bleibt achromatisch, die Farbe gehört den Bereichen |
-| 1802–1930 | Markup: Topbar (inkl. `#monthBtn`), Tagwechsler, Karten-Spalte, Raster, Tabbar, FAB |
-| 1932–9913 | Hauptskript unter `"use strict"` |
-
-`Read` deckt nur 2000 Zeilen ab — mit `offset`/`limit` arbeiten. Schnellster Einstieg sind die
-Abschnittsbanner `/* ===== Titel */`: `grep -nE "^\s*/\* ={3,}" index.html` gibt die Landkarte.
-Viele davon erklären in mehreren Sätzen, *warum* etwas so ist — vor dem Ändern lesen.
-
-Daneben: `sw.js`, `manifest.json`, vier Icon-PNGs, `werkzeug/` (Prüfskripte).
-`.gitattributes` ist eine Zeile: `*.png binary`.
-
-## Befehle
-
-Es gibt nichts zu bauen. Entwickeln heißt: Datei im Browser öffnen. Geprüft wird mit Playwright
-in `werkzeug/` — Details und die Bedeutung jedes Skripts stehen in `werkzeug/README.md`.
-
-Einrichten (einmal je Klon — `package.json` und `node_modules` sind dort **gitignored**):
-
-```bash
-cd werkzeug && npm init -y && npm install --save-dev playwright && npx playwright install chromium
-```
-
-Liegt schon ein Chromium bereit: `$env:WP_CHROMIUM = "..."` setzen.
-
-Nach **jeder** Änderung an der Oberfläche, dauert zusammen etwa eine Minute:
-
-```bash
-node check.js && node audit.js && node dev.js
-```
-
-- `check.js` — Syntax beider Script-Blöcke, zwei Sekunden, fängt Tippfehler vor dem Browserstart.
-- `audit.js` — **der wichtigste**: iPhone SE (320×568) durch alle vier Ansichten und siebzehn
-  Dialoge; meldet Trefferflächen unter 44 px, waagerechtes Scrollen, abgeschnittenen Text,
-  Dialogfüße außerhalb des Bildes. Vier von fünf Layoutfehlern in v1.12 kamen von hier.
-- `dev.js` — Gerätematrix (iPhone SE/13/14 Pro Max, iPad, iPad Pro); seit Stufe C zusätzlich: im
-  Querformat bei geringer Höhe scrollt die Aufgabenliste als Ganzes, statt das Eingabefeld zu
-  fixieren.
-- `kontrast.js` — Design-Tokens im `<style>`-Block (fehlende Fallbacks, Hex-Werte außerhalb
-  `:root`) und WCAG-Kontrast der Text/Hintergrund-Paare in Hell und Dunkel.
-- `hover.js` — der Primärknopf im `:hover`-Zustand unter echtem Zeiger: die Kaskade muss
-  wirklich die Primär-Hover-Regel liefern, nicht die gleich spezifische generische
-  `.btn:hover`-Fläche; WCAG-Kontrast in Hell und Dunkel.
-
-Als Git-Hook (Einrichtung: `werkzeug/hook-einrichten.md`) läuft vor jedem Commit `vorcommit.js`:
-führt `check.js` und `kontrast.js` aus, bricht bei Rot ab. Das ersetzt nicht die volle Kette —
-Pflicht vor dem eigentlichen Commit ist `node alles.js` aus `werkzeug/` heraus (siehe Verträge
-unten); es sucht jedes `*.js` im Ordner neu, statt eine Liste zu pflegen, und startet die Server,
-die einzelne Skripte brauchen, selbst.
-
-Logik und Inhalt: `realtest.js` (Verteiler-Kennzahlen), `rt.js` (Wochenritual, Migration v7→v8),
-`rt2.js` (Zusammenführen beim Abgleich), `frei.js` (freigehaltene Tage: Heute und Plan zeigen
-„Bewusst frei" statt „Noch nichts geplant", kein „Vorschlagen"-Knopf dort), `ob.js` (Erststart),
-`tk.js` (Aufgabenblatt), `regeln.js` (kontextbewusster Verteiler: Fenster/Anker in
-`area.regeln`), `erklaer.js` (Begründungszeile jedes Vorschlags), `stabil.js` (Verteiler bleibt
-bei erneutem Lauf ruhig), `wunsch.js` (Startzeiten je Art gegen ihren Wunschpunkt), `serie.js`
-(zweiwöchentliche Termine, Parität über die Sommerzeit; seit der Einzellöschungs-Runde auch
-`b.ausnahmen`: Drei-Wege-Rückfrage, mergeStates-Duell, verwaister Haken, freeGaps-Freigabe), `aufgabenverteiler.js`/`aufgaben.js`
-(Aufgaben werden ohne Datenkorruption verplant), `netz.js` (Sicherheitsnetz vor der
-v9-Migration, `Store.backupVorV9()`), `rueckblick.js` (Wochenrückblick: geplant gegen
-tatsächlich), `schleife.js` ("die Schleife schließt sich": Grund/Ort in der Agenda, Anker-Chips,
-Tagesabschluss), `stufe5.js` (Einwegskript, nicht Teil der Standardsuite), `restdestag.js`
-(Rest-des-Tages-Knopf in „Heute": Sichtbarkeit nur unter allen Bedingungen zugleich, Vorschläge
-erst ab fester Uhrzeit, ein bereits vergangener eigener Vorschlag von heute bleibt unangetastet,
-ohne Antippen passiert nichts), `importfuzz.js` (Fuzzing des einzigen Imports über den echten Weg
-Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`: Bedienbarkeit, Konsolenfehler,
-unveränderter Bestand außer bei „Ersetzen"), `zeitrand.js` (die Zeitrechnung an ihren Rändern:
-Sommerzeitwechsel, zweiwöchentliche Parität über mehrere Jahre, Jahresgrenze und
-53-Wochen-Jahre, die doppelt vorkommende Stunde beim Herbstwechsel), `freiwoche.js`
-(das Frei-Gesicht des Wochen-Blatts: `#weekLabel` öffnet es, `freeGaps()` in sieben
-aussprechbaren Zeilen statt eines Rasters; lokaler Wochen-Umschalter, Titel relativ zu heute —
-seit der M-Runde ist es die Voreinstellung des zweigesichtigen Blatts, s. `wochenzeilen.js`),
-`kapazitaet.js` (die Kapazität rechnet in der laufenden Woche ab jetzt; „Das wird eng"-Gate
-an den drei klassischen Verteil-Einstiegen — Ziele, Heute-Leerzustand, Erststart — samt
-„Nächste Woche planen"-Ausweg; den vierten Einstieg, das Monats-„+", prüft `monat.js`),
-`grobstandard.js` (die Erholungs-Startbereiche a4–a6 planen ab Werk grob;
-neue, selbst angelegte Bereiche weiterhin exakt), `zielfrage.js` (die verschmolzene
-Wann-Frage der Ziele-Karte: Schnittmengen-Saat, kanonisches Trio beim Speichern samt
-Fenster-Räumung, ehrlicher Konfliktfall, Chip-Fortbestand, Einmal-Umlegung als Summe+
-Fenstertreue gemessen, Aufgaben-Fenster unberührt).
-
-Bedienung: `sicht.js`, `diag7.js`, `woche.js`, `tap2.js`, `wisch.js`, `drag.js`, `grob3.js`,
-`funktion.js`, `scroll.js` (Rasterposition je Tag), `agenda.js` (gestaffelter Falz-Vertrag,
-Standardschrift, plus eigener Abschnitt für den Abend mit Tagesabschluss), `schrift.js`
-(derselbe Vertrag bei vergrößerter Systemschrift, dort nur noch: Antwort bleibt sichtbar),
-`fuss.js` (Stapelung von Tabbar, Vorschlagsleiste, FAB, Toast), `leiste.js` (Vorschlagsleiste
-darf Karten-/Rasterinhalt nicht verdecken, und umgekehrt: ihr Polster darf die sichtbare
-Rasterhöhe nicht schrumpfen; stehen Vorschläge an, behält nur „Übernehmen" den Akzent,
-„Vorschlagen" weicht zurück; ihr Label bricht bei wenig Platz um, statt sich zu quetschen),
-`dialog.js` (Barrierefreiheit der Dialoge), `doppeltipp.js` (der hastige Doppeltipp auf
-„Woche anlegen": „Das wird eng" öffnet sich unter dem Finger — die Schonfrist in
-`verteilenMitGate()` muss den zweiten Tipp folgenlos machen, statt ihn „Ziele anpassen"
-oder den Scrim treffen zu lassen), `haken.js` (Abhaken
-hängt am Paar Eintrag+Datum), `abbrechen.js` (Ziele-Editor stellt bei Abbrechen, Escape oder
-Klick auf den Hintergrund nicht nur Chips zurück, sondern jedes getippte Feld — über eine
-Sicherung von `a.plan`/`a.regeln` beim Öffnen), `vorschlagzeilen.js` (Vorschläge stehen als
-Geisterzeilen in der Heute-Agenda: Einzel-Übernehmen/-Verwerfen über dieselben
-`acceptOne()`/`dropOne()` wie im Raster, AA-Kontrast der gedämpften Zeile in Hell und Dunkel,
-Tastaturweg, und das Leisten-Label springt zum frühesten Vorschlag), `blattzu.js` (die
-Scrim-Schließwege verschlucken den Folge-Klick: erneuter Tipp auf den Auslöser toggelt sauber
-zu, Tipp daneben öffnet nichts Fremdes, Escape bleibt schluckerfrei — echte Touch-Events,
-15-Pro-Profil), `streifenwisch.js` (der wischbare Tagesstreifen: Tag vor/zurück mit nahtlosem
-Wochenübergang über echte CDP-Touch-Gesten, Tap bleibt Tap, Formatwerte 393 px vs. byte-
-identisches 320-px-SE), `monat.js` (die
-Monatsübersicht: Kalenderraster mit KW-Rinne, Serienprojektion, Tages-/KW-Tipp,
-„+"-Vorausplanen durchs Gate, Titel-Einzeiligkeit bei 320 px, Jahresgrenzen),
-`wochenzeilen.js` (das zweigesichtige Wochen-Blatt: Frei/Belegt-Umschalter, Segmentleisten
-mit exakt/grob/Vorschlag, Zeilen-Tipp in den Tag, Titel-Zoom in den Monat, Gesicht überlebt
-den Zoom-Rundweg), `uebersicht.js` (v1.31: Klebetitel unter dem gemessenen Tageskopf
-auf Desktop/Tablet/Telefon, Stunden und Tastaturwahl im Wochenkopf, Tagesform-Stufen,
-Kalender-Export als .ics, Tastenkürzel `?`/`m`/`w`), `iphone.js` (v1.32: Safe-Areas des
-iPhone 15 Pro schon beim Laden gesetzt; Glas-Kopf hoch, senkrechte Leiste und Vorschlagspille
-quer, Drehen, aufgeräumter Desktop-Plankopf, „Passt das noch?" in lockerer/knapper/voller Woche).
-Safe-Areas nie nachträglich per Inline-Stil setzen — die App misst ihren Fuß beim Laden,
-nachträglich gesetzte Werte erzeugen Scheinfehler (verdeckte Tab-Symbole).
-
-Abgleich und PWA brauchen einen Server:
-
-```bash
-node mockserver.js &   # Port 8899, tauscht die Supabase-Werte gegen den Nachbau
-node test3.js          # zwei Geräte, ein Konto — fasst die echte DB nie an
-```
-
-```bash
-node serve.js &        # Port 8901; ein Service Worker läuft nicht über file://
-node pwatest.js        # Manifest, Worker, Zwischenspeicher, Offline-Start
-node pwaupd.js         # Ablauf beim Erscheinen einer neuen Fassung
-```
-
-`pwaupd.js` schreibt dabei kurz `sw.js` und `index.html` um und stellt sie wieder her — bricht es
-ab, zuerst `git status` ansehen. Symbole neu zeichnen: `python3 icon.py` (braucht Pillow).
-
-Erwartete Falschmeldungen: `audit.js` sieht die unsichtbaren `::before`-Trefferflächen von Häkchen
-und Farbfeldern nicht. `test3.js` gibt drei Konsolenfehler aus (fehlendes Favicon, abgelehnte
-Anmeldung, abgeschalteter Netzzugang im Offline-Test).
-
-## Veröffentlichen
-
-1. `V` in `sw.js` hochzählen (aktuell `wp-v1.41` — die nächste Veröffentlichung zählt von dort
-   aus hoch, nicht von dieser Zahl). Ohne das bleibt der Hinweis „Eine neue Fassung
-   ist da" aus — die Seite selbst kommt zwar trotzdem frisch, weil der Worker network-first ist.
-2. Commit im Repo-Stil: `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
-3. Push auf `main`. Kein Workflow, kein Build — Pages liefert den Ordner direkt aus.
-
-`werkzeug/README.md` verweist am Ende auf ein Projektdokument `sync-einrichten.md`. Das liegt
-nicht im Repo — nicht danach suchen.
+- Schnellprüfung bei UI-Änderungen (Default, ~1 min): `node check.js && node audit.js && node dev.js`.
+- Volle Kette: `node alles.js` aus `werkzeug/` (`--nur <name>` filtert). Findet jedes `*.js` und
+  startet `mockserver.js`/`serve.js` selbst; rot **oder** übersprungen ergibt Exit 1.
+- `werkzeug/README.md` ist beim Exit-Code veraltet: `alles.js` endet auch bei übersprungenen Server-Tests mit 1.
+- **Commit und Push nur bei grüner `node alles.js`.** Optionaler Hook: `werkzeug/hook-einrichten.md`.
+- `test3.js` läuft gegen `mockserver.js` (Supabase-Nachbau) — die echte DB wird nie angefasst. Ein
+  Service Worker läuft nicht über `file://`, deshalb laufen `pwatest.js`/`pwaupd.js` über `serve.js`.
+- `pwaupd.js` schreibt `sw.js`/`index.html` kurz um (`V` mit `-test`, Titel „Wochenplaner NEU") und
+  am Ende den Stand von **seinem Start** zurück: während `alles.js` läuft, `index.html` nicht
+  bearbeiten (Zwischenänderungen gehen still verloren); bricht es ab, zuerst `git status` ansehen.
+- Erwartete Falschmeldungen: `audit.js` sieht die `::before`-Trefferflächen von Häkchen und
+  Farbfeldern nicht; `test3.js` zeigt drei Konsolenfehler (Favicon, falsches Passwort, Offline-Test).
+- Safe-Areas in Tests nie nachträglich per Inline-Stil setzen — die App misst ihren Fuß beim Laden,
+  spätere Werte erzeugen Scheinfehler (verdeckte Tab-Symbole).
+- Test-Anker: das erste `.agenda__label` heißt am heutigen Tag wörtlich „Heute zählt"; im Tagesband
+  zählen Tests nur die sieben `.is-woche`-Tage; Tab-Schleifen nutzen `#tabbar button[data-view]`
+  (`#tabAdd` ist kein Tab); Desktop-Tests öffnen vor Klicks/Ziehen auf Aufgaben den Aufgabenbereich.
 
 ## Architektur
 
-**Zustand.** Ein einziges `state`-Objekt. `freshState()` (2227) legt es bei `version: 8` an,
-`migrate()` (2258) läuft danach sofort und zieht jeden Stand — auch einen frischen — kumulativ auf
-`version: 10`. Felder: `areas` (seit v9 zusätzlich optional `area.regeln`, s. Verteiler), `blocks`,
-`tasks`, `days`, `orte`/`wege`, `tombs`, `erledigt`, `rituale`. Die Erholungs-Startbereiche
-a4–a6 (Hobby, Freizeit & Pausen, Menschen) bekommen in `freshState()` `plan.grob = true` —
-`defaultPlan()` selbst bleibt bei `false`, damit selbst angelegte Bereiche exakt starten
-(Prüfung: `grobstandard.js`). `Store` (1959) schreibt nach
-`localStorage["wochenplaner.<scope>"]` — **ein Speicherplatz je Konto**, damit sich zwei Leute an
-einem Rechner nicht überschreiben; Legacy-Schlüssel `wochenplaner.v1` wird einmal übernommen; ohne
-`localStorage` (Vorschau-Frames) fällt er auf Arbeitsspeicher zurück und blendet ein Banner ein.
-`Store.backupVorV9()` (2021) sichert **einmalig** den unveränderten Stand, bevor `migrate()` ihn
-zum ersten Mal auf `version: 9` zieht — eigener Schlüssel neben dem Zustand, deshalb außerhalb von
-`snapshot()`/`mergeStates()` und nie mitsynchronisiert (Prüfung: `netz.js`).
+**Zustand.** Ein `state`-Objekt; `freshState()` legt es bei `version: 8` an, `migrate()` zieht jeden
+Stand kumulativ auf `version: 10`. `save()` → `stampChanges()` (vergleicht per `snapshot()`/`recHash()`:
+Geändertes bekommt `at`, Verschwundenes wird Grabstein in `state.tombs`) → `Store.save()` →
+`syncPush()`; `undoLast()` hält den Stand davor. Startbereiche a4–a6 bekommen in `freshState()`
+`plan.grob = true`, `defaultPlan()` bleibt `false` — selbst angelegte Bereiche starten exakt.
+`Store` schreibt je Konto nach `localStorage["wochenplaner.<scope>"]` (zwei Leute an einem Rechner
+überschreiben sich nicht), übernimmt den Altschlüssel `wochenplaner.v1` einmal und hält ohne
+`localStorage` nur im Arbeitsspeicher (Banner „Speichern nicht möglich"). `Store.backupVorV9()`
+sichert einmalig den Stand vor der v9-Migration — eigener Schlüssel, außerhalb von
+`snapshot()`/`mergeStates()`, nie synchronisiert (`netz.js`).
 
-**Speichern.** `save()` (2536) → `stampChanges()` → `Store.save()` → `syncPush()`.
-`snapshot()`/`recHash()` (2496/2490) vergleichen den neuen Stand mit dem letzten: was sich geändert
-hat, bekommt `at`, was verschwunden ist, landet als Grabstein in `state.tombs`. Deshalb wird
-nirgends von Hand gestempelt. `undoLast()` hält den Stand vor der letzten Änderung.
+**Rendern.** Geisterzeilen (Vorschläge) in `renderAgenda()` nutzen dieselben `acceptOne()`/`dropOne()`
+wie das Raster; `tagesAgenda()` bleibt davon unberührt. „Heute zählt"/„Danach" nur am heutigen Tag,
+sonst „<Wochentag> zählt"/„Geplant". `renderTasks()` gliedert in „Ohne Platz", „Vorgeschlagen",
+„Eingeplant", „Andere Wochen" und „Erledigt"; im Fuß zählen nur bestätigte Termine der gezeigten
+Woche. `setView()` setzt nur Ansichtsstatus: am Handy `plan`/`ziele`/`aufgaben`/`heute` (Tab „Woche"
+ist `data-view="plan"`), am Desktop den Arbeitsbereich neben dem Raster (`body.dataset.panel`).
+`ansichtWechseln(v)` ist `setView(v)` plus Überblendung, nur für Nutzerwege; Tests und Code rufen
+`setView()`. Tagesband `renderDaySwitch()`: natives Scrollen; Ziehen bewegt `anchor` nie.
+Scrim-Schließwege verschlucken den Folge-Klick (`schluckeNaechstenClick()`); diese Fehlerklasse
+reproduziert nur unter echten Touch-Events (`blattzu.js`).
 
-**Rendern.** Kein Framework, kein virtuelles DOM. `renderAll()` (9740) ruft zehn
-`render*`-Funktionen, darunter `renderAgenda()` (7104, trägt seit Stufe 13 auch den
-Tagesabschluss ab Feierabend; seit der v1.22-Runde zusätzlich die Vorschläge des angezeigten
-Tages als eigene „Vorschläge"-Sektion — Geisterzeilen mit Einzel-✓/× über dieselben
-`acceptOne()`/`dropOne()` wie im Raster, `tagesAgenda()` bleibt davon unberührt; Hero-Label
-und Listen-Label sind tagesabhängig: „Heute zählt"/„Danach" nur am heutigen Tag, sonst
-„<Wochentag> zählt"/„Geplant") und `renderRitual()` (7721, Zugang zum Wochenritual). `setView()`
-(9416) schaltet am Handy zwischen den vier Ansichten `plan` / `ziele` / `aufgaben` / `heute`
-(Tabbar, Markup 1905) — am Desktop stehen sie nebeneinander. Der Tagesstreifen wischt seit der
-15-Pro-Runde (`streifenwischenEinrichten()`, dieselben Schwellen wie das Inhalts-Wischen,
-Wochenübergang über `tagWechseln()`; Prüfung: `streifenwisch.js`), und die Scrim-Schließwege
-verschlucken den Folge-Klick des schließenden Tipps (`schluckeNaechstenClick()`; Prüfung:
-`blattzu.js` — beide Fehlerklassen reproduzieren NUR unter echten Touch-Events).
+**Blätter.** Das Wochen-Blatt `freizeitSheet()` (`#weekLabel`) hält seinen Frei/Belegt-Umschalter in
+einer Modulvariable, nicht in `state`; „Frei" nennt Zeitfenster aus `freeGaps()`, derselben
+Lückenrechnung wie der Verteiler. Monatszellen (`monatSheet()`) tragen bewusst nur Tagesnummer,
+Auslastungsstrich, „freigehalten"-Ring und „heute"-Kreis — eine ~40-px-Zelle trägt keine Uhrzeit.
 
-**Das Wochen-Blatt.** `freizeitSheet(startMontag)` (2918), hinter `#weekLabel` im Kopf, hat
-seit der M-Runde **zwei Gesichter** über einen Frei/Belegt-Umschalter (Modulvariable, kein
-`state`-Feld): **„Frei"** (Voreinstellung) beantwortet „hast du diese Woche Zeit" in
-aussprechbaren Zeitfenstern — gespeist aus `freeGaps()` (3946), derselben Lückenberechnung wie
-beim Verteiler; `FREIZEIT_MIN = 30` (2832) blendet Kurzlücken aus. **„Belegt"** zeigt dieselbe
-Woche als sieben Zeilen mit Segmentleiste (exakt gefüllt, grob gestrichelt, Vorschläge
-gestrichelt-gedämpft) plus Klartextzeile; ein Zeilen-Tipp setzt `anchor`/`selectedDayIdx` und
-springt in den Tag. Das Blatt hat einen lokalen ‹ ›-Wochen-Umschalter und einen Titel relativ
-zu heute; der Titel ist ein Knopf und öffnet die Monatsübersicht im Monat der gezeigten Woche.
-„vorbei"-Grau und „· heute" nur in der echten aktuellen Woche (Prüfung: `freiwoche.js` fürs
-Frei-Gesicht, `wochenzeilen.js` für Belegt und den Zoom). Zum Widerspruch mit
-`tagesAuslastung()` bei groben Blöcken siehe Invarianten.
+**Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
+sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
+anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).
+- Wann-Frage der Ziele-Karte: Saat = Schnittmenge aus `plan.days`/`from`/`to` und Alt-`fenster`.
+  Speichern schreibt exakt, was die Karte zeigt (Trio; räumt `area.regeln.fenster`, Anker bleibt);
+  ein unvereinbares Alt-Fenster wird als Konfliktzeile benannt, nie still aufgeweitet (`zielfrage.js`).
+- `wochenKapazitaet()` rechnet in der laufenden Woche **ab jetzt** (vergangene Tage zählen weder in
+  `wach` noch in `fest`, der laufende Block nur mit Rest). `VERPLANT_GRENZE = 0.65`; Ampel
+  `ampelFarbe()`: grün ≤ 60 %, gelb ≤ 70 %, sonst rot.
+- Alle vier Verteil-Einstiege (Ziele, Heute-Leerzustand, Erststart, Monats-„+") laufen durch
+  `verteilenMitGate()` („Das wird eng", Ausweg „Nächste Woche planen"); dessen Blatt hat 300 ms
+  Schonfrist gegen den Doppeltipp (Scrim ohne `pointer-events`, echtes `setTimeout`, kein `Date.now()`).
+- `b.grund` ist immer gesetzt; den generischen Fallback `GRUND_GENERISCH` zeigen nur die Blätter,
+  nicht Blöcke und Agenda-Zeilen (`grundZumZeigen()`).
+- Serien (`istSerie()`): `b.ausnahmen` wird nur in `onDay()` geprüft und wirkt so überall; der
+  `erledigt`-Schlüssel eines ausgelassenen Datums bleibt bewusst verwaist (Löschen ohne Grabstein
+  käme per Sync zurück).
 
-**Monatsübersicht.** `monatSheet(startDatum)` (3256, mit `monatMontage()` 3222 und
-`wochenBelegung()` 3241), hinter `#monthBtn` in der Topbar: Kalenderraster mit **KW-Rinne** —
-Zellen tragen bewusst nur Tagesnummer, Auslastungsstrich, „freigehalten"-Ring und
-„heute"-Kreis (eine ~40-px-Zelle kann keine Uhrzeit tragen, gemessen am verworfenen Prototyp
-vom 2026-08-08). Tages-Tipp springt in den Tag; KW-Tipp öffnet für aktuelle/vergangene Wochen
-das Wochen-Blatt, künftige Wochen tragen „+" und planen über `planeWoche(montag)` (4883, durchs
-Gate — schloss die letzte Gate-Lücke von `planeNaechsteWoche()` 4898, heute ein Einzeiler).
-**Zoom-Invariante: bloßes Zoomen/Blättern (Monat wie Wochen-Blatt) bewegt `anchor` nie** — nur
-Tages-Tipp und „+"-Planen setzen ihn. (Prüfung: `monat.js`.)
+**Rest des Tages** (`restDesTagesBauen()`, derselbe Verteiler nur für heute) — zwei rote Linien: auf
+einem freigehaltenen Tag (`istFrei()`) kein Vorschlag; ein vergangener eigener Vorschlag von heute
+bleibt unangetastet — `growSuggestions()` verlängert kein schon erreichtes Ende (ein laufender Block
+wächst weiter); nötig, weil `clearSuggestions(warm)` den laufenden Tag nie umplant (`restdestag.js`).
 
-**Verteiler.** `buildSuggestions()` (4540) → `placeArea()` / `placeGrob()` / `growSuggestions()`.
-Vorschläge sind normale Blöcke mit `sug: true` — dadurch lassen sie sich ziehen wie alles andere.
-Seit v9 kann ein Bereich zusätzlich `area.regeln` tragen (Fenster: erlaubte Wochentage/Uhrzeit;
-Anker: Mindestabstand zu einem anderen Bereich) — der Verteiler prüft beides *vor* der
-Platzierung, most-constrained-first (Prüfung: `regeln.js`). Seit der Editor-Verschmelzung
-stellt die Ziele-Karte die Wann-Frage nur noch **einmal**: Saat = Schnittmenge aus
-`plan.days`/`from`/`to` und einem etwaigen Alt-`fenster`; Speichern schreibt kanonisch ins
-Trio und räumt `area.regeln.fenster` (Anker bleibt; ein zeitlich unvereinbares Alt-Fenster
-wird als Konfliktzeile benannt statt gefaltet — Prinzip: Speichern schreibt exakt, was die
-Karte zeigt). Aufgaben behalten ihr eigenes `task.regeln.fenster` (sie haben kein
-`plan.days`). Prüfung: `zielfrage.js`. `wochenKapazitaet()` (3797) fragt
-*vor* dem Verteilen, ob die Woche das überhaupt hergibt — und rechnet in der **laufenden**
-Woche seit der v1.22-Runde **ab jetzt** (vergangene Tage zählen weder in `wach` noch in
-`fest`, der laufende Block nur mit Restanteil; zukünftige und vergangene Wochen fallen im
-selben Codepfad auf die Vollwochen-Rechnung zurück; Ampeltext dann „Rest der Woche zu X %").
-Alle **vier** Verteil-Einstiege — Ziele-„Vorschlagen", Heute-Leerzustand, Erststart-Assistent,
-Monats-„+" — laufen durch `verteilenMitGate()` (4908): bei `ok: false` erscheint „Das wird eng"
-mit dem Ausweg „Nächste Woche planen" (`planeNaechsteWoche()` 4898, seit der M-Runde ein
-Einzeiler über `planeWoche()` 4883; Prüfung: `kapazitaet.js`, für den Monats-Weg `monat.js`).
-Das Gate-Blatt trägt eine 300-ms-Schonfrist (`pointer-events` am Scrim aus, echtes
-`setTimeout`, bewusst ohne `Date.now()`): es öffnet sich synchron unter dem Finger,
-und der zweite Tipp eines hastigen Doppeltipps traf sonst sofort „Ziele anpassen" oder
-wischte das Blatt über den Scrim ungelesen weg. Klicks mit Trefferprüfung (Playwright)
-warten die Frist von selbst ab — Bestandsskripte bleiben unverändert grün (Prüfung:
-`doppeltipp.js`).
-`VERPLANT_GRENZE = 0.65` (3796), Ampel
-grün ≤ 60 %, gelb ≤ 70 %, darüber rot (`ampelFarbe()` 3863). Begründungen: der generische
-Fallback (`GRUND_GENERISCH` 4234) erscheint auf Blöcken und Agenda-Zeilen **nicht** mehr
-(`grundZumZeigen()` 4260) — nur die Blätter (`sugSheet`/`blockSheet`) zeigen ihn weiterhin;
-das Datenfeld `b.grund` bleibt immer gesetzt (Prüfung: `erklaer.js`). `istSerie()` (3448,
-`repeat === "weekly" || "2wochen"`) vereinheitlicht wöchentliche und zweiwöchentliche Termine
-für Anzeige und Abhaken. Serien können einzelne Tage auslassen: `b.ausnahmen` (ISO-Daten,
-wertbasiert in `migrate()` gesichert) wird **nur** in `onDay()` geprüft — dadurch wirkt eine
-Ausnahme automatisch überall; der `erledigt`-Schlüssel des Datums bleibt bewusst verwaist
-liegen (Löschen ohne Grabstein käme per Sync zurück). Prüfung: `serie.js` Abschnitt h.
+**Wochenritual.** `ritualSheet()` (Rückblick, Ziele, Verteilen) schließt vor einem Wochenwechsel
+(„Nächste Woche planen"), weil seine ersten Schritte an beim Öffnen eingefrorenen Werten hängen.
 
-**Rest des Tages.** `restDesTagesBauen()` (4726), aufrufbar über den Knopf in „Heute"
-(Sichtbarkeit über `restDesTagesMoeglich()` 4772), wendet denselben Verteiler wie das
-Wochenziel-Verteilen an, nur auf den laufenden Tag beschränkt. Zwei rote Linien, teuer erarbeitet,
-nicht versehentlich wieder aufweichen: auf einem freigehaltenen Tag schlägt auch dieser Weg nichts
-vor (`istFrei()`); und ein bereits vergangener eigener Vorschlag von heute wird nicht mehr
-angefasst — seit Stufe 16 sorgt dafür `growSuggestions()` selbst (kennt „jetzt", verlängert kein
-Ende, das schon erreicht oder überschritten ist), die frühere lokale Sicherung/Rückschreibung
-(`vergangeneSnapshot`) ist damit entfallen.
+**Abgleich.** `Sync` spricht Supabase direkt per `fetch` (kein SDK): `GET`/`POST /rest/v1/plans`
+(Spalte `data`, Header `Prefer: resolution=merge-duplicates,return=minimal`), Session unter
+`wochenplaner.session`, Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
+Die Zugangsdaten in `SUPABASE` stehen bewusst im Klartext: der anon key darf öffentlich sein,
+geschützt wird über Row Level Security. `mergeStates()`: pro Eintrag gewinnt die neuere Änderung,
+ein Grabstein zählt als Änderung.
 
-**Wochenritual.** `ritualSheet()` (7748) führt am Montag durch drei Schritte —
-`schrittRueckblick()` (7774, geplant gegen tatsächlich je Bereich mit Wochenziel, Angebot zur
-Zielanpassung über `rueckblickMuster()` 8138), Ziele, Verteilen. Schritt 3 nennt bei
-`wochenKapazitaet().ok === false` den wahren Grund („Der Rest passt nicht mehr in diese
-Woche.") und bietet „Nächste Woche planen" an — das Blatt schließt vor dem Wochenwechsel, weil
-seine Schritte 1/2 an beim Öffnen eingefrorenen Wochenwerten hängen. `renderRitual()` (7721)
-zeigt die Fälligkeit über `ritualFaellig()`/`ritualErledigt()` an.
-
-**Abgleich.** `Sync` (8973) spricht Supabase direkt per `fetch`, **kein SDK**. Zugangsdaten stehen
-bewusst im Klartext in `SUPABASE` (1950) — der anon key darf öffentlich sein, geschützt wird über
-Row Level Security. `GET`/`POST /rest/v1/plans` (Spalte `data`, Header
-`Prefer: resolution=merge-duplicates,return=minimal`), Session unter `wochenplaner.session`,
-Push um 1,5 s entprellt, Status `off|signedout|syncing|ok|offline|error`.
-`mergeStates()` (8891): pro Eintrag gewinnt die neuere Änderung, ein Grabstein zählt als Änderung.
-
-**Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen. Cache-first wäre
-schneller, hat hier aber nach Veröffentlichungen tagelang die alte Fassung gezeigt. Fremde Adressen
-(Supabase) werden nie angefasst — ein zwischengespeicherter Plan wäre schlimmer als kein Plan.
-
-**Manifest-Identität.** `manifest.json`s `id` steht bewusst als **absoluter Pfad**
-(`/wochenplaner/`), während `start_url` und `scope` `"./"` bleiben — das ist kein Schlamperei-Rest,
-sondern Absicht. Grund: ein relatives `id` wird laut Spec nicht gegen die Manifest-URL oder gegen
-`start_url` aufgelöst, sondern gegen die bloße **Origin** von `start_url` — deren Pfad fällt weg.
-Live läuft die App unter einem Unterpfad (`https://vebzyyhere.github.io/wochenplaner/`, nicht an
-der Domain-Wurzel): ein relatives `id` wie `"./"` würde zu `https://vebzyyhere.github.io/`
-aufgelöst — einer anderen Identität als der heutigen (ohne `id` gilt implizit der aufgelöste
-`start_url`, also der Unterpfad) — und hätte die schon installierte App zur Karteileiche gemacht.
-Nur der absolute Pfad `/wochenplaner/` trifft, gegen die Origin aufgelöst, wieder den Unterpfad.
-Geprüft in `werkzeug/pwatest.js`.
+**Service Worker.** `sw.js` ist bewusst **network-first** für eigene Adressen — cache-first zeigte
+nach Veröffentlichungen tagelang die alte Fassung. Fremde Adressen (Supabase) nie anfassen: ein
+zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` bleibt absolut
+(`/wochenplaner/`) — relativ löst es gegen die Origin auf, die installierte App wäre verwaist.
 
 ## Invarianten
 
-- **`migrate()` ist die einzige Schema-Stelle.** Kumulativ und idempotent, läuft beim Laden, beim
-  Import, nach dem Zusammenführen und beim Rückgängigmachen. Neues Feld → dort absichern,
-  `s.version` am Ende mitziehen.
-- **Nie `at` von Hand setzen, nie Grabsteine löschen.** Sonst kehren gelöschte Einträge beim
+- **`migrate()` ist die einzige Schema-Stelle** — kumulativ, idempotent; läuft bei Laden, Import,
+  Zusammenführen und Rückgängigmachen. Neues Feld → dort absichern, `s.version` am Ende mitziehen.
+- **Nie `at` von Hand setzen, nie Grabsteine löschen** — sonst kehren gelöschte Einträge beim
   nächsten Abgleich vom anderen Gerät zurück.
-- **„Ersetzen" beim Import ist nicht harmlos** (`importData()` 8803): alles, was hier existiert und
-  in der Sicherung fehlt, bekommt einen Grabstein — und den schiebt der Abgleich auf alle Geräte.
-  Eine drei Monate alte Sicherung vom Handy hat so schon den Plan am PC gelöscht. Der Dialog mit
-  „Zusammenführen" als Vorgabe bleibt — diese Semantik ist unverändert. Was sich geändert hat: eine
-  kaputte Datei kommt gar nicht mehr bis zu diesem Dialog. Kein Objekt oder ein blankes Array
-  (bestünde sonst still `typeof === "object"` und würde `state` selbst zum Array machen, siehe
-  Kommentar an `importData()`) endet in einem erklärenden Toast statt in `migrate()`, ein
-  JSON-Parse-Fehler ebenso — geprüft in `werkzeug/importfuzz.js` über den echten Weg
-  Dateiauswahl → `FileReader` → `JSON.parse()` → `migrate()`.
-- **Grobe Blöcke** (`b.grob`, mit `teil` + `dauer` statt Uhrzeit) dürfen in den Kennzahlen von
-  `realtest.js` nicht mitzählen. Sie haben keine echte Uhrzeit und erscheinen sonst als „Übergang
-  ohne Lücke" — dieser Messfehler hat einmal eine Verschlechterung vorgetäuscht, die es nicht gab.
-- **`freeGaps()` und `tagesAuslastung()` widersprechen sich bei groben Blöcken — beide zu Recht,
-  nicht anfassen.** `freeGaps()` (3946) blendet grobe Blöcke aus, weil sie keine Uhrzeit haben, die
-  es aussparen könnte; `tagesAuslastung()` (3141) zählt dieselben Blöcke trotzdem mit, weil ihre
-  Dauer real verplante Zeit ist, nur ihre Uhrzeit nicht. Das Frei-Gesicht des Wochen-Blatts
-  (`freizeitSheet()`, 2918) macht diesen Unterschied absichtlich sichtbar, statt ihn aufzulösen: hinter den echten
-  Zeitfenstern nennt sie zusätzlich, was an groben Blöcken an dem Tag noch offen liegt, ohne ihm
-  eine erfundene Uhrzeit anzudichten. Wer hier „aufräumt" und eine der beiden Funktionen an die
-  andere anpasst, macht die jeweils andere falsch.
-- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()` 3594, nutzt `istSerie()` 3448), nicht an
-  der Serie — sonst gilt ein wöchentlicher oder zweiwöchentlicher Eintrag in allen Wochen als
-  erledigt.
-- **Neue Felder gehören auf `area`, `task` oder `block` — nie an die `state`-Wurzel und nie in
-  `area.plan`.**
-- **Nutzertext geht über `innerHTML` in den DOM** → durch `escapeHtml()` (7665) schicken.
-- **`renderEnergy()` (7445) schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
-  `#dayFrei`, `#dayFreiLab`). Wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
+- **Neue Felder gehören auf `area`, `task` oder `block`** — nie an die `state`-Wurzel, nie in
+  `area.plan`: `mergeStates()` gleicht nur benannte Sammlungen ab, und `migrate()` baut `a.plan`
+  Feld für Feld neu auf (so ging `plan.grob` einmal bei jedem Laden verloren).
+- **„Ersetzen" beim Import ist nicht harmlos** (`importData()`, einziger Weg für fremde Daten): was
+  hier existiert und in der Sicherung fehlt, bekommt einen Grabstein, den der Abgleich auf alle
+  Geräte schiebt (so löschte eine alte Handy-Sicherung den Plan am PC). „Zusammenführen" bleibt
+  Vorgabe; kaputte Dateien (auch ein blankes Array) enden vor `migrate()` als Toast (`importfuzz.js`).
+- **Nutzertext über `innerHTML`** → durch `escapeHtml()` schicken.
+- **`renderEnergy()` schreibt ungeschützt in statisches Markup** (`#energyDay`, `#energyHint`,
+  `#dayFrei`, `#dayFreiLab`): wer die Karte `data-card="heute"` ersetzt statt ergänzt, lässt
   `renderAll()` mit einem `TypeError` abbrechen.
-- **`growSuggestions()` kennt seit Stufe 16 „jetzt".** War bekannt, bewusst nicht behoben, solange
-  nur `restDesTagesBauen()` betroffen war (dort lokal umgangen über `vergangeneSnapshot`) — betraf
-  aber auch den wöchentlichen Verteiler, weil `clearSuggestions(warm)` (4605) den laufenden Tag
-  bewusst unberührt lässt. Jetzt verlängert `growSuggestions()` an keinem eigenen Vorschlag von
-  heute mehr ein Ende, das schon erreicht oder überschritten ist; ein gerade laufender Block
-  (start ≤ jetzt < end) wächst unverändert weiter.
-- **Bloßes Zoomen und Blättern bewegt `anchor` nie.** Monatsblatt und Wochen-Blatt arbeiten auf
-  lokalem Zustand; nur ein Tages-Tipp (Monat oder Belegt-Zeile) und das „+"-Planen setzen
-  `anchor`/`selectedDayIdx`. Wer einem Blatt einen Weg hinzufügt, der `anchor` nebenbei
-  verschiebt, bricht die Rückkehr-Erwartung des Zooms (Prüfung: `monat.js`, `wochenzeilen.js`).
+- **Abhaken hängt am Paar Eintrag + Datum** (`hakenKey()`), nicht an der Serie — sonst gilt ein
+  wöchentlicher oder zweiwöchentlicher Eintrag in allen Wochen als erledigt.
+- **`freeGaps()` und `tagesAuslastung()` widersprechen sich bei groben Blöcken — beide zu Recht,
+  nicht anfassen.** `freeGaps()` blendet sie aus (keine Uhrzeit zum Aussparen), `tagesAuslastung()`
+  zählt ihre Dauer (real verplante Zeit); das Frei-Gesicht zeigt den Unterschied absichtlich.
+- **Grobe Blöcke** (`b.grob`: `teil` + `dauer` statt Uhrzeit) zählen in den `realtest.js`-Kennzahlen
+  nicht mit — sonst erscheinen sie als „Übergang ohne Lücke" und täuschen eine Verschlechterung vor.
+- **Bloßes Zoomen und Blättern bewegt `anchor` nie.** Monat und Wochen-Blatt arbeiten auf lokalem
+  Zustand; nur ein Tages-Tipp (Monat, Belegt-Zeile, Tagesband) und das „+"-Planen setzen
+  `anchor`/`selectedDayIdx` — sonst bricht die Rückkehr des Zooms (`monat.js`, `wochenzeilen.js`).
+
+## Kopplungen & Fallen
+
+- `MOBILE_Q` (JS) und das CSS wechseln gemeinsam bei **1100px**, `EINTAG_Q` bleibt bei 640px
+  (Tablets zeigen sieben Tage); `QUER_Q` und das gleichlautende CSS nur gemeinsam ändern.
+- Quer (`QUER_Q`): `fussbereichMessen()` setzt `--fussleiste` = Safe-Area unten (`sicherUnten()`),
+  nicht die Tabbar-Höhe (die Tabbar ist dort eine senkrechte Leiste). Ab 700px Breite (`SUG_OBEN_Q`)
+  hängt `sugbarPlatzieren()` `#sugBar` in die `.topbar` und beim Drehen zurück; dann zählt sie
+  nicht zu `--fuss-oben`.
+- Telefon (≤ 1100px): `.kopf` ist `position: fixed` — WebKits Randabtaster zählt nur feste oder
+  klebende Elemente. `.panel`/`.planwrap` beginnen per `--kopf-h` darunter; jede eigene
+  `.panel`-Polsterung (Tablet-Regel!) muss `--kopf-h` einrechnen. Klebende Blocktitel stehen bei
+  `top: var(--kopf)` (gemessen in `renderGrid()`), auch in der 1100px-Regel nie ein fester Pixelwert.
+- `--safe-top/right/bottom/left` übernehmen die Plattform-Insets; App, schwebende Leiste und Dialoge
+  beachten auch die seitlichen. Speicherwarnungen (`#banner`) stehen im `.kopf` und zählen in
+  `--kopf-h` mit, damit sie die Navigation nicht verdrängen.
+- iOS installiert: `applyTheme()` meldet `--kopf-flach` als `theme-color`, `html[data-app="1"] .kopf`
+  ist deckend in genau dieser Farbe — beide nur gemeinsam ändern, kein `black-translucent`. Danach
+  das Home-Bildschirm-Symbol neu anlegen (iOS speichert die Werte mit dem Symbol).
+- Glas (`--glas*`, beide Themes) nur unter `@supports (backdrop-filter)`; ohne Unterstützung und bei
+  `prefers-reduced-transparency` fallen `.kopf`/`.tabbar`/`.sugbar` auf `--surface` zurück.
+- Desktop (ab 1101px): Arbeitsfläche `.main > .panel` = `clamp(352px, 29vw, 440px)`; alle
+  Kalenderspalten passen daneben, Titel werden gekürzt.
+- Eine `tagesAuslastung()` speist Tagesband-Balken, Monat und Desktop-Wochenkopf (`.dayhead`).
+- UI-Haken laufen über `abhaken(b, dayKey, on, el)`, nicht direkt über `setzeErledigt()`; Wischen
+  nach rechts (nur Touch) hakt per synthetischem `change` am `.agenda__check` ab — dieselbe Kette
+  wie ein Tipp. Nach links öffnet es `moveSheet()` und speichert nichts. Nach langem Drücken oder
+  Wischen verschluckt ein gemeinsamer Klick-Handler den Folge-Klick (sonst schaltete er den Haken um).
+- `#tabAdd` („+" der Tabbar) ruft `#fabAdd.onclick` und ignoriert Tipps 450 ms nach `closeModal()`
+  (`zuletztGeschlossen`) — Schutz gegen den hastigen Doppeltipp auf Fußknöpfe eines Blatts.
+- Aufgabe ↔ Termin: maßgeblich ist `task.geplant`. `aufgabeAbhaken()` schreibt beide gemeinsam;
+  alte Doppel-Termine bleiben erhalten, `migrate()` entfernt nur nichtkanonische Verweise.
+- Tastenkürzel stehen genau einmal in `TASTENKUERZEL` (Hilfe `kuerzelSheet()`), direkt nach dem keydown-Handler.
+- Nur lesend, nie `save()`: Kalender-Export `kalenderIcs()` (nur Blöcke mit Uhrzeit, ohne `sug`;
+  Serien als RRULE, `b.ausnahmen` als EXDATE, schwebende Ortszeit) und die Wochenkarte
+  `wochenkarteZeichnen()`/`wochenkarteSheet()` (`navigator.share` mit Datei, sonst Download).
 
 ## Verträge
 
-Diese Verträge stehen nirgends sonst im Repo — bisher musste sie jeder Agent einzeln mitgeteilt
-bekommen. Sie gelten unabhängig davon, wie sich Zeilenzahlen oben verschieben.
+- **Gestaffelte Falz — drei Situationen, drei Verträge, nur bewusst mit Sunny ändern.**
+  Standardschrift: die Agenda passt ohne Scrollen über die Tabbar (`agenda.js`); vergrößerte
+  Systemschrift: nur die Antwort bleibt ohne Scrollen sichtbar (`schrift.js`); Abend mit
+  Tagesabschluss: eigener Vertrag mit festgenagelter 23-Uhr-Uhr (`agenda.js`, Abschnitt h). Die Falz
+  hält knapp (~2 px): Agenda-Abstände und Tabbar-Höhe nicht vergrößern; ein Gruß über 22 Zeichen
+  setzt `.agenda__kopfzeile.is-lang` und rückt die Agenda am Telefon enger.
+- **Feste Uhr.** Zeitkritische Prüfskripte nageln Uhrzeit, Datum und Zeitzone fest
+  (`page.clock.setFixedTime` mit zoniertem Literal wie `'2026-08-05T10:00:00+02:00'`,
+  `timezoneId: 'Europe/Berlin'`; ohne Zonen-Endung gilt die Prozesszone der Maschine). Ein neues
+  zeitkritisches Skript ohne feste Uhr wird nicht abgenommen. Wer einen zeit- oder zustandsabhängigen
+  Dialog in einen Weg einbaut, den Prüfskripte betreten, prüft danach alle Skripte auf diesem Weg.
+- **Visuelle Prüfung.** Screenshots ansehen, nicht nur messen. Verdeckung nie am unscrollten Bild
+  beurteilen (Vertrag: nach Scrollen erreichbar). Bounding-Boxen zeigen kein Überlappen, wenn Text
+  über seinen Rand läuft und von einem später gezeichneten Element verdeckt wird.
+- Optional: Impeccable-Detektor (Plugin `impeccable`, falls installiert); side-tab an
+  `.agenda__hero`/`.agenda__row`/`.block` ist gewollt (Kante = Bereichsfarbe).
 
-- **Impeccable-Deckel bei genau drei `side-tab`-Treffern.** Der Detektor meldet die drei
-  bewussten Ausnahmen `.agenda__hero`, `.agenda__row`, `.block` (Kante kodiert die Bereichsfarbe,
-  also Information). Ein vierter Treffer wird nicht akzeptiert. `npm` liefert nur die Fassung
-  3.5.0 des Plugins, installiert ist 4.0.4 — deshalb aus dem Plugin-Cache aufrufen:
-  ```
-  node "C:/Users/aless/.claude/plugins/cache/impeccable/impeccable/4.0.4/skills/impeccable/scripts/detector/detect-antipatterns.mjs" index.html --no-config
-  ```
-  Aus der Repo-Wurzel ausführen. Die Ausgabe kommt auf stderr, Exit-Code 2 bei Treffern.
-- **Die gestaffelte Falz — drei Situationen, drei Verträge, keinen aufweichen.** Bei
-  Standardschrift muss die Agenda ohne Scrollen über die Tabbar passen (`agenda.js`); bei
-  vergrößerter Systemschrift gilt nur noch, dass die Antwort ohne Scrollen sichtbar ist
-  (`schrift.js`); für den Abend mit Tagesabschluss gilt ein eigener Vertrag mit eigener,
-  festgenagelter 23-Uhr-Uhr (`agenda.js`, Abschnitt h).
-- **Verdeckung nie an einem unscrollten Screenshot beurteilen.** Der Vertrag ist, dass Inhalt nach
-  dem Scrollen *erreichbar* sein muss — nicht, dass er ohne Scrollen sichtbar ist. In dieser
-  Sitzung haben deshalb zweimal Agenten einen Fehler gemeldet, den es nicht gab.
-- **Eine Messung von Bounding-Boxen zeigt kein Überlappen, wenn Text über seinen eigenen Rand
-  hinausläuft und von einem später gezeichneten Element verdeckt wird.** Genau dieser Fall ist bei
-  der Vorschlagsleiste aufgetreten (150 % Systemschrift, iPhone SE, `leiste.js`) und hat eine
-  vorschnelle Widerlegung erzeugt.
-- **Alle zeitkritischen Prüfskripte nageln Uhrzeit, Datum und Zeitzone fest**
-  (`page.clock.setFixedTime`, `timezoneId: 'Europe/Berlin'`). Diese Fehlerklasse — ein Skript, das
-  je nach Startzeitpunkt grün oder rot wird und dadurch falsches Vertrauen erzeugt — hat in diesem
-  Projekt schon **sechsmal** zugeschlagen. Ein neues zeitkritisches Prüfskript ohne feste Uhr wird
-  nicht abgenommen. Das Zeit-Literal in `setFixedTime` muss dabei **zoniert** angegeben werden
-  (z. B. `'2026-08-05T10:00:00+02:00'`) — eine Uhrzeit ohne Zonen-Endung nimmt die Prozesszone der
-  jeweils ausführenden Maschine an und wird dadurch selbst wieder zu einer ungenagelten Uhr.
-  Die sechste Ausprägung kam von der anderen Seite: **eine Produktänderung kann Bestandsskripte
-  rückwirkend zeitkritisch machen.** Als der Erststart das Kapazitäts-Gate bekam (v1.22-Runde),
-  wurden acht Skripte rot bzw. kalendertagabhängig, die bis dahin gefahrlos ohne Uhr durch den
-  Assistenten klickten. Wer einen neuen zeit- oder zustandsabhängigen Dialog in einen Weg
-  einbaut, den Prüfskripte betreten, prüft danach alle Skripte auf diesem Weg — nicht nur die
-  neuen.
-- **Commit nur bei grüner Kette:** vorher `node alles.js` aus `werkzeug/` heraus laufen lassen.
-- **Screenshots werden angesehen, nicht nur gemessen.** Fünf echte Befunde dieses Projekts hat
-  keine einzige Messung gefunden, nur der Blick aufs Bild.
+## Produktentscheidungen (Sunny)
+
+- „Frisch & verspielt" (2026-09-26, Zielgruppe 20–30): `--font-display` (`ui-rounded`) für Zahlen
+  und Titel, keine `text-transform: uppercase`-Etiketten außer Wochentags-Kürzeln, runde Haken.
+- Look „Moos & Papier" (seit v1.36): Stilschicht am Ende des `<style>`-Blocks (Banner „v1.36"),
+  Tokens `--lime`/`--on-lime`/`--tief`. Bereichsfarben behalten ihre inhaltliche Bedeutung.
+- `gruss()`-Texte sind Sunnys Wortlaut — nicht umformulieren. Keine sichtbaren Versionsnummern im Produkt.
+- „Passt das noch?" (`zusageDurchspielen()`/`zusageSheet()`) rechnet nur durch und öffnet höchstens
+  `blockSheet()` vorausgefüllt — nie still speichern. Keine Rangfolge der Ziele erfinden.
+- Feiern beim Abhaken (`jubel()`): `gefeiert` gilt nur für die Sitzung, nie in `state`; kein
+  Konfetti beim Aufheben und bei reduzierter Bewegung.
+
+## Veröffentlichen
+
+Push auf `main` ist der Deploy (Pages liefert den Ordner direkt aus, kein Workflow). Veröffentlicht
+wird nur auf Sunnys Wort oder wenn sein Auftrag ausdrücklich selbständiges Deployen erlaubt
+(„deploye selbständig"). Neue sichtbare Texte vorher im Chat zeigen.
+
+1. `V` in `sw.js` hochzählen (aktueller Wert: `sw.js`). Ohne das bleibt „Eine neue Fassung ist da"
+   aus; die Seite selbst kommt trotzdem frisch, weil der Worker network-first ist.
+2. Commit im Repo-Stil `vX.Y: Beschreibung`, **ohne Umlaute** („Pruefskripte", „ueberarbeitet").
+3. Push auf `main`.
