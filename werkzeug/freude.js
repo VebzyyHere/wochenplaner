@@ -9,9 +9,10 @@
                      .agenda__label, .loose__lab); der Tagesschwerpunkt trägt
                      seine Welle im Farbton des Bereichs; „frei" ist ein
                      schräger Aufkleber.
-     c) Abhaken    — ein Haken lässt Schnipsel aufsteigen, die wieder
-                     verschwinden; Aufheben löst nichts aus; mit „Bewegung
-                     reduzieren" keine Schnipsel.
+     c) Abhaken    — v1.42: ein Stein klackt in die Mulde, 3–5 Splitter
+                     springen ab, „+Dauer Bereich" schwebt auf; alles
+                     verschwindet wieder; Aufheben und ein schon gesetzter
+                     Haken lösen nichts aus; mit „Bewegung reduzieren" nichts.
      d) Momente    — ein erreichtes Wochenziel meldet sich genau einmal;
                      der ganz abgehakte Tag meldet sich; nichts davon landet
                      in state.
@@ -104,11 +105,17 @@ const aufbau = () => {
   console.log('c) Abhaken');
   const vorher = await p.evaluate(() => JSON.stringify({ b: state.blocks, t: state.tasks }));
   await p.click('#agenda .agenda__check[data-id="lesen"]');
-  const schnipsel = await p.evaluate(() => document.querySelectorAll('.jubel').length);
-  ok(schnipsel >= 10, 'ein Haken lässt Schnipsel aufsteigen (' + schnipsel + ')');
-  ok(await p.evaluate(() => [...document.querySelectorAll('.jubel')].every(s => getComputedStyle(s).pointerEvents === 'none')), 'Schnipsel sind nie anklickbar');
-  await p.waitForTimeout(900);
+  // v1.42: statt ≥ 10 Konfetti-Schnipseln der Stein-Klack aus Entwurf B.
+  const klack = await p.evaluate(() => ({ stein: document.querySelectorAll('.jubel--stein').length,
+    splitter: document.querySelectorAll('.jubel--splitter').length,
+    schwebt: [...document.querySelectorAll('.jubel--schwebt')].map(s => s.textContent) }));
+  ok(klack.stein === 1 && klack.splitter >= 3 && klack.splitter <= 5, 'ein Haken: ein Stein klackt in die Mulde, 3–5 Splitter (' + JSON.stringify(klack) + ')');
+  ok(klack.schwebt.length === 1 && klack.schwebt[0] === '+30 min Uni & Lernen', 'darüber schwebt die Dauer mit Bereich („' + klack.schwebt.join(' | ') + '")');
+  ok(await p.evaluate(() => [...document.querySelectorAll('.jubel')].every(s => getComputedStyle(s).pointerEvents === 'none')), 'Stein, Splitter und Schwebetext sind nie anklickbar');
+  await p.waitForTimeout(1400);   // v1.42: das Schweben dauert 1,2 s (vorher 900 ms für Konfetti)
   ok(await p.evaluate(() => document.querySelectorAll('.jubel').length === 0), 'und verschwinden wieder');
+  ok(await p.evaluate(() => { abhaken(state.blocks.find(b => b.id === 'lesen'), iso(new Date()), true, document.querySelector('#agenda .agenda__check[data-id="lesen"]'));
+    return document.querySelectorAll('.jubel').length === 0; }), 'ein schon gesetzter Haken (z.B. Speichern im Editor) feiert nicht noch einmal');
   await p.click('#agenda .agenda__check[data-id="lesen"]');
   ok(await p.evaluate(() => document.querySelectorAll('.jubel').length === 0), 'Aufheben eines Hakens löst nichts aus');
   ok(await p.evaluate(v => JSON.stringify({ b: state.blocks, t: state.tasks }) === v, vorher), 'Blöcke und Aufgaben unverändert (nur der Haken selbst wechselt)');
@@ -118,7 +125,9 @@ const aufbau = () => {
   await p.click('#agenda .agenda__check[data-id="lauf"]');
   const ziel = await p.evaluate(() => [...document.querySelectorAll('.toasts .toast')].map(t => t.textContent).join(' | '));
   ok(/Sport: Wochenziel geschafft/.test(ziel), 'erreichtes Wochenziel meldet sich (' + ziel + ')');
-  ok(await p.evaluate(() => document.querySelectorAll('.jubel').length) >= 30, 'mit großem Konfetti');
+  // v1.42: großer Moment = mehr Splitter, weiter geworfen — kein zweiter Stein, kein Konfettiregen.
+  const gross = await p.evaluate(() => ({ stein: document.querySelectorAll('.jubel--stein').length, splitter: document.querySelectorAll('.jubel--splitter').length }));
+  ok(gross.stein === 1 && gross.splitter >= 10 && gross.splitter <= 16, 'mit mehr Splittern als ein einzelner Haken, ohne Konfettiregen (' + JSON.stringify(gross) + ')');
   await p.click('#agenda .agenda__check[data-id="lauf"]');
   await p.evaluate(() => document.querySelectorAll('.toasts .toast').forEach(t => t.remove()));
   await p.click('#agenda .agenda__check[data-id="lauf"]');
@@ -146,8 +155,12 @@ const aufbau = () => {
       'Klick auf den Ring hakt ab und feiert');
     ok(await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity === '1'), 'abgehakt bleibt der gefüllte Ring sichtbar');
     const schrift = await p.evaluate(async () => { await document.fonts.ready;
-      return { da: document.fonts.check('750 17px "Wochenplaner Rund"'), stapel: getComputedStyle(document.querySelector('.planhead h1')).fontFamily }; });
-    ok(schrift.da && /Wochenplaner Rund/.test(schrift.stapel), 'eingebettete runde Schrift ist geladen und im Display-Stapel');
+      // v1.42: die eingebettete Schrift ist Gabarito (vorher „Wochenplaner Rund").
+      // Geprüft über die FontFace selbst — fonts.check() meldet auch für eine
+      // gar nicht vorhandene Familie „true".
+      return { da: [...document.fonts].some(f => f.family.replace(/["']/g, '') === 'Gabarito' && f.status === 'loaded'),
+        stapel: getComputedStyle(document.querySelector('.planhead h1')).fontFamily }; });
+    ok(schrift.da && /^"?Gabarito/.test(schrift.stapel), 'eingebettete Gabarito ist geladen und steht vorn im Display-Stapel (' + schrift.stapel.slice(0, 40) + ')');
     await ctx.close();
   }
   {

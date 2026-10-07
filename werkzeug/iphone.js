@@ -108,10 +108,18 @@ const beispiel = () => {
     ok(panel.top < kopf.bottom, 'der scrollende Bereich reicht hinter den Kopf (Inhalt läuft unter das Glas)');
     const tabKnopf = await rect(p, '#tabbar button');
     ok(tab.bottom === 852 && tabKnopf.bottom <= 852 - 34 + 0.5, 'Tabbar hält den Home-Indikator frei (Knopf endet bei ' + Math.round(tabKnopf.bottom) + ')');
-    // v1.36: die Tabbar ist eine deckende, schwebende Pille (::before) — Glas bleiben Kopf und Leiste.
-    const glas = await p.evaluate(() => ['#kopf', '#sugBar'].map(s => getComputedStyle(document.querySelector(s)).backdropFilter));
-    ok(glas.every(g => /blur/.test(g)), 'Kopf und Vorschlagsleiste sind Glas (' + glas.join(' | ') + ')');
-    ok(await p.evaluate(() => getComputedStyle(document.querySelector('#tabbar'), '::before').borderRadius !== '0px'), 'Tabbar ist eine schwebende Pille');
+    // v1.42 „Stundensteine": kein Glas mehr — Kopf, Tabbar und Vorschlagsleiste
+    // sind deckend; Kopf und Tabbar tragen eine volle Fläche, die Leiste eine
+    // deckende Pille (::before) über der Tabbar.
+    const deckend = await p.evaluate(() => {
+      const voll = c => c && c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c) && !/\/\s*0(\.\d+)?\)$/.test(c);
+      const cs = s => getComputedStyle(document.querySelector(s));
+      return { filter: ['#kopf', '#tabbar', '#sugBar'].map(s => cs(s).backdropFilter),
+        kopf: voll(cs('#kopf').backgroundColor), tabbar: voll(cs('#tabbar').backgroundColor),
+        pille: voll(getComputedStyle(document.querySelector('#sugBar'), '::before').backgroundColor) };
+    });
+    ok(deckend.filter.every(f => f === 'none'), 'Kopf, Tabbar und Vorschlagsleiste ohne Glas (' + deckend.filter.join(' | ') + ')');
+    ok(deckend.kopf && deckend.tabbar && deckend.pille, 'Kopf, Tabbar und Leisten-Pille haben eine deckende Fläche (' + JSON.stringify(deckend) + ')');
     const sug = await rect(p, '#sugBar');
     ok(sug && Math.abs(sug.bottom - tab.top) < 1, 'Vorschlagsleiste steht direkt über der Tabbar');
     await p.evaluate(() => { document.querySelector('.panel').scrollTop = 150; });
@@ -141,7 +149,8 @@ const beispiel = () => {
       ok(rand.pos === 'fixed' && rand.html === rand.kopf, th + ': Kopf ist fest (fixed), die Seite darunter hat dieselbe Farbe');
     }
     await p.evaluate(() => { window.laeuftAlsApp = () => false; state.settings.theme = 'light'; applyTheme(); });
-    ok(await p.evaluate(() => /blur/.test(getComputedStyle(document.getElementById('kopf')).backdropFilter)), 'im Browser bleibt der Kopf Glas');
+    // v1.42: auch im Browser ist der Kopf deckend (vorher: Glas).
+    ok(await p.evaluate(() => getComputedStyle(document.getElementById('kopf')).backdropFilter === 'none'), 'im Browser ist der Kopf deckend, ohne Glas');
     await ctx.close();
   }
 

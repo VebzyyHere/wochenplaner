@@ -7,6 +7,27 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.42 vom 2026-10-07
+
+PWA-Cache `wp-v1.42`, Datenschema 10, Kette 63 Skripte (neu: `steine.js`, `kontrastlauf.js`).
+Notizen für Nutzer: `release/v1.42.md`.
+
+- **Look „Stundensteine"** (Entwurf B, von Sunny gewählt): Stilschicht am Ende des `<style>`-Blocks
+  (Banner `v1.42 „Stundensteine"`) über Bestand und v1.36. Steingrund, Jade für Aktionen, Bereiche
+  als Steine gleicher Helligkeit (nur `--h` je Bereich). Schrift Gabarito (Base64) statt Rundschrift.
+  Kein Glas: Kopf, Tabbar, Leiste deckend; `--kopf-flach` = `--bg` als Hex (theme-color).
+- Haken = runde Mulde; `jubel()` = Stein-Klack + Splitter, `jubelSchweben()` „+1 h Bereich",
+  nur bei echtem Wechsel auf erledigt. Aufgaben-Haken in Bereichsfarbe, ohne Bereich Jade.
+- **Ziele als Steine:** `steinReihe()`/`steinHtml()`, `areaGrobOffen()` (reine Anzeige-Summe),
+  `steineFallen()` nur über `ansichtWechseln()`. Ziele-Blatt: Steine tippen, ±½. „Passt das noch?"
+  als Steinzeile mit verdrängten Steinen. Seitenkante an Hero/Zeile/Block entfällt.
+- Blätter federn herein; Abgang über eine Kopie im geschlossenen Shadow-Root (`blattAbgang()`), das
+  echte Blatt ist sofort weg. `blockZeilenEinpassen()`: ganze Zeilen statt halb abgeschnittener.
+- `kontrastlauf.js` misst Kontraste an der laufenden App; nachgeschärft: Uhrzeit/Begründung in
+  vorgeschlagenen und erledigten Rasterblöcken, Mulden im Ziele-Blatt (Ring `--rand`), Rand der
+  Konto-Pille, Schlaf-Hinweis bei abgeschalteter Schlafenszeit nicht mehr mitgedimmt.
+- Falz-Verträge gehalten: „Heute zählt" am Telefon kompakt (ohne Wochenziel-Satz), am Desktop reicher.
+
 ### Release v1.41 vom 2026-09-27
 
 PWA-Cache `wp-v1.41`, Datenschema 10, Kette 61 Skripte.

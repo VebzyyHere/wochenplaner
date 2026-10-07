@@ -75,7 +75,11 @@ const beispiel = () => {
 
   /* ---------------- Desktop ---------------- */
   {
-    const { ctx, p } = await seite({ viewport: { width: 1440, height: 1000 } });
+    // v1.42: 900 statt 1000 px Höhe. Seit Arbeitsfläche und Raster am Desktop
+    // randlos stehen (kein 16-px-Rahmen mehr), passte der Tag bei 1000 px fast
+    // ganz ins Bild — das Raster ließ sich nur noch 3 px scrollen und es gab
+    // nichts, was oben angeschnitten werden konnte. Geprüft wird dasselbe.
+    const { ctx, p } = await seite({ viewport: { width: 1440, height: 900 } });
 
     console.log('a) Klebetitel am Desktop');
     await p.evaluate(() => { const w = $('#gridWrap'); w.scrollTop = 3 * 52; w.dispatchEvent(new Event('scroll')); });

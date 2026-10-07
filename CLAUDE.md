@@ -12,13 +12,13 @@ UI-Texte, Kommentare und Commits auf Deutsch; Bezeichner folgen dem Umfeld.
 `index.html` **ist** das Produkt: Stil, Markup und Hauptskript in einer Datei. Default: eine
 HTML-Datei ohne Build, weil sie offline und per `file://` laufen soll (Sunnys README seit v1.4).
 Build, Framework oder externe Assets (z. B. Webfont) sind eine bewusste Entscheidung mit Sunny —
-deshalb steckt die runde Schrift als Base64-`@font-face` am Anfang des `<style>`-Blocks.
+deshalb steckt die Schrift Gabarito als Base64-`@font-face` am Anfang des `<style>`-Blocks.
 
 - Landkarte: `grep -nE "^\s*/\* ={3,}" index.html`. Die Datei ist groß — nur mit `offset`/`limit`
   lesen. Viele Abschnittsbanner erklären, *warum* etwas so ist — vor dem Ändern lesen.
 - Daneben: `sw.js`, `manifest.json`, vier Icon-PNGs (`werkzeug/icon.py`, Python + Pillow, hier
   nicht installiert), `werkzeug/` (Prüfskripte), `release/` (Notizen je Fassung, lokale Vorschau
-  `node release/preview.cjs`). Release-Verlauf v1.27–v1.41: `RELEASES.md`.
+  `node release/preview.cjs`). Release-Verlauf v1.27–v1.42: `RELEASES.md`.
 
 ## Befehle und Prüfkette
 
@@ -68,11 +68,26 @@ ist `data-view="plan"`), am Desktop den Arbeitsbereich neben dem Raster (`body.d
 `setView()`. Tagesband `renderDaySwitch()`: natives Scrollen; Ziehen bewegt `anchor` nie.
 Scrim-Schließwege verschlucken den Folge-Klick (`schluckeNaechstenClick()`); diese Fehlerklasse
 reproduziert nur unter echten Touch-Events (`blattzu.js`).
+`blockZeilenEinpassen()` (nach `renderGrid()`): was in einem Rasterblock nicht ganz passt, fällt
+als ganze Zeile weg (erst Begründung, dann Uhrzeit; Titel auf ganze Zeilen gekürzt), der volle
+Text bleibt im `title` und im Blatt; ein verborgenes Raster misst 0 und bleibt unangetastet.
+
+**Ziele als Steine.** Eine Stunde = ein Stein: `steinReihe()`/`steinHtml()` zeichnen aus den
+vorhandenen Werten (abgehakt massiv, eingeplant Ring, vorgeschlagen blass, ohne Uhrzeit
+gestrichelt, Mulde = offen, Überplanung außerhalb der Schiene mit „+x"); die Reihe ist
+`aria-hidden`, die Zahlen stehen als Text daneben. `areaGrobOffen()` ist eine reine
+Anzeige-Summe (grob verplant, nicht abgehakt), keine Verteiler-Rechnung. `steineFallen()` nur
+über `ansichtWechseln("ziele")`, nie nach `renderAll()`. Ziele-Blatt: Stein tippen setzt n h,
+±½ rastet auf halbe Stunden; „Passt das noch?" zeigt dieselbe Rechnung als Steinzeile (`steine.js`).
 
 **Blätter.** Das Wochen-Blatt `freizeitSheet()` (`#weekLabel`) hält seinen Frei/Belegt-Umschalter in
 einer Modulvariable, nicht in `state`; „Frei" nennt Zeitfenster aus `freeGaps()`, derselben
 Lückenrechnung wie der Verteiler. Monatszellen (`monatSheet()`) tragen bewusst nur Tagesnummer,
 Auslastungsstrich, „freigehalten"-Ring und „heute"-Kreis — eine ~40-px-Zelle trägt keine Uhrzeit.
+Abgang: `closeModal()` entfernt das echte Blatt **sofort** (Fokus, `inert`, `openModal`, Tests wie
+bisher); `blattAbgang()` animiert nur eine Kopie in einem geschlossenen Shadow-Root (`.blatt-abgang`,
+inert, ohne Zeigerereignisse, für `querySelector`/Playwright unsichtbar). Ein aus `modalPush()`
+zurückkehrendes Blatt steht ohne Animation da (`.is-zurueck`); „Bewegung reduzieren" = keine Kopie.
 
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
@@ -158,8 +173,9 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
 - iOS installiert: `applyTheme()` meldet `--kopf-flach` als `theme-color`, `html[data-app="1"] .kopf`
   ist deckend in genau dieser Farbe — beide nur gemeinsam ändern, kein `black-translucent`. Danach
   das Home-Bildschirm-Symbol neu anlegen (iOS speichert die Werte mit dem Symbol).
-- Glas (`--glas*`, beide Themes) nur unter `@supports (backdrop-filter)`; ohne Unterstützung und bei
-  `prefers-reduced-transparency` fallen `.kopf`/`.tabbar`/`.sugbar` auf `--surface` zurück.
+- Kein Glas mehr (seit v1.42): `.kopf` (`--bg`), `.tabbar` (`--surface`) und die Vorschlagsleiste
+  (dunkle Pille `--bar-bg` im `::before`) sind deckend; die `--glas*`-Tokens existieren nur noch
+  deckend für alte Regeln.
 - Desktop (ab 1101px): Arbeitsfläche `.main > .panel` = `clamp(352px, 29vw, 440px)`; alle
   Kalenderspalten passen daneben, Titel werden gekürzt.
 - Eine `tagesAuslastung()` speist Tagesband-Balken, Monat und Desktop-Wochenkopf (`.dayhead`).
@@ -183,7 +199,9 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   Systemschrift: nur die Antwort bleibt ohne Scrollen sichtbar (`schrift.js`); Abend mit
   Tagesabschluss: eigener Vertrag mit festgenagelter 23-Uhr-Uhr (`agenda.js`, Abschnitt h). Die Falz
   hält knapp (~2 px): Agenda-Abstände und Tabbar-Höhe nicht vergrößern; ein Gruß über 22 Zeichen
-  setzt `.agenda__kopfzeile.is-lang` und rückt die Agenda am Telefon enger.
+  setzt `.agenda__kopfzeile.is-lang` und rückt die Agenda am Telefon enger. Deshalb ist die
+  „Heute zählt"-Karte am Telefon kompakt (ohne Wochenziel-Satz), am Desktop darf sie reicher sein
+  (Sunny, v1.42).
 - **Feste Uhr.** Zeitkritische Prüfskripte nageln Uhrzeit, Datum und Zeitzone fest
   (`page.clock.setFixedTime` mit zoniertem Literal wie `'2026-08-05T10:00:00+02:00'`,
   `timezoneId: 'Europe/Berlin'`; ohne Zonen-Endung gilt die Prozesszone der Maschine). Ein neues
@@ -192,20 +210,34 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
 - **Visuelle Prüfung.** Screenshots ansehen, nicht nur messen. Verdeckung nie am unscrollten Bild
   beurteilen (Vertrag: nach Scrollen erreichbar). Bounding-Boxen zeigen kein Überlappen, wenn Text
   über seinen Rand läuft und von einem später gezeichneten Element verdeckt wird.
-- Optional: Impeccable-Detektor (Plugin `impeccable`, falls installiert); side-tab an
-  `.agenda__hero`/`.agenda__row`/`.block` ist gewollt (Kante = Bereichsfarbe).
+- **Kontrast.** `kontrastlauf.js` misst an der laufenden App (Handy/Desktop, hell/dunkel, alle
+  Ansichten und die wichtigen Blätter) Text ≥ 4.5:1 (groß ≥ 3:1) und Bedienelemente ≥ 3:1.
+  Ausnahmen stehen einzeln benannt im Skriptkopf; neue nur mit Begründung dort, Mängel über die
+  Tokens beheben, nicht über die Prüfung.
+- Optional: Impeccable-Detektor (Plugin `impeccable`, falls installiert). Seit v1.42 gibt es keine
+  farbige Seitenkante mehr; der Bereich steckt im Punkt bzw. Stein vor dem Titel und in der Fläche.
 
 ## Produktentscheidungen (Sunny)
 
-- „Frisch & verspielt" (2026-09-26, Zielgruppe 20–30): `--font-display` (`ui-rounded`) für Zahlen
-  und Titel, keine `text-transform: uppercase`-Etiketten außer Wochentags-Kürzeln, runde Haken.
-- Look „Moos & Papier" (seit v1.36): Stilschicht am Ende des `<style>`-Blocks (Banner „v1.36"),
-  Tokens `--lime`/`--on-lime`/`--tief`. Bereichsfarben behalten ihre inhaltliche Bedeutung.
+- „Frisch & verspielt" (2026-09-26, Zielgruppe 20–30): keine `text-transform: uppercase`-Etiketten
+  außer Wochentags-Kürzeln, runde Haken.
+- Schrift Gabarito (Sunny, Entwurf B, 2026-10-07): `--font` und `--font-display` = eingebettete
+  Gabarito, dahinter `ui-rounded, "SF Pro Rounded", system-ui`. Die frühere Rundschrift ist ersetzt.
+- Look „Stundensteine" (seit v1.42, Entwurf B): Stilschicht am Ende des `<style>`-Blocks (Banner
+  `v1.42 „Stundensteine"`) über Bestand und v1.36 „Moos & Papier". Kühler Steingrund, Jade für
+  Aktionen (`--ink`/`--jade`; `--lime`/`--on-lime`/`--tief` zeigen nur noch darauf), Bereiche als
+  Steine gleicher Helligkeit: nur `--h` gehört dem Bereich, `--stone-L/C`, `--soft-*`, `--edge-*`,
+  `--atext-*` kommen aus den Tokens (hell/dunkel). Haken = runde Mulde (`--mulde`, Ring `--rand`),
+  Tabbar-„+" = größter Stein. Bereichsfarben behalten ihre inhaltliche Bedeutung.
 - `gruss()`-Texte sind Sunnys Wortlaut — nicht umformulieren. Keine sichtbaren Versionsnummern im Produkt.
 - „Passt das noch?" (`zusageDurchspielen()`/`zusageSheet()`) rechnet nur durch und öffnet höchstens
   `blockSheet()` vorausgefüllt — nie still speichern. Keine Rangfolge der Ziele erfinden.
-- Feiern beim Abhaken (`jubel()`): `gefeiert` gilt nur für die Sitzung, nie in `state`; kein
-  Konfetti beim Aufheben und bei reduzierter Bewegung.
+- Feiern beim Abhaken (`jubel()`): ein Stein in Bereichsfarbe klackt in die Mulde (der neu
+  gezeichnete Haken zeigt seinen Stein erst beim Landen, `.is-landend`), ein paar Splitter springen
+  ab; `jubelSchweben()` lässt „+1 h Sport" aufsteigen. Gefeiert wird nur ein echter Wechsel auf
+  erledigt (`abhaken()` prüft `istErledigt()` vorher), nie beim Aufheben, nichts bei reduzierter
+  Bewegung; `gefeiert` gilt nur für die Sitzung, nie in `state`. Aufgaben-Haken: Stein und Haken in
+  Bereichsfarbe, ohne vorhandenen Bereich beide Jade (`steine.js` f).
 
 ## Veröffentlichen
 

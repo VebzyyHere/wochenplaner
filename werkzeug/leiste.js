@@ -78,14 +78,21 @@ async function onboardingWeg(p) {
 // stehen. Ein echter Vergleich der berechneten Hintergrundfarbe gegen
 // eine frisch erzeugte .btn.btn--primary-Sonde erkennt das zuverlaessig,
 // unabhaengig davon, in welcher Farbnotation --ink im Stylesheet steht.
+// v1.42: die Sonde entsteht im selben Elternelement wie der geprüfte Knopf.
+// Seit die Vorschlagsleiste eine dunkle Pille ist, trägt ihr Primärknopf das
+// helle Leisten-Jade (--bar-btn) statt --ink — betont heißt weiter „sieht
+// aus wie der Primärknopf an genau dieser Stelle".
 async function betonteKnoepfe(p) {
   return p.evaluate(() => {
-    const probe = document.createElement('button');
-    probe.className = 'btn btn--primary';
-    probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
-    document.body.appendChild(probe);
-    const inkBg = getComputedStyle(probe).backgroundColor;
-    probe.remove();
+    const inkBgIn = (eltern) => {
+      const probe = document.createElement('button');
+      probe.className = 'btn btn--primary';
+      probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+      (eltern || document.body).appendChild(probe);
+      const bg = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return bg;
+    };
     const sichtbar = el => {
       if (!el) return false;
       const cs = getComputedStyle(el);
@@ -99,7 +106,7 @@ async function betonteKnoepfe(p) {
     };
     const ergebnis = {};
     for (const [name, el] of Object.entries(kandidaten)) {
-      ergebnis[name] = { sichtbar: sichtbar(el), betont: sichtbar(el) && getComputedStyle(el).backgroundColor === inkBg };
+      ergebnis[name] = { sichtbar: sichtbar(el), betont: sichtbar(el) && getComputedStyle(el).backgroundColor === inkBgIn(el.parentElement) };
     }
     return ergebnis;
   });
