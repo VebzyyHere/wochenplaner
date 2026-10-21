@@ -155,12 +155,16 @@ const aufbau = () => {
       'Klick auf den Ring hakt ab und feiert');
     ok(await p.evaluate(() => getComputedStyle(document.querySelector('.block[data-id="lauf"] .block__done')).opacity === '1'), 'abgehakt bleibt der gefüllte Ring sichtbar');
     const schrift = await p.evaluate(async () => { await document.fonts.ready;
-      // v1.42: die eingebettete Schrift ist Gabarito (vorher „Wochenplaner Rund").
+      // v1.42: die eingebettete Textschrift ist Gabarito; seit v1.43
+      // „Waldlichtung" stehen Überschriften in der eingebetteten Fraunces.
       // Geprüft über die FontFace selbst — fonts.check() meldet auch für eine
       // gar nicht vorhandene Familie „true".
-      return { da: [...document.fonts].some(f => f.family.replace(/["']/g, '') === 'Gabarito' && f.status === 'loaded'),
+      const geladen = n => [...document.fonts].some(f => f.family.replace(/["']/g, '') === n && f.status === 'loaded');
+      return { da: geladen('Gabarito'), fr: geladen('Fraunces'),
+        text: getComputedStyle(document.body).fontFamily,
         stapel: getComputedStyle(document.querySelector('.planhead h1')).fontFamily }; });
-    ok(schrift.da && /^"?Gabarito/.test(schrift.stapel), 'eingebettete Gabarito ist geladen und steht vorn im Display-Stapel (' + schrift.stapel.slice(0, 40) + ')');
+    ok(schrift.da && /^"?Gabarito/.test(schrift.text), 'eingebettete Gabarito ist geladen und trägt den Text (' + schrift.text.slice(0, 40) + ')');
+    ok(schrift.fr && /^"?Fraunces/.test(schrift.stapel), 'eingebettete Fraunces ist geladen und steht vorn bei Überschriften (' + schrift.stapel.slice(0, 40) + ')');
     await ctx.close();
   }
   {
