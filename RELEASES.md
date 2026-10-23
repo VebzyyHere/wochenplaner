@@ -7,6 +7,16 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.43 vom 2026-10-23
+
+PWA-Cache `wp-v1.43`, Datenschema 10, Kette 63 Skripte. Notizen für Nutzer: `release/v1.43.md`.
+
+- **Look „Waldlichtung mit Aufklebern"** (Sunny): Stilschicht nach v1.42. Grünfamilie `--gruen-1..6`,
+  Honig `--honig` für „heute"; Kontur/Versatz nur per `box-shadow` (`--hart`), dunkel `--ol` = `--rand`.
+  Fraunces (Base64, SOFT 100) für Überschriften und große Zahlen, Text bleibt Gabarito (`freude.js`).
+- Zweig-Aufkleber an „Heute zählt" (hinter dem Text, ohne Zeigerereignisse, keine Dauer-Animation),
+  Honigstern an ganz abgehakten Zielen (`.goal.is-geschafft`), Hügel am Desktop-Arbeitsbereich.
+
 ### Release v1.42 vom 2026-10-07
 
 PWA-Cache `wp-v1.42`, Datenschema 10, Kette 63 Skripte (neu: `steine.js`, `kontrastlauf.js`).
