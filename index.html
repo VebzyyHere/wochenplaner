@@ -3123,92 +3123,112 @@ html[data-theme="dark"] .scrim { background: oklch(0.1 0.01 170 / .62); }
 }
 
 /* ============================================================
-   v1.43 „Waldlichtung" — eine Stilschicht über v1.42 „Stundensteine"
-   Wärmeres Waldgrün statt kühlem Jade-Stein, Honig markiert „heute",
-   Überschriften und große Zahlen in Fraunces (weich), kleine gezeichnete
-   Zweige und Hügel. Nur Aussehen: keine Klassen umbenannt; Maße, an denen
-   die Falz-Verträge (agenda.js, schrift.js) hängen, sind nicht gewachsen
-   (Fraunces nur dort, wo die Zeilenhöhe nicht zählt oder gleich bleibt).
-   Vorlage: Entwurf A „Waldlichtung" (redesign/A-waldlichtung.png).
+   v1.43 „Waldlichtung mit Aufklebern" — eine Stilschicht über v1.42
+   Eine Grünfamilie (alle Grüntöne auf Farbton 140–150, nur Helligkeit und
+   Buntheit wechseln), Honig als einzige warme Note für „heute" und die
+   Aufkleber. Überschriften und große Zahlen in Fraunces (weich).
+   Aufkleber-Effekt (Sunny, 2026-10-23: „Waldrichtung mit Sticker-Pop-Effekt"):
+   dunkle Waldkontur und harter Versatzschatten an Flächen, die man anfasst;
+   Drücken schiebt sie in den Schatten. Kontur und Schatten sind box-shadow,
+   nie border — so wächst kein Maß, an dem die Falz-Verträge (agenda.js,
+   schrift.js) hängen. Illustrationen sind Aufkleber mit weißem Rand.
+   Nur Aussehen: keine Klassen umbenannt.
    ============================================================ */
 :root {
-  --h-ink: 150;
-  --bg:          oklch(0.966 0.014 128);
-  --surface:     oklch(0.988 0.008 120);
-  --surface-2:   oklch(0.946 0.016 128);
-  --surface-3:   oklch(0.922 0.020 128);
-  --border:      oklch(0.880 0.018 130);
-  --border-strong: oklch(0.740 0.022 135);
-  --text:        oklch(0.270 0.040 150);
-  --text-muted:  oklch(0.420 0.035 150);
-  --text-faint:  oklch(0.465 0.030 150);
-  --ink:         oklch(0.430 0.100 152);
-  --ink-hover:   oklch(0.380 0.095 152);
-  --ink-active:  oklch(0.340 0.085 152);
-  --on-ink:      oklch(0.980 0.015 120);
-  --focus:       oklch(0.430 0.100 152);
-  --selected:    oklch(0.915 0.060 135);
-  --selected-text: oklch(0.370 0.090 152);
-  --lime:        oklch(0.430 0.100 152);
-  --on-lime:     oklch(0.980 0.015 120);
-  --tief:        oklch(0.430 0.100 152);
-  --pille:       oklch(0.320 0.050 152);
-  --pille-an:    oklch(0.400 0.060 152);
-  --jade:        oklch(0.540 0.120 150);
-  --raised:      oklch(0.995 0.006 110);
-  --tray:        oklch(0.930 0.022 128);
-  --rand:        oklch(0.575 0.025 140);
-  --bar-bg:      oklch(0.320 0.050 152);
-  --bar-ink:     oklch(0.960 0.015 120);
-  --bar-btn:     oklch(0.860 0.130 115);
-  --bar-btn-ink: oklch(0.240 0.040 150);
-  --honig:       oklch(0.760 0.140 80);
-  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20fill%3D'none'%20stroke%3D'%233d7a57'%20stroke-width%3D'2.2'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cpath%20d%3D'M18%2074%20C30%2056%2042%2042%2064%2022'%2F%3E%20%3Cpath%20d%3D'M30%2058%20C22%2054%2016%2046%2017%2038%20C25%2040%2031%2047%2030%2058Z'%20fill%3D'%23a9d4b3'%2F%3E%20%3Cpath%20d%3D'M40%2046%20C40%2036%2046%2028%2055%2026%20C55%2035%2049%2043%2040%2046Z'%20fill%3D'%23a9d4b3'%2F%3E%20%3Cpath%20d%3D'M50%2036%20C44%2032%2041%2025%2043%2018%20C50%2021%2053%2028%2050%2036Z'%20fill%3D'%23a9d4b3'%2F%3E%20%3Ccircle%20cx%3D'66'%20cy%3D'20'%20r%3D'3.2'%20fill%3D'%23e3b23c'%20stroke%3D'none'%2F%3E%3C%2Fsvg%3E");
-  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%23dcebd9'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%23c3dfc6'%2F%3E%3C%2Fsvg%3E");
-  --shadow-liste: 0 1px 0 var(--border), 0 10px 24px -18px oklch(0.30 0.06 150 / .5);
-  --glas:        oklch(0.966 0.014 128);
-  --glas-linie:  oklch(0.880 0.018 130);
-  --glas-schatten: 0 1px 0 oklch(0.880 0.018 130);
+  --h-ink: 148;
+  /* Grünfamilie, hell → dunkel */
+  --gruen-1: oklch(0.965 0.016 140);   /* Grund */
+  --gruen-2: oklch(0.915 0.060 142);   /* gewählt, Mint */
+  --gruen-3: oklch(0.860 0.120 138);   /* Leuchtgrün der Vorschlagsleiste */
+  --gruen-4: oklch(0.580 0.130 145);   /* Steine, Fortschritt */
+  --gruen-5: oklch(0.450 0.110 148);   /* Aktion */
+  --gruen-6: oklch(0.270 0.045 150);   /* Text, Kontur */
+  --bg:          var(--gruen-1);
+  --surface:     oklch(0.992 0.006 135);
+  --surface-2:   oklch(0.945 0.020 140);
+  --surface-3:   oklch(0.920 0.024 140);
+  --border:      oklch(0.880 0.022 140);
+  --border-strong: oklch(0.740 0.026 142);
+  --text:        var(--gruen-6);
+  --text-muted:  oklch(0.420 0.040 148);
+  --text-faint:  oklch(0.465 0.034 148);
+  --ink:         var(--gruen-5);
+  --ink-hover:   oklch(0.400 0.105 148);
+  --ink-active:  oklch(0.360 0.095 148);
+  --on-ink:      oklch(0.985 0.012 135);
+  --focus:       var(--gruen-5);
+  --selected:    var(--gruen-2);
+  --selected-text: oklch(0.380 0.100 148);
+  --lime:        var(--gruen-5);
+  --on-lime:     oklch(0.985 0.012 135);
+  --tief:        var(--gruen-5);
+  --pille:       var(--gruen-6);
+  --pille-an:    oklch(0.360 0.060 148);
+  --jade:        var(--gruen-4);
+  --success:     var(--gruen-4);
+  --raised:      oklch(0.996 0.004 135);
+  --tray:        oklch(0.930 0.026 140);
+  --rand:        oklch(0.560 0.030 145);
+  --bar-bg:      var(--gruen-6);
+  --bar-ink:     oklch(0.965 0.016 140);
+  --bar-btn:     var(--gruen-3);
+  --bar-btn-ink: var(--gruen-6);
+  --honig:       oklch(0.780 0.150 82);
+  --ol:          var(--gruen-6);       /* Aufkleberkontur */
+  --ring:        var(--ol);            /* Kontur an Haken und Schaltern */
+  --kontur:      0 0 0 2px var(--ol);
+  --schlag:      var(--ol);            /* Farbe des harten Versatzschattens */
+  --hart:        0 0 0 2px var(--ol), 3px 3px 0 2px var(--schlag);
+  --hart-klein:  inset 0 0 0 2px var(--ol), 2px 2px 0 0 var(--schlag);
+  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23ffffff'%20stroke-width%3D'9'%20fill%3D'%23ffffff'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%232a4a35'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%20fill%3D'%238fcf9c'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%20fill%3D'%235fae74'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%20fill%3D'%23c5e6a5'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%20fill%3D'%23f0bf3c'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --wald-stern:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23ffffff'%20stroke-width%3D'9'%20fill%3D'%23ffffff'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%232a4a35'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%20fill%3D'%23f0bf3c'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%23dcecd8'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%23c2e0c4'%2F%3E%3C%2Fsvg%3E");
+  --glas:        var(--gruen-1);
+  --glas-linie:  oklch(0.880 0.022 140);
+  --glas-schatten: 0 1px 0 oklch(0.880 0.022 140);
   /* = --bg als Hexwert: applyTheme() meldet ihn als theme-color. */
-  --kopf-flach: #f1f6ec;
+  --kopf-flach: #f0f6ee;
 }
 html[data-theme="dark"] {
-  --bg:          oklch(0.215 0.020 152);
-  --surface:     oklch(0.250 0.022 152);
-  --surface-2:   oklch(0.285 0.024 152);
-  --surface-3:   oklch(0.315 0.024 152);
-  --border:      oklch(0.340 0.022 152);
-  --border-strong: oklch(0.460 0.024 152);
-  --text:        oklch(0.945 0.012 120);
-  --text-muted:  oklch(0.815 0.018 125);
-  --text-faint:  oklch(0.725 0.018 125);
-  --ink:         oklch(0.800 0.120 140);
-  --ink-hover:   oklch(0.850 0.110 140);
-  --ink-active:  oklch(0.740 0.120 140);
-  --on-ink:      oklch(0.210 0.030 152);
-  --focus:       oklch(0.820 0.120 140);
-  --selected:    oklch(0.330 0.055 145);
-  --selected-text: oklch(0.890 0.100 135);
-  --lime:        oklch(0.800 0.120 140);
-  --on-lime:     oklch(0.210 0.030 152);
-  --tief:        oklch(0.800 0.120 140);
-  --pille:       oklch(0.335 0.028 152);
-  --pille-an:    oklch(0.415 0.034 152);
-  --jade:        oklch(0.780 0.120 145);
-  --raised:      oklch(0.285 0.024 152);
-  --tray:        oklch(0.270 0.022 152);
-  --rand:        oklch(0.630 0.024 145);
-  --bar-bg:      oklch(0.335 0.028 152);
-  --bar-btn:     oklch(0.840 0.130 120);
-  --bar-btn-ink: oklch(0.200 0.030 152);
-  --honig:       oklch(0.820 0.130 82);
-  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20fill%3D'none'%20stroke%3D'%238fc7a0'%20stroke-width%3D'2.2'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cpath%20d%3D'M18%2074%20C30%2056%2042%2042%2064%2022'%2F%3E%20%3Cpath%20d%3D'M30%2058%20C22%2054%2016%2046%2017%2038%20C25%2040%2031%2047%2030%2058Z'%20fill%3D'%232f5a42'%2F%3E%20%3Cpath%20d%3D'M40%2046%20C40%2036%2046%2028%2055%2026%20C55%2035%2049%2043%2040%2046Z'%20fill%3D'%232f5a42'%2F%3E%20%3Cpath%20d%3D'M50%2036%20C44%2032%2041%2025%2043%2018%20C50%2021%2053%2028%2050%2036Z'%20fill%3D'%232f5a42'%2F%3E%20%3Ccircle%20cx%3D'66'%20cy%3D'20'%20r%3D'3.2'%20fill%3D'%23e7c35a'%20stroke%3D'none'%2F%3E%3C%2Fsvg%3E");
-  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%2322382c'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%231c3025'%2F%3E%3C%2Fsvg%3E");
-  --shadow-liste: 0 1px 0 var(--border);
-  --glas:        oklch(0.215 0.020 152);
-  --glas-linie:  oklch(0.340 0.022 152);
-  --glas-schatten: 0 1px 0 oklch(0.340 0.022 152);
-  --kopf-flach: #131c15;
+  --gruen-1: oklch(0.215 0.022 150);
+  --gruen-2: oklch(0.335 0.060 145);
+  --gruen-3: oklch(0.840 0.130 138);
+  --gruen-4: oklch(0.760 0.130 145);
+  --gruen-5: oklch(0.810 0.120 142);
+  --gruen-6: oklch(0.945 0.014 140);
+  --surface:     oklch(0.255 0.024 150);
+  --surface-2:   oklch(0.290 0.026 150);
+  --surface-3:   oklch(0.320 0.026 150);
+  --border:      oklch(0.345 0.024 150);
+  --border-strong: oklch(0.465 0.026 150);
+  --text-muted:  oklch(0.815 0.020 140);
+  --text-faint:  oklch(0.725 0.020 140);
+  --ink-hover:   oklch(0.860 0.110 142);
+  --ink-active:  oklch(0.750 0.120 142);
+  --on-ink:      oklch(0.200 0.030 150);
+  --selected-text: oklch(0.900 0.100 140);
+  --on-lime:     oklch(0.200 0.030 150);
+  --pille:       oklch(0.335 0.030 150);
+  --pille-an:    oklch(0.420 0.036 150);
+  --raised:      oklch(0.290 0.026 150);
+  --tray:        oklch(0.272 0.024 150);
+  --rand:        oklch(0.630 0.026 145);
+  --bar-bg:      oklch(0.335 0.030 150);
+  --bar-ink:     oklch(0.950 0.012 140);
+  --bar-btn-ink: oklch(0.200 0.030 150);
+  --honig:       oklch(0.830 0.140 84);
+  /* Dunkel: Kontur im hellen Randton (3:1 gegen die Fläche), der Versatz
+     als tiefer Waldschatten. */
+  --ol:          var(--rand);
+  --schlag:      oklch(0.120 0.020 150);
+  --ring:        var(--rand);
+  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23e9f2e6'%20stroke-width%3D'9'%20fill%3D'%23e9f2e6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%2316261c'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%20fill%3D'%236fb682'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%20fill%3D'%234c9562'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%20fill%3D'%23a9d38e'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%20fill%3D'%23e7b93a'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --wald-stern:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23e9f2e6'%20stroke-width%3D'9'%20fill%3D'%23e9f2e6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%2316261c'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%20fill%3D'%23e7b93a'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%2322382c'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%231b3024'%2F%3E%3C%2Fsvg%3E");
+  --glas:        oklch(0.215 0.022 150);
+  --glas-linie:  oklch(0.345 0.024 150);
+  --glas-schatten: 0 1px 0 oklch(0.345 0.024 150);
+  --kopf-flach: #121c15;
 }
 /* Fraunces: Überschriften, Schwerpunkt, Bereichsnamen und große Tageszahlen. */
 .card__title, .sheet__title, .planhead h1, .agenda__frogtext, .goal__name,
@@ -3216,34 +3236,78 @@ html[data-theme="dark"] {
   font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
   letter-spacing: -.01em;
 }
-.card__title, .planhead h1 { font-weight: 650; }
-.sheet__title { font-weight: 650; }
-.agenda__frogtext, .agenda__hero-title { font-weight: 620; }
-.goal__name { font-weight: 620; font-size: 1.15rem; }
-.dayswitch__btn b, .dayhead__num { font-weight: 620; }
-.dayhead.is-today .dayhead__num { font-weight: 650; }
-/* Heute: Honigring um die Pille statt Jade. */
+.card__title, .planhead h1, .sheet__title { font-weight: 680; }
+.agenda__frogtext, .agenda__hero-title { font-weight: 640; }
+.goal__name { font-weight: 640; font-size: 1.15rem; }
+.dayswitch__btn b, .dayhead__num { font-weight: 640; }
+
+/* ---- Tagesband: der gewählte Tag ist ein schräg geklebter Aufkleber ---- */
 .dayswitch__btn.is-today { box-shadow: inset 0 0 0 2px var(--honig); }
-.dayswitch__btn.is-today[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 2px var(--honig), inset 0 -2px 0 var(--lo);
-}
-.dayhead.is-today .dayhead__num { box-shadow: 0 0 0 2px var(--honig); }
-/* Ein Zweig wächst neben „Heute zählt" — Zierde, nie im Weg: hinter dem
-   Text, ohne Zeigerereignisse, am schmalen Telefon kleiner. */
+.dayswitch__btn[aria-pressed="true"],
+.dayswitch__btn.is-today[aria-pressed="true"] { box-shadow: var(--hart); }
+.dayswitch__btn.is-today[aria-pressed="true"] { background: var(--ink); outline: 2px solid var(--honig); outline-offset: -5px; }
+/* Kein Kippen und nur 2 px Versatz: das Tagesband scrollt und schneidet ab. */
+.dayswitch__btn[aria-pressed="true"],
+.dayswitch__btn.is-today[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ol), 2px 2px 0 2px var(--schlag); }
+.dayhead.is-today .dayhead__num { box-shadow: 0 0 0 2px var(--honig), 2px 2px 0 2px var(--schlag); }
+
+/* ---- Heute: Aufkleber-Zweig, Liste als Karte mit Kontur ---------------- */
 .agenda__kopfzeile { position: relative; isolation: isolate; }
 .agenda__kopfzeile::after {
-  content: ""; position: absolute; z-index: -1; right: -4px; top: 30px; width: 60px; height: 60px;
-  background: var(--wald-zweig) no-repeat center / contain; opacity: .75; pointer-events: none;
-  transform-origin: 20% 95%;
+  content: ""; position: absolute; z-index: -1; right: -2px; top: 26px; width: 64px; height: 64px;
+  background: var(--wald-zweig) no-repeat center / contain; pointer-events: none;
+  transform: rotate(8deg); transform-origin: 30% 90%;
 }
-@media (max-width: 360px) { .agenda__kopfzeile::after { width: 44px; height: 44px; top: 34px; } }
-@media (prefers-reduced-motion: no-preference) {
-  .agenda__kopfzeile::after { animation: zweigWiegen 7s ease-in-out infinite alternate; }
-}
-@keyframes zweigWiegen { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
-/* Danach: die Liste schwebt leicht über dem Grund. */
-.agenda__list { box-shadow: var(--shadow-liste); }
+@media (max-width: 360px) { .agenda__kopfzeile::after { width: 46px; height: 46px; top: 32px; } }
+.agenda__list, .freischalter, .task, .energy, .taskadd, .zusage__einstieg { box-shadow: var(--hart); }
 .agenda__list:has(> .is-vorschlag) { box-shadow: none; }
+.agenda__row.is-vorschlag { border-color: var(--ol); background: var(--surface); }
+.energy { background: var(--surface); }
+.energy__opt[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); box-shadow: inset 0 0 0 2px var(--ring); }
+.agenda__check, .task__check { box-shadow: inset 0 0 0 2px var(--ring); background: var(--surface); }
+.agenda__check:checked, .task__check:checked { box-shadow: inset 0 0 0 2px var(--ring), inset 0 3px 0 var(--hi); }
+.switch.freischalter input { box-shadow: inset 0 0 0 2px var(--ring); background: var(--surface-2); }
+.switch.freischalter input::after { box-shadow: 0 0 0 2px var(--ring); }
+.switch.freischalter input:checked { background: var(--ink); box-shadow: inset 0 0 0 2px var(--ring); }
+
+/* ---- Ziele: jeder Bereich ein Aufkleber, der Stern klebt am Ziel ------- */
+.goal { position: relative; padding: 12px 14px 14px; margin: 0 0 14px; border-radius: 20px;
+  background: var(--surface); box-shadow: var(--hart); }
+.goal.is-geschafft::after {
+  content: ""; position: absolute; right: -10px; top: -12px; width: 40px; height: 40px;
+  background: var(--wald-stern) no-repeat center / contain; transform: rotate(14deg); pointer-events: none;
+}
+.mulden { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--ring); }
+.stein:not(.stein--plan):not(.stein--grob):not(.stein--sug) { box-shadow: inset 0 0 0 2px var(--ring), inset 0 3px 0 var(--hi); }
+
+/* ---- Woche: Blöcke als kleine Aufkleber ------------------------------ */
+.block { border-radius: 12px; box-shadow: var(--hart-klein); }
+.block:hover { box-shadow: var(--hart-klein); }
+.block.is-sug { box-shadow: none; border-color: var(--ol); }
+.loosechip { box-shadow: 2px 2px 0 0 var(--schlag); }
+
+/* ---- Knöpfe: Kontur, Versatz, beim Drücken in den Schatten ------------ */
+.btn--primary, .chip[aria-pressed="true"], .task__go { box-shadow: var(--hart); }
+.btn:not(.btn--ghost):not(.btn--primary) { border-color: var(--ol); }
+.tabbar__plus {
+  background-color: var(--ink) !important;
+  box-shadow: var(--hart) !important;
+}
+.kopf { box-shadow: 0 2px 0 var(--ol); }
+html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chip, .tabbar__plus, .task__go, .energy__opt {
+    transition: transform .26s var(--feder), box-shadow .26s var(--feder), background .2s, color .2s;
+  }
+  .btn--primary:active, .chip:active, .task__go:active, .tabbar__plus:active {
+    transform: translate(3px, 3px); box-shadow: var(--kontur) !important; transition-duration: .07s;
+  }
+  .btn:not(.btn--primary):active, .energy__opt:active { transform: scale(.96); transition-duration: .07s; }
+  /* Der gewählte Reiter hebt sein Symbol ein Stück an und kippt es leicht. */
+  .tabbar button .ui-icon { transition: transform .34s var(--feder); }
+  .tabbar button[aria-current="true"] .ui-icon { transform: translateY(-2px) rotate(-6deg) scale(1.08); }
+}
+
 /* Hügel am Fuß des Arbeitsbereichs (Desktop) — dort ist unten Luft. */
 @media (min-width: 1101px) {
   .main > .panel {
@@ -3251,26 +3315,6 @@ html[data-theme="dark"] {
     background-position: bottom; background-size: 100% 72px;
   }
 }
-/* Das „+" der Tabbar: ein Stein mit Licht von oben links. */
-.tabbar__plus {
-  background-color: var(--ink) !important;
-  background-image: radial-gradient(circle at 35% 30%, var(--jade), var(--ink) 70%) !important;
-}
-/* Fühlbares Drücken: Knöpfe geben kurz nach und federn zurück. */
-@media (prefers-reduced-motion: no-preference) {
-  .btn, .chip, .tabbar button, .tabbar__plus, .energy__opt, .dayswitch__btn, .task__go {
-    transition: transform .28s var(--feder), background .2s, box-shadow .2s, color .2s;
-  }
-  .btn:active, .chip:active, .tabbar button:active, .energy__opt:active, .dayswitch__btn:active, .task__go:active {
-    transform: scale(.96); transition-duration: .08s;
-  }
-  .tabbar__plus:active { transform: scale(.92) rotate(-8deg); transition-duration: .08s; }
-  /* Der gewählte Reiter hebt sein Symbol ein Stück an. */
-  .tabbar button .ui-icon { transition: transform .32s var(--feder); }
-  .tabbar button[aria-current="true"] .ui-icon { transform: translateY(-2px) scale(1.06); }
-}
-.mulden { background: var(--tray); }
-.block { border-radius: 14px; }
 </style>
 </head>
 <body>
@@ -7516,6 +7560,8 @@ function renderGoals() {
     // v1.42: Steine statt Balken — dieselben drei Stufen (abgehakt,
     // eingeplant, vorgeschlagen), nur jetzt in Stunden abzählbar.
     const ueber = done + sug - goal;
+    // v1.43: ganz abgehakt klebt ein Honigstern an der Karte (nur Anzeige).
+    if (goal > 0 && ist >= goal) row.classList.add("is-geschafft");
 
     row.innerHTML =
       "<div class='goal__top'>" +

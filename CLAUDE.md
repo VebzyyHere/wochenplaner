@@ -229,6 +229,13 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   Steine gleicher Helligkeit: nur `--h` gehört dem Bereich, `--stone-L/C`, `--soft-*`, `--edge-*`,
   `--atext-*` kommen aus den Tokens (hell/dunkel). Haken = runde Mulde (`--mulde`, Ring `--rand`),
   Tabbar-„+" = größter Stein. Bereichsfarben behalten ihre inhaltliche Bedeutung.
+- Look „Waldlichtung mit Aufklebern" (v1.43, Sunny 2026-10-23: „Waldrichtung mit Sticker-Pop-Effekt
+  und harmonisierten Grüntönen"): Stilschicht nach v1.42. Eine Grünfamilie `--gruen-1..6` (Farbton
+  140–150), Honig `--honig` nur für „heute" und Aufkleber. Kontur `--ol` und Versatz `--schlag` nur
+  über `box-shadow` (`--hart`, `--hart-klein`), nie `border` — sonst wächst die Falz. Dunkel ist
+  `--ol` = `--rand` (3:1, `kontrastlauf.js`). Überschriften/große Zahlen in eingebetteter Fraunces
+  (SOFT 100), Text bleibt Gabarito (`freude.js` prüft beides). Ganz abgehakte Ziele: `.goal.is-geschafft`
+  mit Honigstern. Keine Dauer-Animationen (`doppeltipp.js` d misst knapp unter 100 ms).
 - `gruss()`-Texte sind Sunnys Wortlaut — nicht umformulieren. Keine sichtbaren Versionsnummern im Produkt.
 - „Passt das noch?" (`zusageDurchspielen()`/`zusageSheet()`) rechnet nur durch und öffnet höchstens
   `blockSheet()` vorausgefüllt — nie still speichern. Keine Rangfolge der Ziele erfinden.
