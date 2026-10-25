@@ -3174,6 +3174,9 @@ html[data-theme="dark"] .scrim { background: oklch(0.1 0.01 170 / .62); }
   --bar-btn:     var(--gruen-3);
   --bar-btn-ink: var(--gruen-6);
   --honig:       oklch(0.780 0.150 82);
+  --honig-ring:  oklch(0.620 0.130 72);   /* Ringe brauchen 3:1 gegen den Grund */
+  --lippe:       oklch(0.200 0.050 150 / .35);
+  --wald-tasse:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='%23ffffff' stroke-width='9' fill='%23ffffff'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26'/%3E%3C/g%3E%3Cg stroke='%232a4a35' stroke-width='2.6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z' fill='%23f0bf3c'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52' fill='none'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28' fill='none'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26' fill='none'/%3E%3C/g%3E%3C/svg%3E");
   --ol:          var(--gruen-6);       /* Aufkleberkontur */
   --ring:        var(--ol);            /* Kontur an Haken und Schaltern */
   --kontur:      0 0 0 2px var(--ol);
@@ -3217,6 +3220,9 @@ html[data-theme="dark"] {
   --bar-ink:     oklch(0.950 0.012 140);
   --bar-btn-ink: oklch(0.200 0.030 150);
   --honig:       oklch(0.830 0.140 84);
+  --honig-ring:  oklch(0.830 0.140 84);
+  --lippe:       oklch(0 0 0 / .30);
+  --wald-tasse:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='%23e9f2e6' stroke-width='9' fill='%23e9f2e6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26'/%3E%3C/g%3E%3Cg stroke='%2316261c' stroke-width='2.6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z' fill='%23e7b93a'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52' fill='none'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28' fill='none'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26' fill='none'/%3E%3C/g%3E%3C/svg%3E");
   /* Dunkel: Kontur im hellen Randton (3:1 gegen die Fläche), der Versatz
      als tiefer Waldschatten. */
   --ol:          var(--rand);
@@ -3241,24 +3247,53 @@ html[data-theme="dark"] {
 .goal__name { font-weight: 640; font-size: 1.15rem; }
 .dayswitch__btn b, .dayhead__num { font-weight: 640; }
 
-/* ---- Tagesband: der gewählte Tag ist ein schräg geklebter Aufkleber ---- */
-.dayswitch__btn.is-today { box-shadow: inset 0 0 0 2px var(--honig); }
-.dayswitch__btn[aria-pressed="true"],
-.dayswitch__btn.is-today[aria-pressed="true"] { box-shadow: var(--hart); }
-.dayswitch__btn.is-today[aria-pressed="true"] { background: var(--ink); outline: 2px solid var(--honig); outline-offset: -5px; }
-/* Kein Kippen und nur 2 px Versatz: das Tagesband scrollt und schneidet ab. */
-.dayswitch__btn[aria-pressed="true"],
-.dayswitch__btn.is-today[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ol), 2px 2px 0 2px var(--schlag); }
-.dayhead.is-today .dayhead__num { box-shadow: 0 0 0 2px var(--honig), 2px 2px 0 2px var(--schlag); }
+/* ---- Tage einkreisen: eine Sprache auf allen Flächen -----------------
+   Heute = Honigring (--honig-ring, 3:1 gegen den Grund). Gewählt = gefüllte
+   Pille (Telefon) bzw. Mint-Spalte (Desktop). Beides = gefüllte Pille mit
+   Honigring und weißem Aufkleberrand dazwischen. Frei = Mulde mit
+   gestricheltem Rand (gestrichelt heißt im Planer „ohne feste Uhrzeit").
+   Alles nach innen (inset/outline-offset): das Tagesband scrollt und
+   schneidet alles ab, was über die Pille hinausragt. */
+.dayswitch__btn.is-today { box-shadow: inset 0 0 0 2px var(--honig-ring); }
+.dayswitch__btn[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--ol), inset 0 -4px 0 var(--lippe);
+}
+.dayswitch__btn.is-today[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--honig-ring), inset 0 0 0 4px var(--raised), inset 0 -6px 0 var(--lippe);
+}
+/* Frei: Mulde, und statt des leeren Auslastungsstrichs der kleine Ring aus
+   dem Monat — dasselbe Zeichen für dieselbe Sache. */
+html[data-theme] .dayswitch__btn.is-frei { background: var(--tray); }
+html[data-theme] .dayswitch__btn.is-frei[aria-pressed="true"] { background: var(--ink); }
+.dayswitch__btn.is-frei i, .dayswitch__btn.is-frei[aria-pressed="true"] i {
+  width: 8px; height: 8px; border-radius: 50%; background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-muted);
+}
+.dayswitch__btn.is-frei[aria-pressed="true"] i { box-shadow: inset 0 0 0 1.5px var(--on-ink); }
+/* Dunkel trägt die gefüllte Pille keinen grauen Rand — die Fläche reicht. */
+html[data-theme="dark"] .dayswitch__btn[aria-pressed="true"]:not(.is-today) { box-shadow: inset 0 -4px 0 var(--lippe); }
+/* Desktop-Tageskopf und Monat: heute ist der Honigring, nicht mehr die
+   gefüllte Zahl — gefüllt heißt jetzt überall „gewählt". */
+.dayhead.is-today .dayhead__num, .monatcell.is-today b {
+  background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--honig-ring);
+}
+.monatcell.is-today b { width: 26px; height: 26px; }
 
 /* ---- Heute: Aufkleber-Zweig, Liste als Karte mit Kontur ---------------- */
-.agenda__kopfzeile { position: relative; isolation: isolate; }
-.agenda__kopfzeile::after {
-  content: ""; position: absolute; z-index: -1; right: -2px; top: 26px; width: 64px; height: 64px;
+/* Der Zweig klebt am Schwerpunkt, rechts in eigener Spalte: die Zeile hält
+   ihm Platz frei, so läuft kein Text darunter (auch nicht an freien Tagen,
+   an denen Gruß und Ring fehlen). */
+.agenda__frog { position: relative; padding-right: 50px; }
+.agenda__frog::after {
+  content: ""; position: absolute; right: -2px; bottom: 2px; width: 46px; height: 46px;
   background: var(--wald-zweig) no-repeat center / contain; pointer-events: none;
-  transform: rotate(8deg); transform-origin: 30% 90%;
+  transform: rotate(8deg);
 }
-@media (max-width: 360px) { .agenda__kopfzeile::after { width: 46px; height: 46px; top: 32px; } }
+/* Bewusst frei: eine Tasse Tee als Aufkleber über dem Satz. */
+.empty--frei::before {
+  content: ""; display: block; width: 56px; height: 56px; margin: 0 auto 6px;
+  background: var(--wald-tasse) no-repeat center / contain; transform: rotate(-6deg);
+}
 .agenda__list, .freischalter, .task, .energy, .taskadd, .zusage__einstieg { box-shadow: var(--hart); }
 .agenda__list:has(> .is-vorschlag) { box-shadow: none; }
 .agenda__row.is-vorschlag { border-color: var(--ol); background: var(--surface); }
@@ -8406,6 +8441,7 @@ function renderGrid() {
     empty.style.gridColumn = "1 / -1";
     empty.style.gridRow = einTag ? "1" : "2";
     empty.style.alignSelf = "start";
+    if (einzelTag && istFrei(einzelTag)) empty.classList.add("empty--frei");
     empty.innerHTML = (einzelTag && istFrei(einzelTag))
       ? "<b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten."
       : "<b>Noch nichts geplant</b>Leere Seite, volle Freiheit. Tipp auf „Eintrag“ oder direkt auf eine freie Stunde.";
@@ -10057,7 +10093,7 @@ function renderAgenda() {
     // aus wie ein einfach vergessener — samt "Vorschlagen"-Knopf, der hier
     // ohnehin nichts ausloest (istFrei-Vertrag in buildSuggestions()).
     if (!eintraege.length && istFrei(dayKey)) {
-      html += "<div class='empty'><b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten.</div>";
+      html += "<div class='empty empty--frei'><b>Bewusst frei</b>Diesen Tag hast du dir bewusst freigehalten.</div>";
     } else if (!eintraege.length && heutigeVorschlaege.length) {
       // Stufe B1: der Tag ist nicht "leer" — es liegt schon etwas vor, nur
       // noch nicht entschieden. "Vorschlagen" entfällt hier: die Leiste

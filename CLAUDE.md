@@ -236,6 +236,10 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   `--ol` = `--rand` (3:1, `kontrastlauf.js`). Überschriften/große Zahlen in eingebetteter Fraunces
   (SOFT 100), Text bleibt Gabarito (`freude.js` prüft beides). Ganz abgehakte Ziele: `.goal.is-geschafft`
   mit Honigstern. Keine Dauer-Animationen (`doppeltipp.js` d misst knapp unter 100 ms).
+- Tage einkreisen (Review 2026-10-25): heute = Honigring `--honig-ring` (3:1) auf allen Flächen
+  (Tagesband, Desktop-Tageskopf, Monat); gewählt = gefüllte Pille bzw. Mint-Spalte; beides = Pille mit
+  Honigring und `--raised`-Rand dazwischen. Frei = Mulde `--tray` mit kleinem Ring statt Strich (wie im
+  Monat). Ringe im Tagesband nur `inset` — das Band schneidet alles außerhalb der Pille ab.
 - `gruss()`-Texte sind Sunnys Wortlaut — nicht umformulieren. Keine sichtbaren Versionsnummern im Produkt.
 - „Passt das noch?" (`zusageDurchspielen()`/`zusageSheet()`) rechnet nur durch und öffnet höchstens
   `blockSheet()` vorausgefüllt — nie still speichern. Keine Rangfolge der Ziele erfinden.

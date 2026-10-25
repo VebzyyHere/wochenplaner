@@ -351,7 +351,11 @@ function befuellen(theme) {
     // nur eine Handvoll — eine Untergrenze fängt eine leer gebliebene Stelle.
     const messe = async (wo, root, mindestens) => auswerten(lauf, wo, await p.evaluate(MESSEN, root || null), mindestens || 8);
     const blatt = async (wo, oeffnen, danach) => {
-      await p.evaluate(oeffnen); await p.waitForTimeout(250);
+      // Auf das Blatt selbst warten statt nur auf die Uhr: unter Last (volle
+      // Kette) war es nach 250 ms gelegentlich noch nicht da („nur 0 Messungen").
+      await p.evaluate(oeffnen);
+      await p.waitForSelector('#modalRoot .scrim:last-child .sheet', { state: 'visible', timeout: 3000 }).catch(() => {});
+      await p.waitForTimeout(250);
       if (danach) { await danach(); await p.waitForTimeout(150); }
       await messe(wo, '#modalRoot .scrim:last-child .sheet');
       await p.evaluate(() => closeModal()); await p.waitForTimeout(150);
