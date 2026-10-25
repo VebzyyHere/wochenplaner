@@ -61,8 +61,10 @@ const aufbau = () => {
   };
 
   console.log('a) Begrüßung');
-  const zeiten = [['2026-09-09T08:00:00+02:00', 'Einen wunderschönen guten Morgen, Alex ☀️'], ['2026-09-09T12:30:00+02:00', 'Mahlzeit, Alex'],
-    ['2026-09-09T15:00:00+02:00', 'Hallihallöchen, Alex'], ['2026-09-09T20:00:00+02:00', 'Guten Abend, Alex'],
+  // v1.44: kein „Mahlzeit" mehr (11–18 Uhr Hallihallöchen), Schlaf ab 21:30.
+  const zeiten = [['2026-09-09T08:00:00+02:00', 'Einen wunderschönen guten Morgen, Alex ☀️'], ['2026-09-09T12:30:00+02:00', 'Hallihallöchen, Alex'],
+    ['2026-09-09T15:00:00+02:00', 'Hallihallöchen, Alex'], ['2026-09-09T20:00:00+02:00', 'Feierabend-Modus an, Alex 🌙'],
+    ['2026-09-09T21:29:00+02:00', 'Feierabend-Modus an, Alex 🌙'], ['2026-09-09T21:30:00+02:00', 'Schlaf was Schönes, Alex ✨'],
     ['2026-09-09T22:30:00+02:00', 'Schlaf was Schönes, Alex ✨'], ['2026-09-09T23:30:00+02:00', 'Schlaf was Schönes, Alex ✨']];
   for (const [uhr, erwartet] of zeiten) {
     const { ctx, p } = await seite(uhr);

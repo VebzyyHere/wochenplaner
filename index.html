@@ -5442,13 +5442,16 @@ function kringel(hue) {
 }
 
 function gruss() {
-  const h = new Date().getHours();
+  const jetzt = new Date();
+  const min = jetzt.getHours() * 60 + jetzt.getMinutes();
   const name = (state.profile && state.profile.name || "").trim();
   // v1.40: morgens und nachts mit Zeichen — Sonne bzw. Glitzersterne.
-  if (h >= 22 || h < 5) return (name ? "Schlaf was Schönes, " + name : "Schlaf was Schönes") + " ✨";
-  if (h < 11) return (name ? "Einen wunderschönen guten Morgen, " + name : "Einen wunderschönen guten Morgen") + " ☀️";
-  const wort = h < 14 ? "Mahlzeit" : h < 18 ? "Hallihallöchen" : "Guten Abend";
-  return name ? wort + ", " + name : wort;
+  // v1.44 (Sunny): „Mahlzeit" entfällt, Hallihallöchen gilt von 11 bis 18 Uhr,
+  // Schlaf schon ab 21:30, abends „Feierabend-Modus an“ mit Mond.
+  if (min >= 21 * 60 + 30 || min < 5 * 60) return (name ? "Schlaf was Schönes, " + name : "Schlaf was Schönes") + " ✨";
+  if (min < 11 * 60) return (name ? "Einen wunderschönen guten Morgen, " + name : "Einen wunderschönen guten Morgen") + " ☀️";
+  if (min >= 18 * 60) return (name ? "Feierabend-Modus an, " + name : "Feierabend-Modus an") + " 🌙";
+  return name ? "Hallihallöchen, " + name : "Hallihallöchen";
 }
 
 /* v1.42 „Stundensteine": statt Konfetti klackt ein Stein in Bereichsfarbe

@@ -7,6 +7,20 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.44 vom 2026-10-25
+
+PWA-Cache `wp-v1.44`, Datenschema 10, Kette 63 Skripte. Notizen für Nutzer: `release/v1.44.md`.
+
+- Design-Review: heute = `--honig-ring` (3:1) auf Tagesband, `.dayhead__num` und Monat; gewählt =
+  gefüllt; Ringe im Tagesband nur `inset` (das Band schneidet ab). Frei = `--tray` + kleiner Ring im `i`.
+  Dunkel: Spezifitätsfehler aus v1.42 behoben (gewählter freier Tag war dunkel auf dunkel).
+- Zweig an `.agenda__frog` (Zeile hält 50 px frei), Tasse über „Bewusst frei" (`.empty--frei`).
+- `gruss()` rechnet in Minuten: 5–10:59 Morgen, 11–17:59 Hallihallöchen, 18–21:29 „Feierabend-Modus an 🌙“,
+  ab 21:30 Schlaf (Sunny; „Mahlzeit" entfällt). `freude.js` prüft die Grenzen 21:29/21:30.
+- `kontrastlauf.js` wartet aufs Blatt statt nur 250 ms (unter Last „nur 0 Messungen").
+- Kette 61/63: `doppeltipp.js` d (Testvoraussetzung < 100 ms) war in der Cloud-Maschine 105–147 ms,
+  v1.43 dort genauso; `kontrastlauf.js` einmal leer, einzeln grün. Veröffentlicht auf Sunnys Wort.
+
 ### Release v1.43 vom 2026-10-23
 
 PWA-Cache `wp-v1.43`, Datenschema 10, Kette 63 Skripte. Notizen für Nutzer: `release/v1.43.md`.
