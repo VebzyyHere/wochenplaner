@@ -10,6 +10,11 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.46 ergänzt `pruefung.js` (Nutzerprüfung 2026-11): Tagesband-Pille heute+gewählt
+ohne Überlappung und ohne Höhenzuwachs, Umbruch langer Wörter in der Laufend-Karte,
+zugänglicher Name des Wochen-Knopfs, „Kopieren“ im Eintrags-Editor und die
+Schnelleingabe „30 min #Bereich“ für Aufgaben.
+
 Version 1.35 erweitert `freude.js` um Wischen zum Abhaken (Touch-Pointer), die
 Überblendung beim Ansichtswechsel und die Wochenkarte (Bilanz, PNG 1080×1350, Download);
 `iphone.js` prüft den festen Kopf im installierten Modus.

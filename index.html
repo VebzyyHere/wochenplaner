@@ -3352,6 +3352,24 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     background-position: bottom; background-size: 100% 72px;
   }
 }
+/* ============================================================
+   v1.46 Prüfung (2026-11) — kleine Korrekturen aus der Nutzerprüfung
+   ============================================================ */
+/* Heute UND gewählt trägt drei Ringe nach innen (Honig, Rand, Lippe unten,
+   zusammen 4 px oben und 6 px unten). In einer Woche ohne freien Tag ist die
+   Pille nur 46 px hoch — dann lief das Kürzel „MI" in den Ring und der
+   Auslastungsstrich in die Lippe. Engere Zeilen statt höherer Pille: das Band
+   wächst nicht (Falz-Vertrag, agenda.js). */
+.dayswitch__btn.is-today[aria-pressed="true"] { gap: 0; padding-top: 3px; padding-bottom: 6px; }
+.dayswitch__btn.is-today[aria-pressed="true"] span { line-height: 1; }
+.dayswitch__btn.is-today[aria-pressed="true"] b { line-height: 1.05; }
+/* Lange deutsche Wörter („Bachelorarbeitsbetreuungsgespräch") wurden in der
+   großen Laufend-Karte und im Zielnamen abgeschnitten statt umbrochen. */
+.agenda__hero-title, .goal__name { overflow-wrap: anywhere; hyphens: auto; }
+/* Eintrag bearbeiten: „Kopieren" klein neben dem Titel. */
+.sheet__kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: var(--s-4); }
+.sheet__kopf .sheet__title { min-width: 0; margin: 0; }
+.sheet__kopf .btn { flex: none; }
 </style>
 </head>
 <body>
@@ -4567,6 +4585,10 @@ function renderHeader() {
   $("#weekLabel").innerHTML = "KW " + isoWeek(mon)
     + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>"
     + "<small>" + range + "</small>";
+  // Barrierefreiheit (Prüfung 2026-11): der Name nennt die Woche, nicht nur
+  // den Zweck — sonst hört ein Screenreader nie, welche Woche gerade gilt,
+  // und Sprachsteuerung findet „KW 47" nicht (WCAG 2.5.3 Label in Name).
+  $("#weekLabel").setAttribute("aria-label", "KW " + isoWeek(mon) + " · " + range + " — Wochenübersicht anzeigen");
   $("#whoLabel").textContent = state.profile.name ? "· " + state.profile.name : "";
   // In der laufenden Woche braucht niemand einen Knopf, der dorthin führt.
   // Am Telefon war die Kopfzeile bis auf null Pixel gefüllt — das Zahnrad
@@ -9253,7 +9275,11 @@ function blockSheet(draft, dayKey) {
 
   modal((s, close) => {
     s.innerHTML =
-      "<h2 class='sheet__title'>" + (isNew ? "Neuer Eintrag" : "Eintrag bearbeiten") + "</h2>" +
+      (isNew ? "<h2 class='sheet__title'>Neuer Eintrag</h2>"
+        // Kopieren steht oben neben dem Titel, nicht im Fuß: dort liegen am
+        // Telefon schon zwei Zeilen Knöpfe, eine dritte verdeckte das Formular.
+        : "<div class='sheet__kopf'><h2 class='sheet__title'>Eintrag bearbeiten</h2>" +
+          "<button type='button' class='btn btn--sm' id='bKopie'>Kopieren</button></div>") +
       // Begründungszeile (Stufe 13 Nachtrag zu Teil A) — bei einem
       // angenommenen Vorschlag mit Ort zeigt die Agenda den Ort statt des
       // Grundes (s. renderAgenda). Ohne diese Zeile wäre der Grund dann
@@ -9637,6 +9663,23 @@ function blockSheet(draft, dayKey) {
       move.className = "btn"; move.type = "button"; move.textContent = "Verschieben";
       move.onclick = () => { close(); moveSheet(draft.id); };
       foot.appendChild(move);
+
+      // Kopieren (Prüfung 2026-11): derselbe Termin noch einmal, an einem
+      // anderen Tag oder in einer anderen Woche — bisher hieß das alles neu
+      // eintippen. Öffnet den Editor als NEUEN Eintrag, vorausgefüllt; gespeichert
+      // wird erst mit „Eintragen". Bewusst nicht mitkopiert: Verknüpfung zur
+      // Aufgabe (eine Aufgabe ist genau ein Block), Schwerpunkt, Abhaken,
+      // ausgelassene Termine und die Begründung des Verteilers.
+      s.querySelector("#bKopie").onclick = () => {
+        const vorlage = {
+          id: null, title: draft.title, areaId: draft.areaId,
+          day: draft.day, date: istSerie(draft) ? (hakenTag || draft.date) : draft.date,
+          repeat: draft.repeat, start: draft.start, end: draft.end,
+          grob: draft.grob, teil: draft.teil, dauer: draft.dauer, ganztag: draft.ganztag,
+          ortId: draft.ortId, ort: draft.ort, notiz: draft.notiz, bis: draft.bis, frog: false
+        };
+        close(); blockSheet(vorlage);
+      };
     }
     const sp = document.createElement("span"); sp.className = "spacer"; foot.appendChild(sp);
     const cancel = document.createElement("button");
@@ -10236,12 +10279,55 @@ $("#taskForm").addEventListener("submit", e => {
     inp.setAttribute("aria-describedby", "taskError");
     inp.focus(); return;
   }
-  state.tasks.unshift({ id: uid(), title: v, areaId: state.areas[0].id, done: false, frog: false });
+  const ein = aufgabeAusEingabe(v);
+  const neu = { id: uid(), title: ein.title, areaId: ein.areaId || state.areas[0].id, done: false, frog: false };
+  if (ein.dauer) neu.dauer = ein.dauer;
+  state.tasks.unshift(neu);
   inp.value = "";
   save(); renderTasks();
   inp.focus();
-  toast("Aufgabe hinzugefügt — mit „Planen“ in die Woche legen");
+  if (ein.erkannt.length) toast("Aufgabe hinzugefügt: " + ein.erkannt.join(" · "));
+  else if (!schnellTippGezeigt) {
+    schnellTippGezeigt = true;
+    toast("Aufgabe hinzugefügt. Tipp: „30 min“ oder „#Bereich“ dahinter setzt Dauer und Bereich");
+  } else toast("Aufgabe hinzugefügt — mit „Planen“ in die Woche legen");
 });
+
+/* Schnelleingabe (Prüfung 2026-11): „Einkaufen 30 min #Alltag" setzt Dauer
+   und Bereich gleich mit — bisher landete jede schnell getippte Aufgabe im
+   ersten Bereich (meist Arbeit) und ohne Dauer, und der Verteiler kann eine
+   Aufgabe ohne Dauer nicht einplanen. Erkannt wird nur Eindeutiges: eine
+   Dauer mit Einheit (min, h, Std) und #Wort als Anfang eines Bereichsnamens.
+   Was nicht passt, bleibt unverändert im Titel stehen. Nur lesend auf state. */
+let schnellTippGezeigt = false;
+function aufgabeAusEingabe(text) {
+  let title = " " + text + " ";
+  const erkannt = [];
+  let areaId = null, dauer = 0;
+  const tag = title.match(/\s#([^\s#]+)(?=\s)/);
+  if (tag) {
+    const norm = x => x.toLocaleLowerCase("de").replace(/[^\p{L}\p{N}]/gu, "");
+    const such = norm(tag[1]);
+    const area = such && state.areas.find(a => norm(a.name).startsWith(such));
+    if (area) {
+      areaId = area.id; erkannt.push(area.name);
+      title = title.replace(tag[0], " ");
+    }
+  }
+  const zeit = title.match(/\s(\d{1,3}(?:[.,]\d{1,2})?)\s?(min|minuten|h|std\.?|stunden?)(?=\s)/i);
+  if (zeit) {
+    const zahl = parseFloat(zeit[1].replace(",", "."));
+    const min = /^(h|std|stunde)/i.test(zeit[2]) ? zahl * 60 : zahl;
+    const gerundet = Math.round(min / 5) * 5;
+    if (gerundet >= 5 && gerundet <= 720) {
+      dauer = gerundet; erkannt.push(fmtDur(dauer));
+      title = title.replace(zeit[0], " ");
+    }
+  }
+  title = title.replace(/\s+/g, " ").trim();
+  if (!title) return { title: text, areaId: null, dauer: 0, erkannt: [] };
+  return { title, areaId, dauer, erkannt };
+}
 $("#taskInput").addEventListener("input", () => {
   $("#taskError").hidden = true;
   $("#taskInput").removeAttribute("aria-invalid");

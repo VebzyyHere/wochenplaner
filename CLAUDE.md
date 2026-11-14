@@ -187,6 +187,10 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   (`zuletztGeschlossen`) — Schutz gegen den hastigen Doppeltipp auf Fußknöpfe eines Blatts.
 - Aufgabe ↔ Termin: maßgeblich ist `task.geplant`. `aufgabeAbhaken()` schreibt beide gemeinsam;
   alte Doppel-Termine bleiben erhalten, `migrate()` entfernt nur nichtkanonische Verweise.
+- „Kopieren" im Eintrags-Editor (`#bKopie`, oben neben dem Titel, nicht im Fuß — der hat am
+  Telefon schon zwei Zeilen) öffnet `blockSheet()` als neuen Eintrag; `taskId`, `frog`, `erledigt`,
+  `ausnahmen`, `grund` wandern bewusst nicht mit. Schnelleingabe Aufgaben: `aufgabeAusEingabe()`
+  erkennt nur Dauer mit Einheit und `#Bereichsanfang`, Unklares bleibt Titel (`pruefung.js`).
 - Tastenkürzel stehen genau einmal in `TASTENKUERZEL` (Hilfe `kuerzelSheet()`), direkt nach dem keydown-Handler.
 - Nur lesend, nie `save()`: Kalender-Export `kalenderIcs()` (nur Blöcke mit Uhrzeit, ohne `sug`;
   Serien als RRULE, `b.ausnahmen` als EXDATE, schwebende Ortszeit) und die Wochenkarte
