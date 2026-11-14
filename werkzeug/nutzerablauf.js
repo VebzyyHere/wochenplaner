@@ -22,7 +22,12 @@ const assert = require('assert/strict');
       ['bTitle', 'bDays', 'bGenau', 'bFrom', 'bTo', 'bRepeat', 'bAreas', 'bOrte'],
       'Titel, Tag und Uhrzeit gehen optionalen Angaben auch in der Tastaturfolge voraus');
     await page.locator('#bFrom').fill('14:00');
+    // Bis vor Von ist seit dem Feedback 2026-11 ein Termin ueber Mitternacht
+    // (Hinweis statt Fehler, s. feedback.js); ein Fehler bleibt Start = Ende.
     await page.locator('#bTo').fill('13:00');
+    assert.equal(await page.locator('#bNachtHint').isVisible(), true);
+    assert.equal(await page.locator('#bZeitError').isVisible(), false);
+    await page.locator('#bTo').fill('14:00');
     await page.getByRole('button', { name: 'Eintragen', exact: true }).click();
     assert.equal(await page.locator('#bZeitError').isVisible(), true);
     assert.equal(await page.evaluate(() => document.activeElement.id), 'bTo');

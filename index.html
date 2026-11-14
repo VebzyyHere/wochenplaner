@@ -305,6 +305,8 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 .field[aria-invalid="true"] { border-color: var(--danger); }
 .field-error { margin: 8px 0 0; color: var(--danger); font-size: var(--t-sm); line-height: 1.5; }
 .field-error[hidden] { display: none; }
+/* Notizen (Feedback 2026-11): mehrzeilig, Höhe wächst mit dem Ziehgriff. */
+textarea.field { min-height: 72px; padding: 10px var(--s-3); line-height: 1.45; resize: vertical; display: block; }
 
 /* ============================================================ App shell */
 /* overflow: hidden verhindert, dass die ganze Seite am Telefon gummiartig
@@ -3754,16 +3756,30 @@ function artRaten(area) {
    abends, ungefähr zwei Stunden". Er kann mit nichts kollidieren, muss nie
    umgeplant werden, und der Abend bleibt reserviert, ohne zerschnitten zu sein.
    ============================================================ */
+const MORGEN_BIS = 10 * 60;   // Sunny, 2026-11-14: „Morgens" bis 10 Uhr
 const ABSCHNITTE = [
-  { id: "vm", name: "vormittags", kurz: "Vorm.",  von: 0,        bis: 12 * 60 },
+  // „morgens" als eigener früher Abschnitt (Nutzer-Feedback 2026-11, Sunny:
+  // „Morgens soll ein eigener früher Zeitabschnitt sein"). Grenze MORGEN_BIS.
+  // Auch die Anker-Frage „Morgens" meint seitdem diesen Abschnitt.
+  { id: "mo", name: "morgens",    kurz: "Morgens", von: 0,           bis: MORGEN_BIS },
+  { id: "vm", name: "vormittags", kurz: "Vorm.",   von: MORGEN_BIS,  bis: 12 * 60 },
   { id: "nm", name: "nachmittags", kurz: "Nachm.", von: 12 * 60,  bis: 17 * 60 },
   { id: "ab", name: "abends",     kurz: "Abends", von: 17 * 60,  bis: 24 * 60 }
 ];
-const abschnittVon = id => ABSCHNITTE.find(a => a.id === id) || ABSCHNITTE[2];
+const ABENDS = ABSCHNITTE.find(a => a.id === "ab");
+const abschnittVon = id => ABSCHNITTE.find(a => a.id === id) || ABENDS;
 
 /* In welchen Abschnitt fällt eine Uhrzeit? */
 function abschnittFuer(minute) {
-  return (ABSCHNITTE.find(a => minute < a.bis) || ABSCHNITTE[2]).id;
+  return (ABSCHNITTE.find(a => minute < a.bis) || ABENDS).id;
+}
+
+/* Ungefähre Zeitangabe eines groben Blocks als Text, z. B. „abends ~1 h".
+   Ganztägige Einträge (b.ganztag, immer auch b.grob mit dauer 0) tragen weder
+   Abschnitt noch Dauer — sie heißen schlicht „ganztägig". */
+function ungefaehrText(b, trenner) {
+  if (b.ganztag) return "ganztägig";
+  return abschnittVon(b.teil).name + (trenner === undefined ? " ~" : trenner) + fmtDur(b.dauer);
 }
 
 /* Wie lange dauert ein Block — grobe zählen ihre Dauer, exakte ihre Spanne. */
@@ -3980,6 +3996,10 @@ function migrate(s) {
     if (a.plan.grob === undefined) a.plan.grob = a.plan.art === "erholung";
   });
   s.blocks.forEach(b => {
+    // Ganztägig (wertbasiert, ohne neue s.version): ein grober Block ohne
+    // Dauer im ersten Abschnitt. Dauer 0 zählt nirgends als verplante Zeit.
+    if (b.ganztag) { b.grob = true; b.teil = "mo"; b.dauer = 0; return; }
+    delete b.ganztag;
     if (b.grob) {
       b.teil = ABSCHNITTE.some(x => x.id === b.teil) ? b.teil : "ab";
       b.dauer = clamp(+b.dauer || 60, 15, 720);
@@ -4051,6 +4071,25 @@ function migrate(s) {
       : null;
     a.regeln = (fenster.length || anker) ? { fenster, anker } : null;
   });
+
+  // b.bis: nur ein echtes Datum, nur an Serien oder ganztägigen Einträgen.
+  s.blocks.forEach(b => {
+    if (b.bis !== undefined && !(typeof b.bis === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.bis) &&
+        (b.repeat === "weekly" || b.repeat === "2wochen" || b.ganztag))) delete b.bis;
+  });
+  // Notiz und frei eingetippter Ort (Nutzer-Feedback 2026-11): wertbasiert
+  // wie die Regeln oben, keine neue s.version. Nur Text, sonst weg.
+  [...s.blocks, ...s.tasks].forEach(r => {
+    if (typeof r.notiz !== "string" || !r.notiz.trim()) delete r.notiz;
+    if (r.ort !== undefined && (typeof r.ort !== "string" || !r.ort.trim())) delete r.ort;
+  });
+  // Über Mitternacht: zwei Blöcke (bis 24:00 / ab 0:00), die sich über
+  // b.nacht gegenseitig kennen. Fehlt der Partner (auf einem anderen Gerät
+  // gelöscht), bleibt der Rest ein ganz normaler Block.
+  {
+    const ids = new Set(s.blocks.map(b => b.id));
+    s.blocks.forEach(b => { if (b.nacht && (!ids.has(b.nacht) || b.grob)) delete b.nacht; });
+  }
 
   // v10: optionaler erster Schritt an Aufgaben (oben wertbasiert abgesichert).
   s.version = 10;
@@ -4583,7 +4622,8 @@ function freizeitZeile(day, todayKey) {
 
   const grobeHeute = state.blocks.filter(b => b.grob && onDay(b, day.key, day.i));
   const hinweis = grobeHeute.length
-    ? " · " + grobeHeute.map(b => "<b>" + fmtDur(b.dauer) + "</b> " + escapeHtml(b.title) + " offen").join(", ")
+    ? " · " + grobeHeute.map(b => b.ganztag ? escapeHtml(b.title) + " <b>ganztägig</b>"
+        : "<b>" + fmtDur(b.dauer) + "</b> " + escapeHtml(b.title) + " offen").join(", ")
     : "";
 
   // Ein freigehaltener Tag hat gruende ["Tag freigehalten"] und keine
@@ -5270,7 +5310,10 @@ function istSerie(b) { return b.repeat === "weekly" || b.repeat === "2wochen"; }
    Zweiwöchentliche Blöcke ("2wochen") brauchen zusätzlich eine Parität: sie
    gelten nur in jeder zweiten Woche, gezählt ab der Woche von „since". */
 function onDay(b, dayKey, dayIdx) {
-  if (!istSerie(b)) return b.date === dayKey;
+  // b.bis (einschließlich): letzter Tag eines mehrtägigen ganztägigen
+  // Eintrags bzw. Ende einer Serie (Feedback 2026-11).
+  if (!istSerie(b)) return b.ganztag && b.bis ? (dayKey >= b.date && dayKey <= b.bis) : b.date === dayKey;
+  if (b.bis && dayKey > b.bis) return false;
   if (b.ausnahmen && b.ausnahmen.includes(dayKey)) return false;
   if (b.day !== dayIdx) return false;
   if (b.since && dayKey < b.since) return false;
@@ -5296,9 +5339,10 @@ function blocksFor(date, dayIdx) {
 
 /* Die groben eines Tages, nach Abschnitt sortiert. */
 function grobeFor(dayKey, dayIdx) {
-  const rang = { vm: 0, nm: 1, ab: 2 };
+  const rang = { mo: 0, vm: 1, nm: 2, ab: 3 };
+  const r = b => b.ganztag ? -1 : rang[b.teil];
   return state.blocks.filter(b => b.grob && onDay(b, dayKey, dayIdx))
-    .sort((a, b) => (rang[a.teil] - rang[b.teil]) || (b.dauer - a.dauer));
+    .sort((a, b) => (r(a) - r(b)) || (b.dauer - a.dauer));
 }
 
 /* ============================================================
@@ -5314,7 +5358,7 @@ function tagesAgenda(dayKey, dayIdx) {
     .map(b => ({ block: b, grob: false, sortMin: b.start }));
   const grobe = grobeFor(dayKey, dayIdx)
     .filter(b => !b.sug)
-    .map(b => ({ block: b, grob: true, sortMin: abschnittVon(b.teil).von }));
+    .map(b => ({ block: b, grob: true, sortMin: b.ganztag ? -1 : abschnittVon(b.teil).von }));
   return [...exakt, ...grobe].sort((a, b) => a.sortMin - b.sortMin);
 }
 
@@ -5405,7 +5449,7 @@ function weekDays() {
    wirklich stattgefunden hat.
    ============================================================ */
 
-function hakenKey(b, dayKey) { return b.id + "|" + (istSerie(b) ? dayKey : b.date); }
+function hakenKey(b, dayKey) { return b.id + "|" + (istSerie(b) || (b.ganztag && b.bis) ? dayKey : b.date); }
 
 function istErledigt(b, dayKey) {
   const e = state.erledigt[hakenKey(b, dayKey)];
@@ -5972,7 +6016,7 @@ function freeGaps(day, plan, area, opts) {
     // meint. gruende bekommt den Eintrag IMMER, nicht nur beim Einschränken:
     // das ist die Zeile, unter der der Nutzer seinen Vorsatz wiederliest.
     const morgen = regeln.anker.tageszeit === "morgen";
-    const grenze = morgen ? abschnittVon("vm").bis : abschnittVon("ab").von;
+    const grenze = morgen ? abschnittVon("mo").bis : abschnittVon("ab").von;
     gruende.push(morgen ? "Morgens, wie vorgenommen" : "Abends, wie vorgenommen");
     spans = spans
       .map(sp => morgen ? { start: sp.start, end: Math.min(sp.end, grenze) }
@@ -6148,11 +6192,13 @@ function placeGrob(area, open, tage) {
   // nur die Reihenfolge zu verschieben — sonst könnte der Grund unten "Morgens,
   // wie vorgenommen" behaupten und der Block landete trotzdem nachmittags.
   const ankerTZ = area.regeln && area.regeln.anker && area.regeln.anker.tageszeit;
-  const reihenfolge = ankerTZ === "morgen" ? ["vm"]
+  // Der frühere Vormittag (0–12 Uhr) ist seit „morgens" zweigeteilt; beide
+  // Hälften stehen dort, wo vorher "vm" stand.
+  const reihenfolge = ankerTZ === "morgen" ? ["mo"]
                     : ankerTZ === "abend" ? ["ab"]
-                    : A === ARTEN.kopf ? ["vm", "nm", "ab"]
-                    : A === ARTEN.koerper ? ["nm", "ab", "vm"]
-                    : ["ab", "nm", "vm"];
+                    : A === ARTEN.kopf ? ["vm", "mo", "nm", "ab"]
+                    : A === ARTEN.koerper ? ["nm", "ab", "mo", "vm"]
+                    : ["ab", "nm", "mo", "vm"];
 
   const moeglich = [];
   tage.forEach(day => {
@@ -6350,7 +6396,9 @@ function placeTask(t) {
     day: best.day.i, date: best.day.key, repeat: "none",
     start: best.start, end: best.start + best.len, frog: !!t.frog, sug: true,
     grund: grundFuer(v, best.day, best.start, best.gruende, tage),
-    alternativen
+    alternativen,
+    // Die Notiz der Aufgabe wandert mit in den Termin.
+    ...(t.notiz ? { notiz: t.notiz } : {})
   });
   t.geplant = id;
   return true;
@@ -8241,9 +8289,12 @@ function renderLoose() {
   band.style.setProperty("--lcols", tage.length);
   band.style.setProperty("--gutter", einTag ? "44px" : "56px");
 
-  // Eine Zeile je Abschnitt, damit man sieht, wann am Tag es ungefähr sein soll
-  ABSCHNITTE.forEach(abschnitt => {
-    const inZeile = daten.map(x => x.items.filter(b => b.teil === abschnitt.id));
+  // Eine Zeile je Abschnitt, damit man sieht, wann am Tag es ungefähr sein soll.
+  // Ganztägiges steht als eigene Zeile ganz oben — es gehört zu keinem Abschnitt.
+  const GANZTAG = { id: "ganztag", name: "ganztägig", kurz: "Ganztags" };
+  [GANZTAG, ...ABSCHNITTE].forEach(abschnitt => {
+    const passt = b => abschnitt === GANZTAG ? !!b.ganztag : (!b.ganztag && b.teil === abschnitt.id);
+    const inZeile = daten.map(x => x.items.filter(passt));
     if (!inZeile.some(l => l.length)) return;
 
     const lab = document.createElement("div");
@@ -8262,10 +8313,10 @@ function renderLoose() {
         chip.style.setProperty("--h", area.hue);
         const fertig = !b.sug && istErledigt(b, daten[n].key);
         if (fertig) chip.classList.add("is-done");
-        chip.title = (fertig ? "Erledigt: " : "") + b.title + " · " + abschnitt.name + " · " + fmtDur(b.dauer)
+        chip.title = (fertig ? "Erledigt: " : "") + b.title + " · " + ungefaehrText(b, " · ")
                    + (b.sug ? " (Vorschlag)" : "");
         chip.innerHTML = "<span class='loosechip__t'>" + escapeHtml(b.title) + "</span>" +
-                         "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>";
+                         (b.ganztag ? "" : "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>");
         chip.onclick = () => (b.sug ? sugSheet(b) : blockSheet({ ...b }, daten[n].key));
         cell.appendChild(chip);
       });
@@ -8425,7 +8476,9 @@ function renderGrid() {
     }
 
     const eintraege = layout(blocksFor(d, i));
-    if (eintraege.length) hatEintraege = true;
+    // Auch ein Eintrag ohne Uhrzeit (grob, ganztägig) im Band darunter zählt —
+    // sonst stünde „Noch nichts geplant" über dem eigenen Geburtstag.
+    if (eintraege.length || grobeFor(iso(d), i).some(b => !b.sug)) hatEintraege = true;
     eintraege.forEach(p => col.appendChild(blockEl(p, hourH, iso(d))));
 
     attachColumnHandlers(col, hourH);
@@ -8626,7 +8679,10 @@ function blockEl({ b, col, of }, hourH, dayKey) {
   const t = document.createElement("div");
   t.className = "block__title"; t.textContent = b.title || "Ohne Titel";
   const tm = document.createElement("div");
-  tm.className = "block__time num"; tm.textContent = fmtTime(b.start) + "–" + fmtTime(b.end);
+  // Über Mitternacht: beide Teile zeigen die ganze Spanne, z. B. 22:00–02:00.
+  const paar = nachtPaar(b);
+  tm.className = "block__time num";
+  tm.textContent = paar ? fmtTime(paar.erst.start) + "–" + fmtTime(paar.zweit.end) : fmtTime(b.start) + "–" + fmtTime(b.end);
   el.append(t, tm);
   // Begründungszeile (Stufe 11) — nur Vorschläge haben eine, das reicht als
   // Erkennungsmerkmal. In kurzen Blöcken (is-short) ist ohnehin kein Platz.
@@ -9013,7 +9069,10 @@ function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen) {
     if (navigator.vibrate) navigator.vibrate(12);
     blockNode.classList.add("is-dragging");
   };
-  const timer = setTimeout(startDrag, HOLD_TIME);
+  // Über Mitternacht (b.nacht): ein Teil allein lässt sich nicht ziehen,
+  // sonst risse das Paar auseinander. Tippen öffnet den Editor wie immer,
+  // „Verschieben" zieht beide Teile mit (moveSheet).
+  const timer = nachtPaar(b) ? null : setTimeout(startDrag, HOLD_TIME);
 
   const move = ev => {
     if (dragging) {
@@ -9161,10 +9220,35 @@ function sugSheet(b) {
   });
 }
 
+/* Über Mitternacht (Nutzer-Feedback 2026-11): ein Termin 22:00–02:00 liegt
+   als zwei Blöcke im Plan — bis 24:00 am ersten Tag, ab 0:00 am nächsten —,
+   die sich über b.nacht kennen. So rechnen Raster, Lücken, Auslastung und
+   Verteiler unverändert je Tag. Der Editor zeigt beide als EINEN Termin.
+   Passen die zwei nicht mehr zusammen (einzeln verschoben), gelten sie als
+   zwei normale Blöcke. */
+function tagDanach(dateIso) { return dateIso ? iso(addDays(new Date(dateIso + "T12:00:00"), 1)) : dateIso; }
+function nachtPaar(b) {
+  if (!b || !b.nacht || b.grob) return null;
+  const p = state.blocks.find(x => x.id === b.nacht);
+  if (!p || p.grob || p.nacht !== b.id) return null;
+  const [erst, zweit] = b.start === 0 && b.end !== 1440 ? [p, b] : [b, p];
+  const passt = erst.end === 1440 && zweit.start === 0 && zweit.day === (erst.day + 1) % 7 &&
+    (istSerie(erst) ? istSerie(zweit) : zweit.date === tagDanach(erst.date));
+  return passt ? { erst, zweit } : null;
+}
+
 function blockSheet(draft, dayKey) {
   const isNew = !draft.id;
-  const hakenTag = dayKey || draft.date;
-  const mon = mondayOf(anchor);
+  let hakenTag = dayKey || draft.date;
+  // Die Woche, in der der Eintrag liegt — über das Datumsfeld frei wählbar
+  // (Feedback 2026-11: Termine in drei Wochen ohne Hinblättern).
+  let mon = draft.date && !istSerie(draft) ? mondayOf(new Date(draft.date + "T12:00:00")) : mondayOf(anchor);
+  // Über Mitternacht: immer der erste Teil, mit dem Ende des zweiten.
+  const paar = isNew ? null : nachtPaar(state.blocks.find(x => x.id === draft.id));
+  if (paar) {
+    if (paar.zweit.id === draft.id && hakenTag) hakenTag = iso(addDays(new Date(hakenTag + "T12:00:00"), -1));
+    draft = { ...paar.erst, end: paar.zweit.end };
+  }
   let days = new Set([draft.day]);
 
   modal((s, close) => {
@@ -9182,6 +9266,9 @@ function blockSheet(draft, dayKey) {
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
         "<div class='chipset' id='bDays'></div>" +
         "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
+        "<div style='display:flex;align-items:center;gap:12px;margin-top:10px'>" +
+          "<label class='label' for='bDatum' style='margin:0'>Datum</label>" +
+          "<input class='field' id='bDatum' type='date' style='max-width:200px'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
@@ -9192,15 +9279,24 @@ function blockSheet(draft, dayKey) {
         "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
       "</div>" +
       "<p class='field-error' id='bZeitError' role='status' hidden></p>" +
+      "<p id='bNachtHint' role='status' style='margin:-6px 0 14px;font-size:var(--t-sm);color:var(--text-faint);line-height:1.5' hidden></p>" +
       "<div class='sheet__row' id='bGrobRow' hidden>" +
         "<span class='label'>Wann ungefähr?</span><div class='chipset' id='bTeil'></div>" +
         "<label class='label' style='margin-top:14px' for='bDauer'>Wie lange etwa?</label>" +
         "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wiederholen?</span><div class='chipset' id='bRepeat'></div></div>" +
+      "<div class='sheet__row' id='bBisRow' hidden><label class='label' for='bBis' id='bBisLab'>Endet am</label>" +
+        "<input class='field' id='bBis' type='date' style='max-width:200px'>" +
+        "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "<p class='field-error' id='bBisError' role='status' hidden></p></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
-      "<div class='sheet__row'><span class='label'>Wo?</span><div class='chipset' id='bOrte'></div>" +
-        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div></div>" +
+      "<div class='sheet__row'><label class='label' for='bOrt'>Wo? <span style='font-weight:400'>(optional)</span></label>" +
+        "<input class='field' id='bOrt' maxlength='120' placeholder='z.B. Uni, Café Lotte, bei Mama' autocomplete='off'>" +
+        "<div class='chipset' id='bOrte' style='margin-top:8px'></div>" +
+        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
+      "<div class='sheet__row'><label class='label' for='bNotiz'>Notiz <span style='font-weight:400'>(optional)</span></label>" +
+        "<textarea class='field' id='bNotiz' rows='2' maxlength='2000' placeholder='z.B. Raum 2.14, Unterlagen mitnehmen'></textarea></div>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
         "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
@@ -9210,7 +9306,10 @@ function blockSheet(draft, dayKey) {
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
-    const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end);
+    // 24:00 kennt <input type=time> nicht — „bis Mitternacht" heißt 00:00.
+    const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end % 1440);
+    const notizFeld = s.querySelector("#bNotiz");
+    notizFeld.value = draft.notiz || "";
     // ---- Wiederholung: drei Zustände statt eines Hakens (Chips statt
     // Dropdown — bei drei überschaubaren Werten sofort anklickbar, der
     // gewählte Rhythmus ist ohne weiteren Klick sichtbar).
@@ -9249,21 +9348,34 @@ function blockSheet(draft, dayKey) {
       malen();
     }
 
-    // ---- Genauigkeit: feste Uhrzeit oder grober Abschnitt
-    let grob = !!draft.grob;
+    // ---- Genauigkeit: feste Uhrzeit, grober Abschnitt oder ganztägig
+    let grob = !!draft.grob && !draft.ganztag;
+    let ganztag = !!draft.ganztag;
     let teil = ABSCHNITTE.some(x => x.id === draft.teil) ? draft.teil
              : abschnittFuer(draft.start);
     let dauer = draft.dauer || Math.max(30, draft.end - draft.start);
     const zeitFehler = s.querySelector("#bZeitError");
+    const nachtHint = s.querySelector("#bNachtHint");
     from.setAttribute("aria-describedby", "bZeitError");
     to.setAttribute("aria-describedby", "bZeitError");
+    // Bis vor Von heißt: über Mitternacht, endet am nächsten Tag. Nur
+    // gleiche Zeiten sind ein Fehler.
+    const ueberNacht = () => !grob && !ganztag && !!from.value && !!to.value &&
+      parseTime(to.value) > 0 && parseTime(to.value) < parseTime(from.value);
     const pruefeZeit = (fokus = false) => {
+      const exakt = !grob && !ganztag;
       const fehltVon = !from.value, fehltBis = !to.value;
-      const falsch = !grob && (fehltVon || fehltBis || parseTime(to.value) <= parseTime(from.value));
+      const falsch = exakt && (fehltVon || fehltBis || parseTime(to.value) === parseTime(from.value));
       zeitFehler.hidden = !falsch;
       zeitFehler.textContent = falsch
-        ? (fehltVon || fehltBis ? "Bitte gib Start- und Endzeit an." : "Die Endzeit muss nach der Startzeit liegen. Bitte passe „Bis“ an.") : "";
-      from.setAttribute("aria-invalid", String(!grob && fehltVon));
+        ? (fehltVon || fehltBis ? "Bitte gib Start- und Endzeit an." : "Start und Ende sind gleich. Bitte passe „Bis“ an.") : "";
+      const nacht = ueberNacht();
+      nachtHint.hidden = !nacht;
+      if (nacht) {
+        const tage = [...days].map(i => DAY_SHORT[(i + 1) % 7]).join(", ");
+        nachtHint.textContent = "Geht über Mitternacht — endet am nächsten Tag (" + tage + ") um " + to.value + ".";
+      }
+      from.setAttribute("aria-invalid", String(exakt && fehltVon));
       to.setAttribute("aria-invalid", String(falsch && !fehltVon));
       if (falsch && fokus) (fehltVon ? from : to).focus();
       return !falsch;
@@ -9278,32 +9390,43 @@ function blockSheet(draft, dayKey) {
     const teilWrap = s.querySelector("#bTeil");
     const dauerWrap = s.querySelector("#bDauer");
 
+    const genauJetzt = () => ganztag ? "ganztag" : grob ? "grob" : "zeit";
     const paintGenau = () => {
       genauWrap.innerHTML = "";
-      [[false, "Feste Uhrzeit"], [true, "Ungefähr"]].forEach(([wert, text]) => {
+      [["zeit", "Feste Uhrzeit"], ["grob", "Ungefähr"], ["ganztag", "Ganztägig"]].forEach(([wert, text]) => {
         const c = document.createElement("button");
         c.type = "button"; c.className = "chip";
-        c.setAttribute("aria-pressed", String(grob === wert));
+        c.setAttribute("aria-pressed", String(genauJetzt() === wert));
         c.textContent = text;
         c.onclick = () => {
-          if (grob === wert) return;
-          if (wert) { teil = abschnittFuer(parseTime(from.value)); dauer = Math.max(30, parseTime(to.value) - parseTime(from.value)); }
-          else {
-            const a = abschnittVon(teil);
-            const st = clamp(Math.max(a.von, state.settings.dayStart * 60), 0, 1440 - dauer);
-            from.value = fmtTime(st); to.value = fmtTime(st + dauer);
+          const vorher = genauJetzt();
+          if (vorher === wert) return;
+          if (vorher === "zeit" && from.value && to.value) {
+            teil = abschnittFuer(parseTime(from.value));
+            const spanne = (parseTime(to.value) - parseTime(from.value) + 1440) % 1440;
+            dauer = clamp(spanne || 60, 30, 720);
           }
-          grob = wert;
+          if (wert === "zeit") {
+            const a = abschnittVon(teil);
+            const d = clamp(dauer || 60, 30, 720);
+            const st = clamp(Math.max(a.von, state.settings.dayStart * 60), 0, 1440 - d);
+            from.value = fmtTime(st); to.value = fmtTime((st + d) % 1440);
+          }
+          grob = wert === "grob";
+          ganztag = wert === "ganztag";
           paintGenau(); paintTeil(); paintDauer();
+          paintBis();   // Funktionsdeklaration weiter unten; der Klick kommt erst danach
         };
         genauWrap.appendChild(c);
       });
-      zeitRow.hidden = grob;
+      zeitRow.hidden = grob || ganztag;
       grobRow.hidden = !grob;
       pruefeZeit();
-      genauHint.textContent = grob
+      genauHint.textContent = ganztag
+        ? "Steht den ganzen Tag oben im Band, ohne Uhrzeit und ohne Stunden — z.B. Geburtstag, Urlaub, Messe."
+        : grob
         ? "Steht ohne Uhrzeit im Band unter dem Raster. Nichts kollidiert, nichts muss umgeplant werden."
-        : "Liegt fest im Raster.";
+        : "Liegt fest im Raster. Endet „Bis“ vor „Von“, geht der Termin über Mitternacht.";
     };
 
     const paintTeil = () => {
@@ -9348,25 +9471,61 @@ function blockSheet(draft, dayKey) {
     };
     paintAreas();
 
-    // Ort — daraus rechnet der Planer die Fahrzeit zum nächsten Block
+    // Ort (Nutzer-Feedback 2026-11: „Orte ohne anlegen") — einfach eintippen.
+    // Passt der Text zu einem gemerkten Ort, gilt dessen Fahrzeit; sonst ist
+    // er nur ein Hinweis am Termin. Gemerkte Orte stehen als Abkürzung darunter.
+    const ortInp = s.querySelector("#bOrt");
+    const ortWrap = s.querySelector("#bOrte");
     const ortHint = s.querySelector("#bOrtHint");
+    ortInp.value = draft.ortId ? ortName(draft.ortId) : (draft.ort || "");
+    const gemerkt = () => {
+      const t = ortInp.value.trim().toLowerCase();
+      return t ? (state.orte || []).find(o => o.name.trim().toLowerCase() === t) || null : null;
+    };
+    const paintOrte = () => {
+      ortWrap.innerHTML = "";
+      ortWrap.hidden = !(state.orte || []).length;
+      const g = gemerkt();
+      (state.orte || []).forEach(o => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        c.setAttribute("aria-pressed", String(!!g && g.id === o.id));
+        c.textContent = o.name;
+        c.onclick = () => { ortInp.value = (g && g.id === o.id) ? "" : o.name; paintOrte(); paintOrtHint(); };
+        ortWrap.appendChild(c);
+      });
+    };
     const paintOrtHint = () => {
-      const gewaehlt = draft.ortId || (areaById(draft.areaId).plan || {}).ortId || null;
-      if (!gewaehlt || !(state.orte || []).length) {
-        ortHint.textContent = (state.orte || []).length
-          ? "Ohne Ort rechnet der Planer keine Fahrzeit."
-          : "Sobald du zwei Orte angelegt hast, kannst du in den Einstellungen eintragen, wie lange du zwischen ihnen brauchst.";
+      ortHint.innerHTML = "";
+      ortHint.hidden = false;
+      const g = gemerkt();
+      const text = ortInp.value.trim();
+      if (text && !g) {
+        ortHint.append("Steht nur als Ort am Termin. ");
+        const merk = document.createElement("button");
+        merk.type = "button"; merk.className = "btn btn--sm"; merk.id = "bOrtMerken";
+        merk.textContent = "Als Ort merken";
+        merk.style.marginLeft = "4px";
+        merk.onclick = () => {
+          if (!Array.isArray(state.orte)) state.orte = [];
+          const o = { id: "o-" + uid(), name: text };
+          state.orte.push(o);
+          // Der erste Ort ist der Heimatort — wie bisher beim „＋ Ort".
+          if (!state.settings.heimOrt) state.settings.heimOrt = o.id;
+          paintOrte(); paintOrtHint();
+        };
+        ortHint.append(merk);
         return;
       }
+      const gewaehlt = (g && g.id) || (areaById(draft.areaId).plan || {}).ortId || null;
+      if (!gewaehlt || (state.orte || []).length < 2) { ortHint.hidden = true; return; }
+      ortHint.hidden = false;
       const andere = (state.orte || []).filter(o => o.id !== gewaehlt)
         .map(o => o.name + " " + (weg(gewaehlt, o.id) || 0) + " min");
-      ortHint.textContent = andere.length
-        ? "Fahrzeit von hier: " + andere.join(" · ")
-        : "Noch kein zweiter Ort angelegt.";
+      ortHint.textContent = "Fahrzeit von hier: " + andere.join(" · ");
     };
-    const repaintOrte = ortChips(s.querySelector("#bOrte"),
-      () => draft.ortId, id => { draft.ortId = id; paintOrtHint(); });
-    paintOrtHint();
+    ortInp.addEventListener("input", () => { paintOrte(); paintOrtHint(); });
+    paintOrte(); paintOrtHint();
 
     // Tage
     const dayWrap = s.querySelector("#bDays");
@@ -9386,10 +9545,49 @@ function blockSheet(draft, dayKey) {
         dayWrap.appendChild(c);
       }
       const rhythmus = repeatMode === "2wochen" ? "alle 2 Wochen" : "jede Woche";
+      const erster = addDays(mon, Math.min(...days));
+      datumFeld.value = iso(erster);
       hint.textContent = repeatMode !== "none"
         ? (isNew && days.size > 1 ? days.size + " Einträge, " + rhythmus + " — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht " + rhythmus + " auf.")
-        : "Nur in dieser Woche (" + [...days].map(i => DAY_SHORT[i]).join(", ") + ", " + addDays(mon, [...days][0]).getDate() + "." + (addDays(mon, [...days][0]).getMonth() + 1) + ".).";
+        : "Einmalig (" + [...days].sort().map(i => DAY_SHORT[i]).join(", ") + ", Woche ab " + mon.getDate() + "." + (mon.getMonth() + 1) + ".).";
+      paintBis();
     };
+    // Datum: springt in eine beliebige Woche; der Wochentag folgt dem Datum.
+    const datumFeld = s.querySelector("#bDatum");
+    datumFeld.addEventListener("change", () => {
+      if (!datumFeld.value) { paintDays(); return; }
+      const d = new Date(datumFeld.value + "T12:00:00");
+      mon = mondayOf(d);
+      days = new Set([(d.getDay() + 6) % 7]);
+      paintDays(); pruefeZeit();
+    });
+
+    // Ende einer Serie bzw. letzter Tag eines mehrtägigen ganztägigen
+    // Eintrags (b.bis, einschließlich). Leer = ohne Ende / nur ein Tag.
+    const bisRow = s.querySelector("#bBisRow");
+    const bisFeld = s.querySelector("#bBis");
+    const bisLab = s.querySelector("#bBisLab");
+    const bisHint = s.querySelector("#bBisHint");
+    const bisFehler = s.querySelector("#bBisError");
+    bisFeld.value = draft.bis || "";
+    function paintBis() {
+      const serie = repeatMode !== "none";
+      bisRow.hidden = !serie && !ganztag;
+      bisLab.textContent = serie ? "Endet am (optional)" : "Bis einschließlich (optional)";
+      bisHint.textContent = serie
+        ? (bisFeld.value ? "Letzter Termin spätestens am " + bisFeld.value.split("-").reverse().join(".") + "." : "Ohne Datum läuft die Serie weiter, z.B. bis Semesterende eintragen.")
+        : "Für mehrere Tage am Stück, z.B. Urlaub oder Messe.";
+      pruefeBis();
+    }
+    function pruefeBis() {
+      const falsch = !bisRow.hidden && !!bisFeld.value && bisFeld.value < datumFeld.value;
+      bisFehler.hidden = !falsch;
+      bisFehler.textContent = falsch ? "Das Ende liegt vor dem Datum. Bitte passe es an." : "";
+      bisFeld.setAttribute("aria-invalid", String(falsch));
+      return !falsch;
+    }
+    bisFeld.addEventListener("input", paintBis);
+    bisFeld.addEventListener("change", paintBis);
     paintDays();
 
     const foot = document.createElement("div");
@@ -9400,7 +9598,8 @@ function blockSheet(draft, dayKey) {
       del.onclick = () => {
         const weg = () => {
           unlinkTask(draft);
-          state.blocks = state.blocks.filter(x => x.id !== draft.id);
+          if (paar) unlinkTask(paar.zweit);
+          state.blocks = state.blocks.filter(x => x.id !== draft.id && !(paar && x.id === paar.zweit.id));
           save(); close(); renderAll(); toastUndo("Eintrag gelöscht");
         };
         // Eine Serie zu löschen trifft jede (bzw. jede zweite) Woche, nicht
@@ -9414,6 +9613,11 @@ function blockSheet(draft, dayKey) {
             if (!draft.ausnahmen.includes(hakenTag)) draft.ausnahmen.push(hakenTag);
             const b = state.blocks.find(x => x.id === draft.id);
             if (b) b.ausnahmen = draft.ausnahmen;
+            // Über Mitternacht: der zweite Teil fällt am Folgetag mit aus.
+            if (paar) {
+              const folge = tagDanach(hakenTag);
+              paar.zweit.ausnahmen = [...(paar.zweit.ausnahmen || []).filter(x => x !== folge), folge];
+            }
             save(); close(); renderAll(); toast("Termin am " + tagText + " übersprungen");
           };
           // push: true — bei „Abbrechen" bleibt der halb ausgefüllte Editor
@@ -9443,13 +9647,48 @@ function blockSheet(draft, dayKey) {
 
     const commit = () => {
       if (!pruefeZeit(true)) return;
-      const st = parseTime(from.value), en = parseTime(to.value);
+      if (!pruefeBis()) { bisFeld.focus(); return; }
+      const bis = !bisRow.hidden && bisFeld.value && bisFeld.value > datumFeld.value ? bisFeld.value : undefined;
+      const st = parseTime(from.value);
+      // „Bis 00:00" heißt bis Mitternacht desselben Tages.
+      const en = parseTime(to.value) === 0 ? 1440 : parseTime(to.value);
+      const nacht = ueberNacht();
       const list = [...days];
       // Grobe Blöcke tragen ihre Dauer und den Abschnitt; start/end bleiben
       // nur als Anhaltspunkt gefüllt, damit Sortierungen weiter funktionieren.
-      const grobFelder = () => grob
-        ? { grob: true, teil, dauer, start: abschnittVon(teil).von, end: abschnittVon(teil).von + dauer }
-        : { grob: false, teil: undefined, dauer: undefined, start: st, end: en };
+      // Ganztägig = grob ohne Dauer (s. migrate()).
+      const grobFelder = () => ganztag
+        ? { grob: true, ganztag: true, teil: "mo", dauer: 0, start: 0, end: 0 }
+        : grob
+        ? { grob: true, ganztag: undefined, teil, dauer, start: abschnittVon(teil).von, end: abschnittVon(teil).von + dauer }
+        : { grob: false, ganztag: undefined, teil: undefined, dauer: undefined, start: st, end: nacht ? 1440 : en };
+      // Ort und Notiz: frei getippter Ort bleibt Text, ein gemerkter wird ortId.
+      const g = gemerkt();
+      const ortText = ortInp.value.trim().slice(0, 120);
+      const notizText = notizFeld.value.trim().slice(0, 2000);
+      const textFelder = () => ({
+        bis,
+        ortId: g ? g.id : null,
+        ort: !g && ortText ? ortText : undefined,
+        notiz: notizText || undefined
+      });
+      const aufraeumen = b => { Object.keys(b).forEach(k => { if (b[k] === undefined) delete b[k]; }); return b; };
+      // Zweiter Teil über Mitternacht: ab 0:00 am Folgetag, sonst wie der erste.
+      const zweiterTeil = (erst, alt) => {
+        const z = alt || { id: uid() };
+        Object.assign(z, {
+          title: erst.title, areaId: erst.areaId,
+          day: (erst.day + 1) % 7, date: tagDanach(erst.date), repeat: erst.repeat,
+          since: erst.since ? tagDanach(erst.since) : undefined,
+          bis: erst.bis ? tagDanach(erst.bis) : undefined,
+          ortId: erst.ortId, ort: erst.ort, notiz: erst.notiz,
+          grob: false, start: 0, end: en, nacht: erst.id
+        });
+        if (erst.fix) z.fix = true;
+        delete z.sug;
+        erst.nacht = z.id;
+        return aufraeumen(z);
+      };
 
       if (isNew) {
         // Stufe 12: kommt der Entwurf aus dem Aufgabenblatt ("In den
@@ -9463,18 +9702,19 @@ function blockSheet(draft, dayKey) {
         // nur auf einen zeigen kann.
         let letzteId = null;
         list.forEach((d, i) => {
-          const nb = Object.assign({
+          const nb = aufraeumen(Object.assign({
             id: uid(), title: title.value.trim() || "Ohne Titel", areaId: draft.areaId,
             day: d, date: iso(addDays(mon, d)), repeat: repeatMode,
-            since: iso(addDays(mon, d)), ortId: draft.ortId || null,
+            since: iso(addDays(mon, d)),
             // Die Stern-Markierung kam aus dem Entwurf und wurde hier
             // stillschweigend wieder auf false gesetzt — je nach Weg blieb sie
             // erhalten oder nicht.
             frog: !!draft.frog
-          }, grobFelder());
+          }, grobFelder(), textFelder()));
           if (draft.taskId && i === list.length - 1) nb.taskId = draft.taskId;
           letzteId = nb.id;
           state.blocks.push(nb);
+          if (nacht) state.blocks.push(zweiterTeil(nb));
         });
         if (draft.taskId) {
           const tk = state.tasks.find(x => x.id === draft.taskId);
@@ -9487,7 +9727,7 @@ function blockSheet(draft, dayKey) {
         b.day = list[0];
         b.date = iso(addDays(mon, list[0]));
         b.repeat = repeatMode;
-        b.ortId = draft.ortId || null;
+        Object.assign(b, textFelder());
         // since ist der Anker der Serie (bei "weekly" das Startdatum, bei
         // "2wochen" zusätzlich die Parität). Ein bereits gesetztes since
         // bleibt stehen — nur eine neu begonnene Serie bekommt eines, und
@@ -9498,6 +9738,15 @@ function blockSheet(draft, dayKey) {
         if (repeatMode === "none") delete b.since;
         Object.assign(b, grobFelder());
         if (!b.grob) { delete b.teil; delete b.dauer; }
+        aufraeumen(b);
+        // Über Mitternacht: zweiten Teil anlegen, mitziehen oder entfernen.
+        if (nacht) state.blocks.push(...(paar ? [] : [zweiterTeil(b)]));
+        if (nacht && paar) zweiterTeil(b, paar.zweit);
+        if (!nacht && paar) {
+          unlinkTask(paar.zweit);
+          state.blocks = state.blocks.filter(x => x.id !== paar.zweit.id);
+          delete b.nacht;
+        }
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
         // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
         delete b.sug;
@@ -9505,11 +9754,17 @@ function blockSheet(draft, dayKey) {
         // Block beim nächsten Durchlauf nicht mehr an.
         b.fix = true;
         if (doneBox) abhaken(b, hakenTag, doneBox.checked, doneBox);
+        if (doneBox && nacht) setzeErledigt(state.blocks.find(x => x.id === b.nacht), tagDanach(hakenTag), doneBox.checked);
         const tk = state.tasks.find(t => t.id === b.taskId && t.geplant === b.id);
         if (tk) { tk.title = b.title; tk.areaId = b.areaId; }
       }
       save(); close(); renderAll();
-      toast(isNew ? "Eintrag im Wochenplan gespeichert" : "Eintrag gespeichert");
+      // Liegt der Eintrag in einer anderen Woche als der gezeigten, sagt der
+      // Toast wohin — sonst sähe es aus, als wäre nichts passiert.
+      const ziel = addDays(mon, list[0]);
+      toast(+mon !== +mondayOf(anchor) && repeatMode === "none"
+        ? "Eintrag am " + DAY_SHORT[list[0]] + ", " + ziel.getDate() + "." + (ziel.getMonth() + 1) + ". gespeichert"
+        : isNew ? "Eintrag im Wochenplan gespeichert" : "Eintrag gespeichert");
     };
     ok.onclick = commit;
     title.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
@@ -9726,7 +9981,7 @@ function taskEl(t) {
   const geplantBlock = aufgabenBlock(t);
   const tagText = geplantBlock ? (() => {
     const tag = new Date(aufgabenTermin(geplantBlock) + "T12:00:00");
-    const zeit = geplantBlock.grob ? abschnittVon(geplantBlock.teil).name : fmtTime(geplantBlock.start);
+    const zeit = geplantBlock.ganztag ? "ganztägig" : geplantBlock.grob ? abschnittVon(geplantBlock.teil).name : fmtTime(geplantBlock.start);
     return DAY_SHORT[(tag.getDay() + 6) % 7] + ", " + tag.getDate() + "." + (tag.getMonth() + 1) + "."
       + (tag.getFullYear() !== new Date().getFullYear() ? tag.getFullYear() : "") + " · " + zeit;
   })() : "";
@@ -9808,7 +10063,8 @@ function planTask(t) {
   blockSheet({
     id: null, title: t.title, areaId: t.areaId || state.areas[0].id,
     day: selectedDayIdx, date: iso(d), repeat: "none",
-    start, end: start + laenge, frog: !!t.frog, taskId: t.id
+    start, end: start + laenge, frog: !!t.frog, taskId: t.id,
+    notiz: t.notiz || ""
   }, iso(d));
 }
 
@@ -9825,6 +10081,8 @@ function taskSheet(t) {
       "<div class='sheet__row'><label class='label' for='tkSchritt'>Erster kleiner Schritt <span style='font-weight:400'>(optional)</span></label>" +
       "<input class='field' id='tkSchritt' maxlength='240' placeholder='z. B. Dokument öffnen und drei Stichpunkte notieren' autocomplete='off' aria-describedby='tkSchrittHint'>" +
       "<div class='task__step' id='tkSchrittHint'>Was kannst du als Erstes in wenigen Minuten tun?</div></div>" +
+      "<div class='sheet__row'><label class='label' for='tkNotiz'>Notiz <span style='font-weight:400'>(optional)</span></label>" +
+      "<textarea class='field' id='tkNotiz' rows='2' maxlength='2000' placeholder='z.B. Links, Stichpunkte, wer was braucht'></textarea></div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span>" +
       "<div class='chipset' id='tkAreas'></div></div>" +
       "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
@@ -9840,6 +10098,8 @@ function taskSheet(t) {
     titel.oninput = () => titel.setCustomValidity("");
     const schritt = s.querySelector("#tkSchritt");
     schritt.value = t.schritt || "";
+    const notiz = s.querySelector("#tkNotiz");
+    notiz.value = t.notiz || "";
 
     const areaWrap = s.querySelector("#tkAreas");
     const malAreas = () => {
@@ -9926,6 +10186,7 @@ function taskSheet(t) {
       if (!titel.reportValidity()) return false;
       t.title = neu;
       if (schritt.value.trim()) t.schritt = schritt.value.trim().slice(0, 240); else delete t.schritt;
+      if (notiz.value.trim()) t.notiz = notiz.value.trim().slice(0, 2000); else delete t.notiz;
       t.areaId = areaId;
       if (dauer) t.dauer = dauer; else delete t.dauer;
       if (wichtig && !t.frog) state.tasks.forEach(x => x.frog = false);
@@ -10053,6 +10314,7 @@ function renderAgenda() {
   const danach = eintraege.filter(e => {
     if (e === laufend) return false;
     if (!heute) return true;
+    if (e.block.ganztag) return true;
     return e.grob ? abschnittVon(e.block.teil).bis > jetzt : e.block.start > jetzt;
   });
 
@@ -10071,7 +10333,7 @@ function renderAgenda() {
     ? "<div class='agenda__label'>Vorschläge</div><div class='agenda__list'>"
       + heutigeVorschlaege.map(e => {
           const b = e.block, a = areaById(b.areaId);
-          const zeit = e.grob ? abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer) : fmtTime(b.start);
+          const zeit = e.grob ? ungefaehrText(b) : fmtTime(b.start);
           const grundAnzeige = grundZumZeigen(b);
           // Stufe C Punkt C9: tastaturbedienbar wie ein Rasterblock
           // (blockEl(), tabIndex/role/aria-label dort als Vorbild).
@@ -10134,23 +10396,32 @@ function renderAgenda() {
         let zeit, sub = "";
         const grundAnzeige = grundZumZeigen(b);
         if (e.grob) {
-          zeit = abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer);
-          if (grundAnzeige) sub = escapeHtml(grundAnzeige);
+          zeit = ungefaehrText(b);
+          if (b.ort) sub = escapeHtml(b.ort);
+          else if (grundAnzeige) sub = escapeHtml(grundAnzeige);
         } else {
           zeit = fmtTime(b.start);
           const ortId = ortOf(b);
-          const ortNaam = ortId ? ortName(ortId) : "";
+          // Frei getippter Ort (ohne ortId): nur der Name, keine Fahrzeit.
+          const freiOrt = !b.ortId && b.ort;
+          const ortNaam = freiOrt ? b.ort : ortId ? ortName(ortId) : "";
           // Ort hat Vorrang vor dem Grund (Stufe 13): er sagt WO, das ist am
           // Ort-Bildschirm gefragter als das WARUM — der Grund bleibt im
           // Vorschlags-/Block-Blatt abrufbar. Zwei Unterzeilen wären auf
           // 320px zu viel (s. Auftrag).
           if (ortNaam) {
-            const fahrt = weg(vorherOrt, ortId);
+            const fahrt = freiOrt ? 0 : weg(vorherOrt, ortId);
             sub = escapeHtml(ortNaam) + (fahrt > 0 ? " · " + fahrt + " min Weg" : "");
           } else if (grundAnzeige) {
             sub = escapeHtml(grundAnzeige);
           }
           vorherOrt = ortId || vorherOrt;
+        }
+        // Notiz: nur wenn keine andere Unterzeile da ist — zwei Unterzeilen
+        // wären auf 320px zu viel (s. oben). Erste Zeile, gekürzt.
+        if (!sub && b.notiz) {
+          const z = b.notiz.split(/\r?\n/)[0];
+          sub = escapeHtml(z.length > 60 ? z.slice(0, 59) + "…" : z);
         }
         html += "<label class='agenda__row" + (e.grob ? " agenda__row--grob" : "") + (fertig ? " is-on" : "")
           + "' style='--h:" + a.hue + "'>"
@@ -10212,7 +10483,7 @@ function renderAgenda() {
       + "<div class='abschlussliste'>"
       + offenHeute.map(e => {
           const b = e.block, a = areaById(b.areaId);
-          const zeit = e.grob ? abschnittVon(b.teil).name + " ~" + fmtDur(b.dauer) : fmtTime(b.start);
+          const zeit = e.grob ? ungefaehrText(b) : fmtTime(b.start);
           return "<div class='abschlussrow' style='--h:" + a.hue + "'>"
             + "<div class='abschlussrow__title'><span class='goal__dot'></span>"
             + escapeHtml(b.title || a.name)
@@ -10548,14 +10819,17 @@ function relieveSheet() {
 /* Einen Block auf einen anderen Tag schieben — sucht dort die nächste
    freie Stelle, statt ihn blind auf dieselbe Uhrzeit zu setzen. */
 function moveSheet(id) {
-  const blk = state.blocks.find(x => x.id === id);
+  let blk = state.blocks.find(x => x.id === id);
   if (!blk) return;
+  // Über Mitternacht: immer den ersten Teil verschieben, der zweite folgt.
+  const paar = nachtPaar(blk);
+  if (paar) blk = paar.erst;
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Verschieben</h2>" +
       "<p style='margin:0 0 6px;font-size:var(--t-body)'><b>" + escapeHtml(blk.title) + "</b></p>" +
       "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body)'>" +
-      "Dauer " + fmtDur(blk.end - blk.start) + " · auf welchen Tag?</p>" +
+      "Dauer " + fmtDur(blk.end - blk.start + (paar ? paar.zweit.end : 0)) + " · auf welchen Tag?</p>" +
       "<div class='chipset' id='mvDays'></div>" +
       "<div id='mvHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:14px;min-height:18px'></div>";
 
@@ -10573,6 +10847,17 @@ function moveSheet(id) {
       c.disabled = vergangen || selbst;
       if (c.disabled) c.style.opacity = ".4";
       c.onclick = () => {
+        if (paar) {
+          // Uhrzeiten bleiben, nur der Tag wechselt — für beide Teile. Eine
+          // Serie wird dabei wie unten zum Einzeltermin, deshalb hier nur
+          // für Einzeltermine; Serien ändert man im Editor.
+          if (istSerie(blk)) { hint.textContent = "Wiederkehrende Termine über Mitternacht änderst du im Eintrag selbst."; return; }
+          blk.day = day.i; blk.date = day.key; blk.fix = true;
+          paar.zweit.day = (day.i + 1) % 7; paar.zweit.date = tagDanach(day.key); paar.zweit.fix = true;
+          save(); close(); renderAll();
+          toast("Auf " + DAY_LONG[day.i] + ", " + fmtTime(blk.start) + " geschoben");
+          return;
+        }
         const passende = freeGaps(day, { from: null, to: null, days: [day.i] }, areaById(blk.areaId))
           .filter(g => g.end - g.start >= laenge);
         if (!passende.length) { hint.textContent = "Am " + DAY_LONG[day.i] + " ist kein Platz von " + fmtDur(laenge) + " frei."; return; }
@@ -10808,7 +11093,7 @@ function ritualSheet() {
         txt.className = "hakenrow__txt";
         txt.innerHTML = "<span class='goal__dot'></span>" + escapeHtml(x.b.title || "Ohne Titel") +
           "<span class='hakenrow__zeit num'>" +
-          (x.b.grob ? abschnittVon(x.b.teil).name + " · " + fmtDur(x.b.dauer)
+          (x.b.grob ? ungefaehrText(x.b, " · ")
                     : fmtTime(x.b.start) + "–" + fmtTime(x.b.end)) + "</span>";
         lab.append(cb, txt);
         liste.appendChild(lab);
@@ -11813,7 +12098,10 @@ function kalenderIcs() {
     "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Wochenplaner"];
   const orte = new Map((state.orte || []).map(o => [o.id, o.name]));
   state.blocks.forEach(b => {
-    if (b.grob || b.sug || !(b.end > b.start)) return;
+    if (b.sug || (b.grob && !b.ganztag) || (!b.grob && !(b.end > b.start))) return;
+    // Über Mitternacht: der zweite Teil (ab 0:00) steckt im DTEND des ersten.
+    const partner = b.nacht ? state.blocks.find(x => x.id === b.nacht) : null;
+    if (partner && b.start === 0) return;
     let erster = null;
     if (istSerie(b)) {
       // Ab since (sonst ab dem gespeicherten Datum bzw. dieser Woche) den
@@ -11832,15 +12120,22 @@ function kalenderIcs() {
     zeilen.push("BEGIN:VEVENT",
       "UID:" + b.id + "@wochenplaner",
       "DTSTAMP:" + stempel,
-      "DTSTART:" + icsZeit(erster, b.start),
-      "DTEND:" + icsZeit(erster, b.end),
+      ...(b.ganztag
+        ? ["DTSTART;VALUE=DATE:" + iso(erster).replace(/-/g, ""),
+           "DTEND;VALUE=DATE:" + iso(addDays(!istSerie(b) && b.bis ? new Date(b.bis + "T12:00:00") : erster, 1)).replace(/-/g, "")]
+        : ["DTSTART:" + icsZeit(erster, b.start),
+           "DTEND:" + icsZeit(erster, partner ? 1440 + partner.end : b.end)]),
       "SUMMARY:" + icsText(b.title || (area && area.name) || "Eintrag"));
     if (area) zeilen.push("CATEGORIES:" + icsText(area.name));
     if (b.ortId && orte.has(b.ortId)) zeilen.push("LOCATION:" + icsText(orte.get(b.ortId)));
+    else if (b.ort) zeilen.push("LOCATION:" + icsText(b.ort));
+    if (b.notiz) zeilen.push("DESCRIPTION:" + icsText(b.notiz));
     if (istSerie(b)) {
-      zeilen.push("RRULE:FREQ=WEEKLY" + (b.repeat === "2wochen" ? ";INTERVAL=2" : ""));
+      zeilen.push("RRULE:FREQ=WEEKLY" + (b.repeat === "2wochen" ? ";INTERVAL=2" : "") +
+        (b.bis ? ";UNTIL=" + b.bis.replace(/-/g, "") + (b.ganztag ? "" : "T235959") : ""));
       (b.ausnahmen || []).slice().sort().forEach(a => {
-        zeilen.push("EXDATE:" + icsZeit(new Date(a + "T12:00:00"), b.start));
+        zeilen.push(b.ganztag ? "EXDATE;VALUE=DATE:" + a.replace(/-/g, "")
+                              : "EXDATE:" + icsZeit(new Date(a + "T12:00:00"), b.start));
       });
     }
     zeilen.push("END:VEVENT");
