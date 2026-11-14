@@ -155,8 +155,11 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await bild('feedback-morgens.png', '#bTeil');
   await eintragen();
   await p.waitForTimeout(200);
-  const d = await p.evaluate(() => ({ b: state.blocks[0], txt: document.body.textContent }));
-  ok(d.b.grob && d.b.teil === 'vm' && /morgens ~1 h/.test(d.txt), 'd3) Agenda zeigt „morgens ~1 h"');
+  // Um 10:00 ist „morgens" vorbei (bis 10 Uhr, Sunny) -- deshalb der Text direkt.
+  const d = await p.evaluate(() => ({ b: state.blocks[0], txt: ungefaehrText(state.blocks[0]),
+    teile: ABSCHNITTE.map(a => a.id + ':' + a.von + '-' + a.bis).join(',') }));
+  ok(d.b.grob && d.b.teil === 'mo' && d.txt === 'morgens ~1 h', 'd3) Eintrag heisst „morgens ~1 h" (' + d.txt + ')');
+  ok(d.teile === 'mo:0-600,vm:600-720,nm:720-1020,ab:1020-1440', 'd4) Abschnitte morgens bis 10, vormittags 10-12 (' + d.teile + ')');
 
   // ============================================================== e)
   console.log('=== e) ueber Mitternacht ===');
@@ -215,10 +218,97 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(e4.b.day === 0 && e4.b.repeat === 'weekly' && e4.naechsterMontag && !e4.dieserMontag,
      'e11) Sonntag-Serie: zweiter Teil montags ab der Folgewoche (' + JSON.stringify(e4) + ')');
 
+  // ============================================================== g)
+  console.log('=== g) Datum frei waehlen ===');
+  await basis();
+  await neu(2, 14 * 60, 15 * 60);
+  await p.fill('#bTitle', 'Zahnarzt');
+  await p.fill('#bDatum', '2026-08-27');
+  await p.dispatchEvent('#bDatum', 'change');
+  ok(await p.getAttribute('.sheet #bDays button.chip:text-is("Do")', 'aria-pressed') === 'true', 'g1) Datum 27.8. waehlt den Donnerstag');
+  await bild('feedback-datum.png', '#bDatum');
+  await eintragen();
+  await p.waitForTimeout(150);
+  const g = await p.evaluate(() => ({ b: state.blocks[0], toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).join('|'), anchor: iso(anchor) }));
+  ok(g.b.date === '2026-08-27' && g.b.day === 3, 'g2) Termin liegt am 27.8. (' + g.b.date + ')');
+  ok(/Do, 27\.8\./.test(g.toast) && g.anchor === '2026-08-05', 'g3) Toast nennt das Datum, die Ansicht bleibt in der Woche (' + g.toast + ')');
+  await p.evaluate(() => { const b = state.blocks[0]; blockSheet({ ...b }, b.date); });
+  ok(await p.inputValue('#bDatum') === '2026-08-27', 'g4) Wieder geoeffnet: Datum 27.8.');
+  await eintragen();
+  ok(await p.evaluate(() => state.blocks[0].date === '2026-08-27'), 'g5) Speichern ohne Aenderung laesst das Datum stehen');
+
+  // ============================================================== h)
+  console.log('=== h) Serien-Ende ===');
+  await basis();
+  await neu(0, 10 * 60, 12 * 60);
+  await p.fill('#bTitle', 'Vorlesung Mathe');
+  ok(await p.isHidden('#bBisRow'), 'h1) Einmalig: kein Ende-Feld');
+  await chip('Wöchentlich');
+  ok(await p.isVisible('#bBisRow'), 'h2) Woechentlich: Feld „Endet am"');
+  await p.fill('#bBis', '2026-07-01');
+  await p.dispatchEvent('#bBis', 'change');
+  await eintragen();
+  ok(await p.isVisible('#bBisError') && await p.evaluate(() => state.blocks.length === 0), 'h3) Ende vor Beginn: Fehler, nichts gespeichert');
+  await p.fill('#bBis', '2026-08-17');
+  await p.dispatchEvent('#bBis', 'change');
+  await bild('feedback-serienende.png', '#bBis');
+  await eintragen();
+  const h = await p.evaluate(() => { const b = state.blocks[0];
+    return { bis: b.bis, w: [onDay(b, '2026-08-03', 0), onDay(b, '2026-08-10', 0), onDay(b, '2026-08-17', 0), onDay(b, '2026-08-24', 0)], ics: kalenderIcs() }; });
+  ok(h.bis === '2026-08-17' && h.w.join() === 'true,true,true,false', 'h4) Serie endet nach dem 17.8. (' + h.w.join() + ')');
+  ok(/RRULE:FREQ=WEEKLY;UNTIL=20260817T235959/.test(h.ics), 'h5) Export mit UNTIL');
+
+  // ============================================================== i)
+  console.log('=== i) ganztaegig ueber mehrere Tage ===');
+  await basis();
+  await neu(0, 10 * 60, 11 * 60);
+  await p.fill('#bTitle', 'Urlaub');
+  await chip('Ganztägig');
+  ok(await p.isVisible('#bBisRow') && /Bis einschließlich/.test(await p.textContent('#bBisLab')), 'i1) Ganztaegig: Feld „Bis einschliesslich"');
+  await p.fill('#bBis', '2026-08-07');
+  await p.dispatchEvent('#bBis', 'change');
+  await eintragen();
+  const i = await p.evaluate(() => { const b = state.blocks[0];
+    const tage = weekDays().map(d => onDay(b, d.key, d.i));
+    setzeErledigt(b, '2026-08-04', true);
+    return { tage: tage.join(), haken: [istErledigt(b, '2026-08-04'), istErledigt(b, '2026-08-05')].join(), ics: kalenderIcs(),
+      band: (renderAll(), [...document.querySelectorAll('#looseBand .loosechip')].length) }; });
+  ok(i.tage === 'true,true,true,true,true,false,false', 'i2) Mo bis Fr belegt (' + i.tage + ')');
+  ok(i.haken === 'true,false', 'i3) Abhaken gilt je Tag (' + i.haken + ')');
+  ok(/DTSTART;VALUE=DATE:20260803/.test(i.ics) && /DTEND;VALUE=DATE:20260808/.test(i.ics), 'i4) Export Mo 3.8. bis einschl. Fr 7.8.');
+
+  // ============================================================== j)
+  console.log('=== j) Nachtteil verschieben ===');
+  await basis();
+  await neu(1, 20 * 60, 21 * 60);
+  await p.fill('#bTitle', 'Party');
+  await p.fill('#bFrom', '22:00');
+  await p.fill('#bTo', '03:00');
+  await eintragen();
+  const zweitId = await p.evaluate(() => state.blocks.find(b => b.start === 0).id);
+  await p.evaluate(id => moveSheet(id), zweitId);
+  ok(/Dauer 5 h/.test(await p.textContent('.sheet')), 'j1) Verschieben zeigt die ganze Dauer (5 h)');
+  await p.click('.sheet #mvDays button.chip:text-is("Fr")');
+  await p.waitForTimeout(150);
+  const j = await p.evaluate(() => state.blocks.map(b => b.day + '/' + b.date + '/' + b.start + '-' + b.end).join(' '));
+  ok(j === '4/2026-08-07/1320-1440 5/2026-08-08/0-180', 'j2) Beide Teile ziehen auf Fr/Sa (' + j + ')');
+
+  // ============================================================== k)
+  console.log('=== k) Aufgaben-Notiz beim Einplanen ===');
+  await basis();
+  await p.evaluate(() => { state.tasks = [{ id: 't1', title: 'Steuer', areaId: state.areas[0].id, done: false, frog: false, notiz: 'Belege im Ordner' }]; planTask(state.tasks[0]); });
+  ok(await p.inputValue('#bNotiz') === 'Belege im Ordner', 'k1) „In den Wochenplan legen" uebernimmt die Notiz');
+  await eintragen();
+  ok(await p.evaluate(() => state.blocks[0].notiz === 'Belege im Ordner'), 'k2) Termin traegt die Notiz');
+  const k = await p.evaluate(() => { state.blocks = []; state.tasks[0].geplant = null; delete state.tasks[0].geplant; state.tasks[0].dauer = 60; placeTask(state.tasks[0]); return state.blocks[0] && state.blocks[0].notiz; });
+  ok(k === 'Belege im Ordner', 'k3) Auch der Verteiler-Vorschlag traegt die Notiz');
+
   // ============================================================== f)
   console.log('=== f) migrate ===');
   const f = await p.evaluate(() => {
     state.blocks.push({ id: 'g1', title: 'Urlaub', areaId: state.areas[0].id, day: 1, date: '2026-08-04', repeat: 'none', grob: true, ganztag: true, teil: 'ab', dauer: 99, start: 0, end: 0, notiz: 'x', ort: 'Ostsee' });
+    state.blocks.push({ id: 'n1', title: 'Nacht', areaId: state.areas[0].id, day: 1, date: '2026-08-04', repeat: 'none', start: 1320, end: 1440, nacht: 'n2' },
+                      { id: 'n2', title: 'Nacht', areaId: state.areas[0].id, day: 2, date: '2026-08-05', repeat: 'none', start: 0, end: 60, nacht: 'n1' });
     state.blocks.push({ id: 'w1', title: 'Waise', areaId: state.areas[0].id, day: 1, date: '2026-08-04', repeat: 'none', start: 0, end: 60, nacht: 'gibtsnicht', notiz: '  ', ort: 5 });
     const vorher = JSON.stringify(state.blocks);
     migrate(state);
@@ -228,7 +318,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     return { stabil: einmal === JSON.stringify(state.blocks), g, w, paar: state.blocks.filter(b => b.nacht).length };
   });
   ok(f.stabil, 'f1) migrate() idempotent');
-  ok(f.g.ganztag && f.g.dauer === 0 && f.g.teil === 'vm' && f.g.notiz === 'x' && f.g.ort === 'Ostsee', 'f2) ganztaegig, Notiz und Ort bleiben stehen');
+  ok(f.g.ganztag && f.g.dauer === 0 && f.g.teil === 'mo' && f.g.notiz === 'x' && f.g.ort === 'Ostsee', 'f2) ganztaegig, Notiz und Ort bleiben stehen');
   ok(!f.w.nacht && !('notiz' in f.w) && !('ort' in f.w), 'f3) verwaiste/ungueltige Felder werden entfernt');
   ok(f.paar === 2, 'f4) gueltiges Mitternachts-Paar bleibt verbunden');
 
