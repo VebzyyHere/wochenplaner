@@ -3860,6 +3860,175 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
   body[data-sugoben="1"] .sugbar__text { color: var(--text); }
   body[data-sugoben="1"] .sugbar__close { color: var(--text-muted); }
 }
+
+/* ============================================================
+   v1.60 „Klarer Kopf & frische Ideen"
+   - Moderne Soft-Rectangle-/Squircle-Radien statt Vollpillen (Kreise bleiben
+     nur bei Stundensteinen, Haken, Heute-Ring, Punkten und mobilem „+")
+   - Aufgeräumter 3-Zonen-Header am Desktop ohne Werbespruch
+   - Prägnanter, einladender „Idee würfeln"-Knopf und aufgewertete Ideen-Karte
+   ============================================================ */
+:root {
+  --r-ctl: 10px;
+  --r-chip: 8px;
+  --r-seg: 10px;
+  --r-toast: 12px;
+}
+.btn { border-radius: var(--r-ctl); }
+.chip { border-radius: var(--r-chip); }
+.planbtn, .syncbadge { border-radius: var(--r-ctl); }
+.panelnav, .tagesform .energy, .planmode { border-radius: var(--r-seg); }
+.panelnav button, .tagesform .energy__opt, .planmode button { border-radius: 7px; }
+.taskadd { border-radius: 12px; padding: 4px 4px 4px 6px; }
+.taskadd .btn--primary { border-radius: 8px; }
+.task__go, .loosechip { border-radius: var(--r-chip); }
+.toast { border-radius: var(--r-toast); }
+.planhead__feiertag, .task__frist.is-nah { border-radius: 6px; }
+@media (max-width: 1100px) {
+  .tabbar button { border-radius: 10px; }
+  body[data-mview="plan"] .fab { border-radius: var(--r-ctl); }
+}
+
+@media (min-width: 1101px) {
+  .topbar {
+    padding: 10px var(--s-6);
+    gap: 8px;
+    min-height: 60px;
+  }
+  .brand {
+    margin-right: 0;
+    gap: 10px;
+    padding-right: 14px;
+    border-right: 1px solid var(--border);
+  }
+  .brand__mark { width: 24px; height: 24px; color: var(--ink); }
+  .brand__name {
+    font-family: var(--font-display);
+    font-variation-settings: "SOFT" 50, "WONK" 0;
+    font-size: 1.15rem;
+    font-weight: 680;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .planbtn {
+    margin-right: auto;
+    min-height: 36px;
+    padding: 0 11px;
+    background: var(--surface);
+    border: 1px solid var(--rand);
+    font-weight: 600;
+  }
+  .weeknav {
+    margin-right: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background: var(--surface);
+    border: 1px solid var(--rand);
+    border-radius: var(--r-ctl);
+  }
+  .weeknav .btn--icon {
+    min-height: 34px;
+    min-width: 34px;
+    border-color: transparent;
+    background: transparent;
+    border-radius: 7px;
+  }
+  .weeknav__label {
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 7px;
+    font-size: var(--t-body);
+    font-weight: 650;
+  }
+  .weeknav__label small {
+    display: inline;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: var(--t-sm);
+  }
+  .weeknav__label small::before {
+    content: "·";
+    margin: 0 6px;
+    color: var(--text-faint);
+  }
+  .weeknav__label .weeknav__caret {
+    margin-left: 6px;
+    vertical-align: 0;
+  }
+  .topbar #todayBtn { min-height: 38px; padding: 0 12px; font-weight: 600; }
+  .topbar #monthBtn, .topbar #settingsBtn { min-height: 38px; min-width: 38px; border-radius: var(--r-ctl); }
+  .topbar .syncbadge {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--rand);
+    background: var(--surface);
+  }
+}
+
+/* Prägnanter Würfel-Knopf & aufgewertete Ideen-Karte */
+.btn.wuerfel {
+  gap: 7px;
+  padding: 0 13px;
+  font-weight: 650;
+  color: var(--text);
+  background: color-mix(in oklab, var(--honig) 36%, var(--surface));
+  border: 1.5px solid color-mix(in oklab, var(--honig) 58%, var(--ink));
+}
+html[data-theme="dark"] .btn.wuerfel {
+  background: color-mix(in oklab, var(--honig) 22%, var(--surface));
+  border-color: color-mix(in oklab, var(--honig) 55%, var(--border-strong));
+}
+@media (hover: hover) {
+  .btn.wuerfel:hover { background: color-mix(in oklab, var(--honig) 52%, var(--surface)); }
+  html[data-theme="dark"] .btn.wuerfel:hover { background: color-mix(in oklab, var(--honig) 34%, var(--surface)); }
+  .btn.wuerfel:hover .ui-icon { transform: rotate(-12deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn.wuerfel .ui-icon { transition: transform .2s var(--feder); }
+}
+@media (max-width: 1100px) {
+  .btn.wuerfel { min-width: 44px; min-height: 44px; padding: 0 11px; margin: -4px 0; }
+  .wuerfel > span { display: inline; }
+}
+@media (max-width: 640px) {
+  .wuerfel .wuerfel__lang { display: none; }
+  .wuerfel .wuerfel__kurz { display: inline; font-size: var(--t-sm); }
+}
+@media (max-width: 384px) {
+  .btn.wuerfel { padding: 0 10px; }
+  .wuerfel > span { display: none; }
+}
+.idee {
+  border-radius: 14px;
+  border: 1.5px solid var(--area-line);
+  padding: 20px 18px;
+}
+.idee__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: var(--t-xs);
+  font-weight: 650;
+  color: var(--text-muted);
+}
+.idee__meta-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--area-dot, var(--ink));
+  flex: none;
+}
+.ideenglas {
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-3);
+}
 </style>
 </head>
 <body>
@@ -3873,8 +4042,8 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
 
   <header class="topbar">
     <div class="brand">
-      <svg class="brand__mark" viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M10 24V16m8 8V10m8 14v-9" fill="none" stroke="var(--on-ink)" stroke-width="3" stroke-linecap="round"/></svg>
-      <div class="brand__copy"><span class="brand__name">Wochenplaner</span><span class="brand__tagline">Platz für das, was zählt.</span></div>
+      <svg class="brand__mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3.5" width="19" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 3.5v17M15 3.5v17M2.5 9.5h19" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".45"/><circle cx="12" cy="14.5" r="2.2" fill="var(--honig)" stroke="currentColor" stroke-width="1.2"/></svg>
+      <div class="brand__copy"><span class="brand__name">Wochenplaner</span></div>
       <span class="brand__who" id="whoLabel"></span>
     </div>
     <button type="button" class="planbtn" id="planBtn" aria-haspopup="dialog"><span class="planbtn__emoji" aria-hidden="true"></span><span class="planbtn__name"></span><svg class="weeknav__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -3977,7 +4146,7 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
             <button type="button" data-tage="1" aria-pressed="true">Tag</button>
             <button type="button" data-tage="3" aria-pressed="false">3 Tage</button>
           </div>
-          <button type="button" class="btn btn--ghost wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span>Idee würfeln</span></button>
+          <button type="button" class="btn wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span><span class="wuerfel__kurz">Idee</span><span class="wuerfel__lang"> würfeln</span></span></button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Eintrag</span>
@@ -5301,8 +5470,8 @@ function renderHeader() {
       ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
       : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
   $("#weekLabel").innerHTML = "KW " + isoWeek(mon)
-    + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>"
-    + "<small>" + range + "</small>";
+    + "<small>" + range + "</small>"
+    + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>";
   // Barrierefreiheit (Prüfung 2026-11): der Name nennt die Woche, nicht nur
   // den Zweck — sonst hört ein Screenreader nie, welche Woche gerade gilt,
   // und Sprachsteuerung findet „KW 47" nicht (WCAG 2.5.3 Label in Name).
@@ -5336,10 +5505,11 @@ const PLAN_VORLAGEN = [
   { id: "festival", name: "Wochenende & Festival", emoji: "🎪", text: "Fr–So mit Lineup, Nacht-Sets, Food & Camp", freitag: true,
     bereiche: [["Bühnen & Acts", 22, [["Mainstage Headliner", 120], ["Afterhour", 180]]], ["Food & Drinks", 75, [["Streetfood & Drinks", 60]]],
                ["Camp & Chill", 152, [["Camp-Chill & Powernap", 120]]], ["Anreise & Orga", 248, [["Anreise & Zeltaufbau", 120]]]] },
-  { id: "reise", name: "Reise", emoji: "✈️", text: "Entdecken, Genuss, Entspannen und Logistik",
-    bereiche: [["Entdecken", 22, [["Altstadt erkunden", 150], ["Museum / Galerie", 120], ["Aussichtspunkt", 60]]],
-               ["Genuss", 75, [["Espresso & Cornetto", 60], ["Trattoria / Dinner", 120]]], ["Entspannen", 196, [["Strand / Pool", 180], ["Siesta & Lesen", 90]]],
-               ["Logistik", 295, [["Flug / Zugfahrt", 120], ["Hotel Check-in", 60]]]] },
+  { id: "reise", name: "Reise", emoji: "✈️", text: "Entdecken, Genuss, Entspannen und Ankommen",
+    bereiche: [["Entdecken", 22, [["Ziellos durch ein Viertel treiben", 60], ["Aussichtspunkt zum Sonnenuntergang", 60]]],
+               ["Genuss", 75, [["Espresso & Cornetto", 45], ["Lokales Café ausprobieren", 60], ["Abendessen ohne Plan", 90]]],
+               ["Entspannen", 196, [["Siesta & ein Kapitel lesen", 60], ["Musik hören & ankommen", 45]]],
+               ["Logistik", 295, [["Anreise / Zugfahrt", 120], ["Ankommen & Koffer abstellen", 30]]]] },
   { id: "projekt", name: "Projekt-Sprint", emoji: "🚀", text: "Umsetzen, Konzept, Orga und bewusste Pausen",
     bereiche: [["Umsetzen", 248, [["Deep Build", 120], ["Prototyp testen", 60]]], ["Konzept", 196, [["Brainstorming", 60], ["UI & Feinschliff", 90]]],
                ["Orga", 75, [["Roadmap & Doku", 60]]], ["Erholung", 152, [["Kopf-frei-Pause", 60], ["Bewegung / Sport", 60]]]] },
@@ -10757,48 +10927,132 @@ function nachtPaar(b) {
 }
 
 /* ============================================================
-   Ideen würfeln (v1.49)
-   Eine Idee für freie Zeit, passend zu einer ECHTEN Lücke der gezeigten
-   Woche (freeGaps() ohne Bereich — dieselbe Rechnung wie das Frei-Gesicht;
-   Vergangenes, freigehaltene Tage und Feiertage liefern dort keine Lücke).
+   Ideen würfeln (v1.60)
+   Spontane, kleine Ideen (überwiegend 15–30 min) plus ein generativer Baukasten
+   für frische Abwechslung (Kaffee/Latte Art, kurze Spaziergänge, Malen/Zeichnen,
+   Menschen, kleine Auszeiten). Immer passend zu einer ECHTEN Lücke der gezeigten
+   Woche (kein Teasern) und mit Anti-Wiederholungs-Gedächtnis im Arbeitsspeicher.
    Das Blatt rechnet nur und öffnet höchstens blockSheet() vorausgefüllt —
-   nie still speichern (wie „Passt das noch?"). Die Ideenliste ist sichtbarer
-   Text: Änderungen daran vorher mit Sunny abstimmen.
+   nie still speichern (wie „Passt das noch?").
    ============================================================ */
 const IDEEN = [
-  // Kleinigkeiten für zwischendurch
-  { t: "Spontan spazieren gehen", min: 30, art: "koerper" },
-  { t: "Kaffeepause, ganz in Ruhe", min: 15 },
-  { t: "Ein neues Kaffeerezept ausprobieren", min: 30 },
-  { t: "Ein, zwei Kapitel lesen", min: 30 },
-  { t: "Kurz was für die Uni lesen", min: 15, bei: /uni|lern|studi/i, nurMit: true },
-  { t: "Dehnen und durchatmen", min: 15, art: "koerper" },
-  { t: "Jemanden anrufen, der dir fehlt", min: 30, bei: /mensch|freund/i },
-  { t: "Musik an, Handy weg", min: 30 },
-  { t: "Eine Podcastfolge hören", min: 30 },
-  { t: "Lange baden oder heiß duschen", min: 30 },
-  // Wenn mehr Luft ist
-  { t: "Ins Lieblingscafé setzen", min: 60 },
-  { t: "Jemanden spontan zum Kaffee einladen", min: 60, bei: /mensch|freund/i },
-  { t: "Ein neues Rezept ausprobieren", min: 90 },
-  { t: "Etwas backen", min: 90 },
-  { t: "Etwas basteln oder zeichnen", min: 60 },
-  { t: "Etwas Neues lernen, nur zum Spaß", min: 60 },
-  // Abende (ab 18 Uhr)
-  { t: "Filmabend mit Decke", min: 120, ab: 1080 },
-  { t: "Serienabend", min: 90, ab: 1080 },
-  { t: "Podcastabend", min: 60, ab: 1080 },
-  { t: "Spieleabend mit Karten oder Brettspiel", min: 120, ab: 1080 }
+  // Kaffee & Genuss
+  { t: "Espresso & ein Kapitel lesen", min: 30, fam: "kaffee" },
+  { t: "Latte Art im Milchschaum üben", min: 15, fam: "kaffee" },
+  { t: "Ein neues Kaffeerezept ausprobieren", min: 30, fam: "kaffee" },
+  { t: "Einen Tee oder Matcha ganz in Ruhe aufgießen", min: 15, fam: "kaffee" },
+  // Kurze Runden & Bewegung
+  { t: "Kurzer Spaziergang ohne Ziel", min: 15, art: "koerper", fam: "raus" },
+  { t: "Spaziergang einmal um den Block", min: 30, art: "koerper", fam: "raus" },
+  { t: "Kurz dehnen und durchatmen", min: 15, art: "koerper", fam: "koerper" },
+  { t: "Frische Luft am Fenster oder Balkon", min: 15, fam: "raus" },
+  // Malen, Zeichnen & Musik
+  { t: "Kurz skizzieren oder zeichnen", min: 30, fam: "kreativ" },
+  { t: "Einfach drauflos malen, ohne Plan", min: 45, fam: "kreativ" },
+  { t: "Ein paar spontane Fotos im Viertel machen", min: 30, fam: "kreativ" },
+  { t: "Eine kleine Playlist für die Woche bauen", min: 30, fam: "musik" },
+  // Menschen & Nähe
+  { t: "Jemanden anrufen, den du lange nicht gehört hast", min: 30, bei: /mensch|freund/i, fam: "menschen" },
+  { t: "Einer alten Freundin spontan schreiben", min: 15, bei: /mensch|freund/i, fam: "menschen" },
+  { t: "Kurz bei der Familie durchklingeln", min: 15, bei: /mensch|freund/i, fam: "menschen" },
+  { t: "Spontan jemanden auf einen Kaffee fragen", min: 45, bei: /mensch|freund/i, fam: "menschen" },
+  // Ruhe, Lesen & Fokus-Funken
+  { t: "Ein Kapitel lesen, Handy im Flugmodus", min: 30, fam: "ruhe" },
+  { t: "Musik an, Handy weg, kurz abtauchen", min: 15, fam: "musik" },
+  { t: "Eine kurze Podcastfolge hören", min: 30, fam: "ruhe" },
+  { t: "Kurz was für die Uni lesen", min: 15, bei: /uni|lern|studi/i, nurMit: true, fam: "uni" },
+  // Gemütliche Abende (ab 18 Uhr)
+  { t: "Serienabend", min: 90, ab: 1080, fam: "abend" },
+  { t: "Heiß duschen & früh ins Buch", min: 45, ab: 1080, fam: "abend" },
+  { t: "Ein Lieblingsalbum am Stück hören", min: 45, ab: 1080, fam: "musik" }
 ];
+const IDEE_BAUKASTEN = {
+  latte: ["ein Herz", "eine kleine Tulpe", "ein Blatt", "eine Rosette", "eine ruhige Spirale"],
+  kaffee: [
+    ["Einen Iced Espresso Tonic mixen", 15],
+    ["Einen Cortado oder Flat White testen", 15],
+    ["Handfilter-Kaffee langsam aufbrühen", 15],
+    ["Espresso mit einer Prise Zimt oder Kardamom probieren", 15],
+    ["Einen cremigen Chai-Latte aufschäumen", 15],
+    ["Kaffeebohnen frisch mahlen & bewusst kosten", 15],
+    ["Einen kalten Hafer-Latte oder Affogato machen", 15]
+  ],
+  spaziergang: [
+    ["Kurzer Spaziergang ohne Handy in der Tasche", 15],
+    ["Kurzer Spaziergang durch eine Straße, die du kaum kennst", 30],
+    ["Kleine Runde bis zum nächsten Park oder großen Baum", 30],
+    ["Raus vor die Tür mit einem Lieblingssong auf den Ohren", 15],
+    ["Spaziergang in der Nachmittagssonne, ganz ohne Ziel", 30],
+    ["Kurzer Walk auf der Suche nach schönem Licht", 15],
+    ["Einen kleinen Umweg zu Fuß ums Viertel drehen", 30]
+  ],
+  zeichneMedien: ["Mit Fineliner skizzieren", "Mit Bleistift locker zeichnen"],
+  zeichneMotive: [
+    "die Kaffeetasse vor dir",
+    "eine Pflanze im Raum",
+    "den Blick aus dem Fenster",
+    "drei kleine Alltagsdinge auf dem Tisch"
+  ],
+  kreativSolo: [
+    ["Mit Buntstiften oder Aquarell einfach drauflos malen", 30],
+    ["Eine Seite im Skizzenbuch mit Linien & Formen füllen", 15],
+    ["Ein kleines Motiv auf Postkartengröße malen", 30],
+    ["Ein neues, simples Rezept für die Woche heraussuchen", 15]
+  ],
+  menschen: [
+    ["Einer alten Freundin spontan eine Sprachnachricht schicken", 15],
+    ["Kurz bei Mama, Papa oder Geschwistern durchklingeln", 15],
+    ["Jemandem einfach ein Foto aus deinem Moment schicken", 15],
+    ["Ein spontanes Treffen für nächste Woche vorschlagen", 15],
+    ["Einem Lieblingsmenschen schreiben, woran du gerade denkst", 15]
+  ],
+  auszeit: [
+    ["15 Minuten Powernap ohne Wecker-Stress", 15, "ruhe"],
+    ["Einen schnellen Snack aus dem zaubern, was da ist", 15, "kaffee"],
+    ["Espresso kochen & zwei Seiten in einer Zeitschrift blättern", 15, "kaffee"],
+    ["Zwei Lieblingssongs lang nur zuhören, nichts nebenbei", 15, "musik"],
+    ["Eine neue Album-Empfehlung anspielen & kurz versinken", 30, "musik"],
+    ["Ein Kapitel im Sitzen am offenen Fenster lesen", 30, "ruhe"],
+    ["Fünf Minuten alle losen Gedanken auf Papier werfen", 15, "ruhe"],
+    ["Kurz barfuß dehnen, Schultern kreisen & Wasser trinken", 15, "koerper", "koerper"],
+    ["Lieblingsecke kurz lüften, Tee machen & durchatmen", 15, "ruhe"]
+  ]
+};
+let ideeGenCache = null;
+function ideenGeneriert() {
+  if (ideeGenCache) return ideeGenCache;
+  const gen = [];
+  IDEE_BAUKASTEN.latte.forEach(m => gen.push({ t: "Latte Art: " + m + " im Milchschaum üben", min: 15, fam: "kaffee" }));
+  IDEE_BAUKASTEN.kaffee.forEach(([t, min]) => gen.push({ t, min, fam: "kaffee" }));
+  IDEE_BAUKASTEN.spaziergang.forEach(([t, min]) => gen.push({ t, min, art: "koerper", fam: "raus" }));
+  IDEE_BAUKASTEN.zeichneMedien.forEach(med => IDEE_BAUKASTEN.zeichneMotive.forEach(mot =>
+    gen.push({ t: med + ": " + mot, min: 15, fam: "kreativ" })));
+  IDEE_BAUKASTEN.kreativSolo.forEach(([t, min]) => gen.push({ t, min, fam: "kreativ" }));
+  IDEE_BAUKASTEN.menschen.forEach(([t, min]) => gen.push({ t, min, bei: /mensch|freund/i, fam: "menschen" }));
+  IDEE_BAUKASTEN.auszeit.forEach(([t, min, fam, art]) => gen.push(art ? { t, min, fam, art } : { t, min, fam }));
+  ideeGenCache = gen;
+  return gen;
+}
 const IDEE_MIN = 15;
-/* Eigene Ideen liegen am Bereich (area.ideen) und würfeln gleichberechtigt mit. */
+const IDEE_VERLAUF_MAX = 14;
+let ideeVerlauf = [];
+let ideeFamilien = [];
+/* Eigene Ideen liegen am Bereich (area.ideen) und würfeln sichtbar mit; im
+   aktiven Plan bleiben fremde Pläne (z. B. Festival) unter sich. */
 function alleIdeen() {
+  const bereiche = planBereiche();
   const eigene = [];
-  state.areas.forEach(a => (a.ideen || []).forEach(i => eigene.push({ t: i.t, min: i.min, areaId: a.id })));
+  bereiche.forEach(a => (a.ideen || []).forEach(i => eigene.push({ t: i.t, min: i.min, areaId: a.id, eigen: true, fam: "eigen:" + a.id })));
   // "nurMit": die Idee gibt es nur, wenn ein Bereich mit passendem Namen da ist
   // (ohne Uni-Bereich keine Uni-Idee).
-  const feste = IDEEN.filter(i => !i.nurMit || state.areas.some(x => i.bei.test(x.name)));
-  return feste.concat(eigene);
+  const feste = IDEEN.filter(i => !i.nurMit || bereiche.some(x => i.bei.test(x.name)));
+  const gesehen = new Set();
+  const alle = [];
+  feste.concat(ideenGeneriert(), eigene).forEach(i => {
+    const k = i.t.toLowerCase();
+    if (!gesehen.has(k)) { gesehen.add(k); alle.push(i); }
+  });
+  return alle;
 }
 const IDEE_FRUEH = 9 * 60;
 function ideeFenster() {
@@ -10812,16 +11066,18 @@ function ideeFenster() {
   return liste;
 }
 function ideeBereich(idee) {
+  const bereiche = planBereiche();
+  if (idee.areaId && bereiche.some(a => a.id === idee.areaId)) return areaById(idee.areaId);
   if (idee.areaId && state.areas.some(a => a.id === idee.areaId)) return areaById(idee.areaId);
   // "bei": bevorzugter Bereich nach Namen (Uni, Menschen), sonst nach Art.
-  const nachName = idee.bei && state.areas.find(x => idee.bei.test(x.name));
+  const nachName = idee.bei && bereiche.find(x => idee.bei.test(x.name));
   if (nachName) return nachName;
   const art = idee.art || "erholung";
-  return state.areas.find(a => a.plan && a.plan.art === art)
-    || state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0];
+  return bereiche.find(a => a.plan && a.plan.art === art)
+    || bereiche.find(a => a.plan && a.plan.art === "erholung") || bereiche[0] || state.areas[0];
 }
-/* Würfelt eine Idee, die in eine der Lücken passt; "nicht" ist die zuletzt
-   gezeigte Idee und kommt nicht direkt wieder (solange es eine andere gibt). */
+/* Würfelt eine Idee, die in eine echte freie Lücke passt (kein Teasern);
+   Anti-Wiederholungs-Gedächtnis verhindert direkte Titel- und Serien-Wiederholungen. */
 function ideeWuerfeln(nicht) {
   const fenster = ideeFenster();
   if (!fenster.length) return null;
@@ -10830,9 +11086,22 @@ function ideeWuerfeln(nicht) {
   const frueh = i => i.ab || IDEE_FRUEH;
   const platz = (i, f) => f.end - Math.max(f.start, frueh(i)) >= i.min;
   let pool = alleIdeen().filter(i => fenster.some(f => platz(i, f)));
-  if (pool.length > 1 && nicht) pool = pool.filter(i => i.t !== nicht.t);
   if (!pool.length) return null;
-  const idee = pool[Math.floor(Math.random() * pool.length)];
+  if (pool.length > 1 && nicht) pool = pool.filter(i => i.t.toLowerCase() !== nicht.t.toLowerCase());
+  let kandidaten = pool.filter(i => !ideeVerlauf.includes(i.t.toLowerCase()) && !ideeFamilien.includes(i.fam || ""));
+  if (!kandidaten.length) kandidaten = pool.filter(i => !ideeVerlauf.includes(i.t.toLowerCase()));
+  if (!kandidaten.length) {
+    ideeVerlauf = nicht ? [nicht.t.toLowerCase()] : [];
+    kandidaten = pool;
+  }
+  const auswahl = [];
+  kandidaten.forEach(i => {
+    auswahl.push(i);
+    if (i.eigen) auswahl.push(i, i); // eigenes Ideenglas bekommt leichtes Gewicht
+  });
+  const idee = auswahl[Math.floor(Math.random() * auswahl.length)];
+  ideeVerlauf = [idee.t.toLowerCase()].concat(ideeVerlauf).slice(0, IDEE_VERLAUF_MAX);
+  if (idee.fam) ideeFamilien = [idee.fam].concat(ideeFamilien).slice(0, 2);
   const passend = fenster.filter(f => platz(idee, f));
   const f = passend[Math.floor(Math.random() * passend.length)];
   const start = Math.max(f.start, frueh(idee));
@@ -10847,7 +11116,7 @@ function ideeSheet() {
         "<button type='button' class='btn btn--ghost btn--sm' id='ideeNeuAuf' aria-expanded='false'>+ Eigene Idee dazulegen</button>" +
         "<div id='ideeNeuForm' hidden>" +
           "<div class='sheet__row'><label class='label' for='ideeNeuText'>Deine Idee</label>" +
-          "<input class='field' id='ideeNeuText' maxlength='60' placeholder='z.B. Schwimmen gehen' autocomplete='off'></div>" +
+          "<input class='field' id='ideeNeuText' maxlength='60' placeholder='z.B. Latte Art üben oder Freundin anrufen' autocomplete='off'></div>" +
           "<div class='sheet__row'><span class='label'>Wie lange etwa?</span><div class='chipset' id='ideeNeuDauer'></div></div>" +
           "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='ideeNeuBereich'></div></div>" +
           "<p class='field-error' id='ideeNeuFehler' role='status' hidden></p>" +
@@ -10861,11 +11130,12 @@ function ideeSheet() {
     const glasRow = s.querySelector("#ideenglasRow"), glasListe = s.querySelector("#ideenglasListe");
     const neuAuf = s.querySelector("#ideeNeuAuf"), neuForm = s.querySelector("#ideeNeuForm");
     const neuText = s.querySelector("#ideeNeuText"), neuFehler = s.querySelector("#ideeNeuFehler");
-    let neuMin = 60;
-    let neuBereich = (state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0]).id;
+    const bereiche = planBereiche();
+    let neuMin = 30;
+    let neuBereich = (bereiche.find(a => a.plan && a.plan.art === "erholung") || bereiche[0]).id;
     const glasZeichnen = () => {
       glasListe.innerHTML = "";
-      state.areas.forEach(a => (a.ideen || []).forEach(i => {
+      planBereiche().forEach(a => (a.ideen || []).forEach(i => {
         const c = document.createElement("button");
         c.type = "button"; c.className = "chip ideenglas__chip";
         c.style.setProperty("--h", a.hue);
@@ -10893,8 +11163,8 @@ function ideeSheet() {
         wrap.appendChild(c);
       });
     };
-    chips(s.querySelector("#ideeNeuDauer"), [[30, "30 min"], [60, "1 h"], [90, "1,5 h"], [120, "2 h"]], () => neuMin, v => { neuMin = v; });
-    chips(s.querySelector("#ideeNeuBereich"), state.areas.map(a => [a.id, a.name, a.hue]), () => neuBereich, v => { neuBereich = v; });
+    chips(s.querySelector("#ideeNeuDauer"), [[15, "15 min"], [30, "30 min"], [60, "1 h"], [90, "1,5 h"], [120, "2 h"]], () => neuMin, v => { neuMin = v; });
+    chips(s.querySelector("#ideeNeuBereich"), bereiche.map(a => [a.id, a.name, a.hue]), () => neuBereich, v => { neuBereich = v; });
     neuAuf.onclick = () => {
       neuForm.hidden = !neuForm.hidden;
       neuAuf.setAttribute("aria-expanded", String(!neuForm.hidden));
@@ -10931,7 +11201,10 @@ function ideeSheet() {
         return;
       }
       const d = wurf.day.d;
+      const meta = "<span class='idee__meta'><span class='idee__meta-dot'></span>"
+        + escapeHtml(wurf.area.name) + (wurf.idee.eigen ? " · Aus deinem Glas" : "") + "</span>";
       feld.innerHTML = "<div class='idee" + (neu ? " is-neu" : "") + "' style='--h:" + wurf.area.hue + "'>"
+        + meta
         + "<div class='idee__titel'>" + escapeHtml(wurf.idee.t) + "</div>"
         + "<div class='idee__wann'><b>" + DAY_LONG[wurf.day.i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".</b> · "
         + fmtTime(wurf.start) + "–" + fmtTime(wurf.end) + " · " + fmtDur(wurf.idee.min) + "</div></div>";

@@ -342,6 +342,56 @@ async function boot(br, devName) {
     await ctx.close();
   }
 
+  /* ---- 5. Persona: Desktop 1440x900 (Hell & Dunkel) + Ideen-Blatt ---- */
+  console.log('\n=== Persona 5: Desktop Header, Radien & Ideen-Blatt (1440x900) ===');
+  {
+    const ctx = await br.newContext({ viewport: { width: 1440, height: 900 }, timezoneId: 'Europe/Berlin', locale: 'de-DE' });
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+    p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+    await p.clock.setFixedTime(new Date('2026-11-25T10:20:00+01:00'));
+    await p.goto(F + '?beispiel');
+    await p.waitForFunction(() => typeof syncSettled !== 'undefined' && syncSettled);
+    await p.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
+    await p.waitForTimeout(400);
+
+    const desk = await p.evaluate(() => {
+      const tb = document.querySelector('.topbar');
+      const tr = tb.getBoundingClientRect();
+      const wb = document.querySelector('#wuerfelBtn');
+      const wcs = getComputedStyle(wb);
+      const wn = document.querySelector('.weeknav').getBoundingClientRect();
+      return {
+        taglineWeg: !document.querySelector('.brand__tagline'),
+        topbarH: Math.round(tr.height),
+        topbarQuer: tb.scrollWidth > tb.clientWidth + 1,
+        weeknavH: Math.round(wn.height),
+        wuerfelBg: wcs.backgroundColor,
+        btnRadius: getComputedStyle(document.querySelector('#desktopAdd')).borderRadius
+      };
+    });
+    ok(desk.taglineWeg && !desk.topbarQuer && desk.topbarH <= 76,
+      'P5a) Desktop-Kopf aufgeraeumt, ohne Slogan, einzeilig (' + desk.topbarH + ' px, Weeknav ' + desk.weeknavH + ' px)');
+    ok(desk.wuerfelBg !== 'rgba(0, 0, 0, 0)' && parseFloat(desk.btnRadius) <= 14,
+      'P5b) Wuerfel-Knopf getoent (' + desk.wuerfelBg + '), moderne Button-Radien (' + desk.btnRadius + ')');
+
+    await p.screenshot({ path: path.join(__dirname, 'sz-desktop-hell.png') });
+    await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+    await p.waitForTimeout(150);
+    await p.screenshot({ path: path.join(__dirname, 'sz-desktop-dunkel.png') });
+    await p.evaluate(() => document.documentElement.removeAttribute('data-theme'));
+
+    await p.click('#wuerfelBtn');
+    await p.waitForSelector('.idee__meta');
+    await p.waitForTimeout(250);
+    await p.screenshot({ path: path.join(__dirname, 'sz-idee-blatt.png') });
+
+    ok(errs.length === 0, 'P5c) Keine Konsolenfehler');
+    alleErrs.push(...errs);
+    await ctx.close();
+  }
+
   await br.close();
   console.log('\n' + (fehler.length || alleErrs.length ? 'FEHLER: ' + fehler.length : 'ALLES GRUEN'));
   process.exit(fehler.length || alleErrs.length ? 1 : 0);

@@ -76,11 +76,11 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   console.log('=== b) Wurf ===');
   const b = await p.evaluate(() => {
     const vorher = JSON.stringify(state);
-    let letzte = null; const probleme = []; const titel = new Set();
+    let letzte = null; const probleme = []; const titel = new Set(); const serie12 = [];
     for (let n = 0; n < 200; n++) {
       const w = ideeWuerfeln(letzte);
       if (!w) { probleme.push('kein Wurf'); break; }
-      if (letzte && w.idee === letzte) probleme.push('Wiederholung ' + w.idee.t);
+      if (letzte && w.idee.t === letzte.t) probleme.push('Wiederholung ' + w.idee.t);
       if (w.end - w.start !== w.idee.min) probleme.push('Dauer ' + w.idee.t);
       if (w.start < (w.idee.ab || 540)) probleme.push('zu frueh ' + w.idee.t + ' ' + w.start);
       const drin = freeGaps(w.day, {}, null, {}).some(g => g.start <= w.start && g.end >= w.end);
@@ -88,12 +88,21 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
       const kollision = state.blocks.some(x => !x.grob && onDay(x, w.day.key, w.day.i) && x.start < w.end && x.end > w.start);
       if (kollision) probleme.push('Kollision ' + w.day.key + ' ' + w.start);
       if (!state.areas.includes(w.area)) probleme.push('Bereich');
+      if (n < 12) serie12.push(w.idee.t);
       titel.add(w.idee.t); letzte = w.idee;
     }
-    return { probleme: probleme.slice(0, 5), verschiedene: titel.size, gleich: vorher === JSON.stringify(state) };
+    const verboten = ['Strand / Pool', 'Hotel Check-in', 'Altstadt erkunden', 'Museum / Galerie'];
+    const dump = JSON.stringify(alleIdeen()) + JSON.stringify(PLAN_VORLAGEN);
+    const nochDrin = verboten.filter(v => dump.includes(v));
+    const wb = document.querySelector('#wuerfelBtn');
+    const wr = wb.getBoundingClientRect();
+    return { probleme: probleme.slice(0, 5), verschiedene: titel.size, serieOhneDoppel: new Set(serie12).size === serie12.length,
+      nochDrin, gleich: vorher === JSON.stringify(state), wbW: wr.width, wbClip: wb.scrollWidth > wb.clientWidth + 1 };
   });
   ok(b.probleme.length === 0, 'b) 200 Wuerfe: alle in einer Luecke, keine Kollision, Abend-Ideen ab 18 Uhr, keine direkte Wiederholung' + (b.probleme.length ? ' — ' + b.probleme.join('; ') : ''));
-  ok(b.verschiedene >= 8, 'b) ' + b.verschiedene + ' verschiedene Ideen');
+  ok(b.verschiedene >= 25 && b.serieOhneDoppel, 'b) ' + b.verschiedene + ' verschiedene generative/spontane Ideen, 12 Zuege in Folge ohne Doppel');
+  ok(b.nochDrin.length === 0, 'b) alte Reise-Punkte entfernt (' + (b.nochDrin.join(', ') || 'sauber') + ')');
+  ok(b.wbW >= 100 && !b.wbClip, 'b) Desktop-Wuerfelknopf sichtbar und unbeschnitten (' + Math.round(b.wbW) + ' px)');
   ok(b.gleich, 'b) Wuerfeln aendert state nicht');
 
   console.log('=== c) Blatt ===');
