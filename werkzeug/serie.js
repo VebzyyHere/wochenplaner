@@ -283,6 +283,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
   await p.evaluate(() => editBlock('blk-f', state.blocks.find(x => x.id === 'blk-f').date));
   await p.waitForTimeout(300);
+  if (await p.locator('#bMehr:not([open])').count()) await p.click('#bMehr summary');
   await p.click("#bRepeat button:has-text('Alle 2 Wochen')");
   await p.click(".sheet__foot .btn--primary");   // Speichern
   await p.waitForTimeout(200);

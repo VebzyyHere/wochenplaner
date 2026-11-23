@@ -81,7 +81,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   // ============================================================== c)
   console.log('=== c) Wochen-Knopf nennt die Woche ===');
   const c = await p.evaluate(() => ({ name: document.querySelector('#weekLabel').getAttribute('aria-label'), text: document.querySelector('#weekLabel').textContent }));
-  ok(/^KW 47 · 16\.11\.–22\.11\. — Wochenübersicht anzeigen$/.test(c.name), 'c1) aria-label = sichtbarer Text + Zweck (' + c.name + ')');
+  ok(/^KW 47 · 16\.–22\.11\. — Wochenübersicht anzeigen$/.test(c.name), 'c1) aria-label = sichtbarer Text + Zweck (' + c.name + ')');
   ok(c.name.includes(c.text.replace(/\s+/g, ' ').trim().slice(0, 5)), 'c2) sichtbarer Text steckt im Namen (' + c.text + ')');
 
   // ============================================================== d)

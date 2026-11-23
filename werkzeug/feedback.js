@@ -60,6 +60,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     await p.screenshot({ path: path.join(__dirname, name) });
   };
   const zu = async () => { await p.evaluate(() => closeModal()); await p.waitForTimeout(150); };
+  const mehr = async () => { if (await p.locator('#bMehr:not([open])').count()) await p.click('#bMehr summary'); };
 
   // ============================================================== a)
   console.log('=== a) ganztaegig ===');
@@ -95,6 +96,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await basis();
   await neu(2, 14 * 60, 15 * 60);
   await p.fill('#bTitle', 'Seminar');
+  await mehr();
   await p.fill('#bNotiz', 'Raum 2.14\nSkript mitnehmen');
   await eintragen();
   await p.waitForTimeout(200);
@@ -121,6 +123,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await basis();
   await neu(2, 16 * 60, 17 * 60);
   await p.fill('#bTitle', 'Kaffee mit Lena');
+  await mehr();
   await p.fill('#bOrt', 'Café Lotte');
   ok(await p.isVisible('#bOrtMerken'), 'c1) Freier Ort bietet „Als Ort merken" an');
   await bild('feedback-ort.png', '#bOrt');
@@ -131,6 +134,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(c1.txt.includes('Café Lotte'), 'c3) Agenda zeigt den freien Ort');
   await neu(2, 12 * 60, 13 * 60);
   await p.fill('#bTitle', 'Vorlesung');
+  await mehr();
   await p.fill('#bOrt', 'uni');
   ok(await p.getAttribute('.sheet #bOrte button.chip:text-is("Uni")', 'aria-pressed') === 'true', 'c4) Getippter Name markiert den gemerkten Ort');
   await eintragen();
@@ -138,6 +142,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(c2.ortId === 'o-uni' && !c2.ort, 'c5) Gemerkter Ort wird zur ortId');
   await neu(2, 18 * 60, 19 * 60);
   await p.fill('#bTitle', 'Training');
+  await mehr();
   await p.fill('#bOrt', 'Halle Nord');
   await p.click('#bOrtMerken');
   await eintragen();
@@ -205,6 +210,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   // Woechentlich am Sonntag: zweiter Teil am Montag.
   await neu(6, 20 * 60, 21 * 60);
   await p.fill('#bTitle', 'Spaetdienst');
+  await mehr();
   await chip('Wöchentlich');
   await p.fill('#bFrom', '23:00');
   await p.fill('#bTo', '01:00');
@@ -243,6 +249,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await neu(0, 10 * 60, 12 * 60);
   await p.fill('#bTitle', 'Vorlesung Mathe');
   ok(await p.isHidden('#bBisRow'), 'h1) Einmalig: kein Ende-Feld');
+  await mehr();
   await chip('Wöchentlich');
   ok(await p.isVisible('#bBisRow'), 'h2) Woechentlich: Feld „Endet am"');
   await p.fill('#bBis', '2026-07-01');

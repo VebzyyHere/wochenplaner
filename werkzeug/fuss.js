@@ -133,6 +133,10 @@ async function pruefeFall(p, tag, quer) {
     }
   }
 
+  if (mit.plus && mit.tabbar && mit.tabbar.width > mit.tabbar.height) {
+    ok(mit.plus.top >= mit.tabbar.top - 1, `+ liegt buendig in der Tabbar (${Math.round(mit.plus.top)} >= ${Math.round(mit.tabbar.top)})`);
+  }
+
   // Sicherheitszone: keine der schwebenden Flaechen ragt unter die
   // Tabbar-Unterkante (== Fensterunterkante bei safe-area-inset 0).
   ['tabbar', 'dayswitch', 'sugbar', 'fab', 'toast'].forEach(k => {
@@ -169,9 +173,10 @@ async function pruefeFall(p, tag, quer) {
       'Eintragsaktion bleibt im Plankopf, auch wenn Vorschlaege erscheinen');
   }
   if (mit.toast && ohne.toast) {
-    const cssBottomMit = mit.innerHeight - mit.toast.bottom;
-    const cssBottomOhne = ohne.innerHeight - ohne.toast.bottom;
-    ok(cssBottomOhne < cssBottomMit, `Toast rueckt nach unten, wenn die Leiste weg ist (bottom ${cssBottomMit}px -> ${cssBottomOhne}px)`);
+    if (mit.dayswitch) {
+      ok(mit.toast.top >= mit.dayswitch.bottom - 1, `Toast liegt unter dem Tagesstreifen (${Math.round(mit.toast.top)} >= ${Math.round(mit.dayswitch.bottom)})`);
+    }
+    ok(Math.abs(ohne.toast.top - mit.toast.top) < 2, `Toast bleibt oben stabil, wenn die Leiste weg ist (top ${Math.round(mit.toast.top)}px -> ${Math.round(ohne.toast.top)}px)`);
   }
 
   ['tabbar', 'dayswitch', 'fab', 'toast'].forEach(k => {

@@ -97,8 +97,8 @@ const aufbau = () => {
       frei: getComputedStyle(document.querySelector('.dayhead__frei')).transform };
   });
   ok(b.label === 'none' && b.agenda === 'none', 'Etiketten ohne Großbuchstaben (' + b.label + ' / ' + b.agenda + ')');
-  ok(/data:image\/svg/.test(b.frog) && /oklch/.test(decodeURIComponent(b.frog)), 'der Schwerpunkt trägt eine Welle im Bereichston');
-  ok(b.frei && b.frei !== 'none', '„frei" ist ein schräger Aufkleber (' + b.frei + ')');
+  ok(!/data:image\/svg/.test(b.frog), 'der Schwerpunkt trägt keine dekorative SVG-Welle');
+  ok(b.frei === 'none', '„frei" liegt ruhig und gerade (' + b.frei + ')');
   await p.evaluate(() => setView('plan'));
   const loose = await p.evaluate(() => { const l = document.querySelector('.loose__lab'); return l ? getComputedStyle(l).textTransform : 'none'; });
   ok(loose === 'none', 'Band-Etikett ohne Großbuchstaben');
@@ -250,6 +250,9 @@ const aufbau = () => {
     ok(bild.name === 'wochenplaner-kw37.png', 'Dateiname nennt die Woche (' + bild.name + ')');
     const vorher = await p.evaluate(() => JSON.stringify(state));
     await p.evaluate(() => setView('ziele'));
+    await p.evaluate(() => {
+      Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
+    });
     await p.click('#wochenkarteBtn');
     await p.waitForSelector('#wkBild img');
     ok(await p.evaluate(() => $('#wkTeilen').hidden && $('#wkSpeichern').classList.contains('btn--primary')), 'ohne Teilen-Funktion ist „Bild speichern" die Hauptaktion');

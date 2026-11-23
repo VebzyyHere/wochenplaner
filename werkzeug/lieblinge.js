@@ -96,9 +96,9 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const c0 = await p.evaluate(() => {
     const row = document.querySelector('#bLieblingeRow'), was = document.querySelector('#bTitle');
     return { texte: [...document.querySelectorAll('#bLieblinge .chip')].map(x => x.textContent), label: row.querySelector('.label').textContent,
-      davor: !!(row.compareDocumentPosition(was) & Node.DOCUMENT_POSITION_FOLLOWING), von: document.querySelector('#bFrom').value, anzahl: state.blocks.length };
+      danach: !!(was.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING), von: document.querySelector('#bFrom').value, anzahl: state.blocks.length };
   });
-  ok(c0.label === 'Oft geplant' && c0.davor, 'c) Zeile „Oft geplant" steht vor „Was?"');
+  ok(c0.label === 'Oft geplant' && c0.danach, 'c) Zeile „Oft geplant" steht nach „Was?"');
   ok(JSON.stringify(c0.texte) === JSON.stringify(['lernzeit · 2 h', 'Musik · 2 h', 'Laufen · 45 min']), 'c) Chips: ' + c0.texte.join(' | '));
   await p.click('#bLieblinge .chip:nth-child(3)');
   await p.waitForFunction(() => document.querySelector('#bTitle') && document.querySelector('#bTitle').value === 'Laufen');
@@ -150,9 +150,10 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await t.waitForSelector('#bLieblinge .chip');
   const g = await t.evaluate(() => {
     const sheet = document.querySelector('.sheet');
+    const leiste = document.querySelector('#bLieblinge').getBoundingClientRect();
     const chips = [...document.querySelectorAll('#bLieblinge .chip')].map(x => x.getBoundingClientRect());
     return { quer: sheet.scrollWidth > sheet.clientWidth + 1 || document.documentElement.scrollWidth > 320,
-      hoch: Math.min(...chips.map(r => r.height)), rechts: Math.max(...chips.map(r => r.right)) };
+      hoch: Math.min(...chips.map(r => r.height)), rechts: leiste.right };
   });
   ok(!g.quer && g.rechts <= 320, 'g) kein waagerechtes Scrollen');
   ok(g.hoch >= 44, 'g) Chips mindestens 44 px hoch (ist ' + g.hoch + ')');

@@ -19,7 +19,7 @@ const assert = require('assert/strict');
     await page.locator('#taskInput').press('Enter');
     await page.getByRole('button', { name: 'In den Wochenplan legen: Einkaufen', exact: true }).click();
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#bTitle,#bDays,#bGenau,#bFrom,#bTo,#bRepeat,#bAreas,#bOrte')].map(el => el.id)),
-      ['bTitle', 'bDays', 'bGenau', 'bFrom', 'bTo', 'bRepeat', 'bAreas', 'bOrte'],
+      ['bTitle', 'bDays', 'bGenau', 'bFrom', 'bTo', 'bAreas', 'bRepeat', 'bOrte'],
       'Titel, Tag und Uhrzeit gehen optionalen Angaben auch in der Tastaturfolge voraus');
     await page.locator('#bFrom').fill('14:00');
     // Bis vor Von ist seit dem Feedback 2026-11 ein Termin ueber Mitternacht

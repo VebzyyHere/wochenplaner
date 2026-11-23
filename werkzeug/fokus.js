@@ -54,6 +54,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await p.waitForTimeout(350);
   await p.fill('#bTitle', 'Sport');
   ok(await p.locator('#bSchritte').isHidden(), 'leere Liste verborgen');
+  if (await p.locator('#bMehr:not([open])').count()) await p.click('#bMehr summary');
   await p.fill('#bSchritt', 'Sportschuhe');
   await p.locator('#bSchrittDazu').tap();
   await p.fill('#bSchritt', 'Wasserflasche');

@@ -590,8 +590,10 @@ html[data-app="1"] .kopf {
   gap: var(--s-4); padding: var(--s-2) var(--s-5); min-height: 56px; border-bottom: 1px solid var(--border); background: var(--surface); }
 /* v1.32: eine Zeile statt Titel + Werbesatz; „Freie Zeit" entfiel, weil die
    KW-Anzeige im Kopf (und die Taste W) dasselbe Blatt öffnet. */
-.planhead h1 { font-size: var(--t-h2); margin: 0; letter-spacing: -.01em; }
+.planhead > div:first-child { min-width: 0; }
+.planhead h1 { font-size: var(--t-h2); margin: 0; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .planhead__actions { display: flex; align-items: center; gap: var(--s-2); flex: none; }
+.planmode { display: none; }
 @media (min-width: 1101px) {
   .main > .panel { width: clamp(352px, 29vw, 440px); padding: var(--s-5);
     margin: var(--s-4); border: 1px solid var(--border); border-radius: var(--radius-lg);
@@ -1142,13 +1144,11 @@ html[data-theme="dark"] .agenda__loading {
   background: var(--text); margin-right: 5px; vertical-align: middle;
 }
 .task__meta {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 4px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; margin-top: 4px;
   font-size: var(--t-xs); color: var(--text-muted);
 }
-.task__dur {
-  margin-left: 4px; padding-left: 7px; border-left: 1px solid var(--border);
-  color: var(--text-faint);
-}
+.task__area { display: inline-flex; align-items: center; gap: 5px; }
+.task__dur { color: var(--text-faint); }
 .task__more {
   flex: none; border: 0; background: transparent; color: var(--text-muted);
   font-size: var(--t-h2); letter-spacing: 1px; line-height: 1;
@@ -1209,7 +1209,7 @@ html[data-theme="dark"] .agenda__loading {
    keine Uhrzeit und soll auch keine vortäuschen.
    ============================================================ */
 .loose {
-  flex: none; border-top: 1px solid var(--border);
+  flex: none; border-bottom: 1px solid var(--border);
   background: var(--surface); padding: var(--s-2) 0;
   display: grid; grid-template-columns: var(--gutter, 56px) repeat(var(--lcols, 7), minmax(0, 1fr));
   max-height: 34dvh; overflow-y: auto;
@@ -1307,15 +1307,15 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
   display: flex; align-items: center; justify-content: center; gap: 6px;
   margin-top: 4px; min-height: 16px;
 }
-.dayhead__last i {
+.dayhead__last > i {
   width: 22px; height: 3px; border-radius: 2px; flex: none;
   background: linear-gradient(to right,
     var(--last-farbe, var(--text-faint)) 0 var(--last, 0%),
     var(--surface-3) var(--last, 0%) 100%);
 }
-.dayhead[aria-pressed="true"] .dayhead__last i { background: linear-gradient(to right,
+.dayhead[aria-pressed="true"] .dayhead__last > i { background: linear-gradient(to right,
     var(--last-farbe, var(--ink)) 0 var(--last, 0%), var(--border) var(--last, 0%) 100%); }
-.dayhead.is-voll .dayhead__last i { --last-farbe: var(--warn); }
+.dayhead.is-voll .dayhead__last > i { --last-farbe: var(--warn); }
 .dayhead__std { font-size: var(--t-xs); font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
 .dayhead.is-voll .dayhead__std { color: var(--text); font-weight: 600; }
 .dayhead__energy {
@@ -1334,6 +1334,8 @@ html[data-theme="dark"] .dayswitch__btn.is-frei { background: oklch(0.72 0.14 15
   position: absolute; right: var(--s-2); transform: translateY(-50%);
   font-size: var(--t-xs); font-variant-numeric: tabular-nums; color: var(--text-faint);
 }
+.timecol__mark:first-child { transform: translateY(2px); }
+.timecol__mark:last-child { transform: translateY(-100%); }
 .daycol {
   position: relative; border-left: 1px solid var(--border);
   background: var(--surface);
@@ -1850,9 +1852,6 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   body[data-sugbar="1"] .gridwrap > .grid {
     padding-bottom: calc(var(--fuss-oben) - var(--fussleiste));
   }
-  body[data-sugbar="1"] .loose {
-    padding-bottom: calc(var(--fuss-oben) - var(--fussleiste) + var(--s-2));
-  }
   .card__head { margin-bottom: var(--s-3); }
   /* Auf kleinen Telefonen bleibt die laufende Agenda samt "Danach frei"
      oberhalb der Tabbar. Nur Zwischenräume schrumpfen; antippbare Zeilen
@@ -1870,9 +1869,10 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
     flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0;
   }
   body[data-mview="aufgaben"] .tasks {
-    flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
     padding-bottom: var(--s-4);
   }
+  .tasks .agenda__frog::after { right: 4px; }
 
   /* Eine Regel statt zweier gleich starker: die spätere gewann, und der
      Tagwechsler stand über den Wochenzielen.
@@ -1880,9 +1880,35 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      liess sich „Diesen Tag freihalten" nur an einem Tag bedienen, den man
      dort gar nicht auswählen konnte. */
   body[data-mview="plan"][data-tage="1"] .dayswitch,
-  body[data-mview="heute"][data-tage="1"] .dayswitch { display: grid; }
+  body[data-mview="plan"][data-tage="3"] .dayswitch,
+  body[data-mview="heute"][data-tage="1"] .dayswitch,
+  body[data-mview="heute"][data-tage="3"] .dayswitch { display: grid; }
   /* Markup- und sichtbare Reihenfolge: Kopf, Tage, Inhalt, Tabbar. */
   .grid { --gutter: 44px; --colmin: 0; --hourh: 56px; }
+  @media (max-width: 640px) {
+    .planmode {
+      display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+      border-radius: 999px; background: var(--tray);
+    }
+    .planmode button {
+      min-height: 44px; padding: 0 10px; border: 0; border-radius: 999px;
+      background: transparent; color: var(--text-muted); font-size: var(--t-xs); font-weight: 600;
+    }
+    .planmode button[aria-pressed="true"] {
+      background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--rand);
+    }
+    .dayswitch__btn.is-im-fenster:not([aria-pressed="true"]) { background: var(--surface-2); }
+    body[data-tage="3"] .loose { padding: 4px 0 6px; }
+    body[data-tage="3"] .loose__lab { grid-column: 1 / -1; text-align: left; padding: 2px var(--s-3) 1px; }
+    body[data-tage="3"] .loose__lab + .loose__cell { grid-column: 2; }
+    body[data-tage="3"] .dayhead { padding: 4px 2px 6px; min-height: 48px; }
+    body[data-tage="3"] .dayhead__num { width: 26px; height: 26px; line-height: 26px; font-size: var(--t-body); }
+    body[data-tage="3"] .dayhead__last { margin-top: 2px; gap: 4px; min-height: 14px; }
+    body[data-tage="3"] .dayhead__energy { display: none; }
+    body[data-tage="3"] .block__title,
+    body[data-tage="3"] .block__time,
+    body[data-tage="3"] .block__grund { font-size: var(--t-xs); }
+  }
   /* Ab 390px (13/14 Pro Max, nicht das SE) darf die Stunde etwas hoeher
      werden -- --gutter bleibt unangetastet, das ist ein reiner
      Lesbarkeits-Gewinn fuer die groesseren Formate. Aendert die Zahl der
@@ -2011,6 +2037,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   .tabbar button { width: 52px; min-height: 44px; flex: none; }
   .planhead, .planhead__actions { display: contents; }
   .planhead > div:first-child { display: none; }
+  .planmode { display: none !important; }
   body[data-mview="plan"] .fab {
     position: fixed; z-index: 43;
     left: calc(var(--safe-left) + (var(--rail) - 52px) / 2);
@@ -2725,11 +2752,11 @@ input[type="checkbox"].is-landend:checked::after { visibility: hidden; }
   box-shadow: inset 0 2px 1px var(--hi), inset 0 -2px 2px var(--lo);
 }
 .dayhead[aria-pressed="true"], .dayhead[aria-pressed="true"]:hover { background: var(--selected); }
-.dayhead__last i {
+.dayhead__last > i {
   width: 24px; height: 4px; border-radius: 4px;
   background: linear-gradient(to right, var(--last-farbe, var(--jade)) 0 var(--last, 0%), var(--mulde-tief) var(--last, 0%) 100%);
 }
-.dayhead[aria-pressed="true"] .dayhead__last i { background: linear-gradient(to right,
+.dayhead[aria-pressed="true"] .dayhead__last > i { background: linear-gradient(to right,
     var(--last-farbe, var(--ink)) 0 var(--last, 0%), var(--mulde-tief) var(--last, 0%) 100%); }
 .dayhead__frei { background: var(--raised); color: var(--text-muted); }
 .timecol__mark { color: var(--text-faint); }
@@ -2807,7 +2834,6 @@ html[data-theme="dark"] .block:hover { filter: brightness(1.1); }
 .task__go { background: var(--selected); color: var(--selected-text); border-radius: 999px; font-weight: 700; padding: 4px 14px; }
 .task__go:hover { background: var(--surface-3); }
 .task__more:hover { background: var(--mulde); }
-.task__dur { border-left-color: var(--border); }
 .tasks__invite { border-bottom-color: var(--border); }
 
 /* ---- Wochenziele als Stundensteine (Schritt 2) ------------------------- */
@@ -3627,9 +3653,25 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
    ruhiges Raster statt drei Zeilen Flattersatz, Nebenaktionen im Fuß als
    leise Textknöpfe, Hauptaktionen gleich breit in einer Reihe.
    ============================================================ */
-.chipset--raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.chipset--raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
 .chipset--raster > .chip { justify-content: flex-start; min-width: 0; }
 .chipset--raster > .chip .chip__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chipset--tage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.chipset--tage > .chip { min-height: 44px; padding: 0; justify-content: center; }
+.chipset--leiste { flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+.chipset--leiste::-webkit-scrollbar { display: none; }
+.chipset--leiste > .chip { flex: none; min-height: 44px; }
+.sheet__mehr { border-top: 1px solid var(--border); padding-top: 4px; margin-bottom: var(--s-3); }
+.sheet__mehr-kopf {
+  list-style: none; display: flex; align-items: center; gap: 10px;
+  min-height: 44px; cursor: pointer; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
+}
+.sheet__mehr-kopf::-webkit-details-marker { display: none; }
+.sheet__mehr-kopf::after { content: "›"; margin-left: 4px; font-size: 1.15rem; transition: transform .18s; }
+.sheet__mehr[open] .sheet__mehr-kopf::after { transform: rotate(90deg); }
+.sheet__mehr-info { margin-left: auto; min-width: 0; font-weight: 500; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet__mehr[open] .sheet__mehr-info { display: none; }
+.sheet__mehr > .sheet__row:first-of-type { margin-top: var(--s-2); }
 .btn.btn--leise:not(.btn--primary) { background: transparent; border-color: transparent; box-shadow: none; }
 .btn.btn--leise:hover { background: var(--tray); }
 /* Der klebende Fuß deckt auch die Konturen (--hart) darunterliegender Chips, die
@@ -3732,6 +3774,92 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   .task { padding: var(--s-2) var(--s-2); }
   .tagesform { justify-content: space-between; }
 }
+
+/* ============================================================
+   v1.59 „Klar & ruhig" (Sunny /grill-me 2026-11-23)
+   Charakter bleibt (Waldgrün, Gabarito & Fraunces, Stundensteine, Honig),
+   harte schwarze Schlagschatten, rein dekorative Sticker/Wellen und
+   Pillen-Kollisionen unten entfallen.
+   ============================================================ */
+.btn--primary {
+  box-shadow: 0 1px 2px oklch(0.2 0.04 150 / .16), 0 4px 12px -4px oklch(0.25 0.06 150 / .22);
+  border-color: var(--ink);
+}
+.chip[aria-pressed="true"] { box-shadow: none; border-color: var(--ink); }
+.btn:not(.btn--ghost):not(.btn--primary) { border-color: var(--rand); }
+.taskadd { box-shadow: inset 0 0 0 1.5px var(--rand); }
+.taskadd:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
+.taskadd .btn--primary { box-shadow: none; }
+.zusage__einstieg, .kommt__row { box-shadow: inset 0 0 0 1.5px var(--rand); }
+.tipp { box-shadow: var(--fein); }
+.kommt__wann { box-shadow: none; transform: none; }
+.planzeile__wahl[aria-pressed="true"] { box-shadow: none; }
+.mulden { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.stein:not(.stein--plan):not(.stein--grob):not(.stein--sug) { box-shadow: inset 0 1px 0 var(--hi); }
+.kopf, html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
+@media (min-width: 1101px) { .main > .panel { background-image: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn--primary:active, .chip:active, .task__go:active {
+    transform: scale(.98); box-shadow: none !important;
+  }
+  .tabbar button[aria-current="true"] .ui-icon { transform: none; }
+}
+
+/* Dekorative Elemente ohne Information entfernen */
+.agenda__frog { padding-right: 0; }
+.agenda__frog::after, .tasks .agenda__frog::after,
+.goal.is-geschafft::after, .empty--frei::before { content: none; display: none; }
+.agenda__frogtext { background-image: none !important; padding-bottom: 0; }
+.dayhead__frei { transform: none; }
+
+/* „Heute"-Steuerung ruhiger und leiser unter der Agenda */
+.tagesform {
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-2); margin-top: var(--s-3);
+}
+.tagesform .card__title { font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); font-family: var(--font); font-variation-settings: normal; letter-spacing: 0; }
+.freischalter { margin-top: var(--s-1); font-size: var(--t-sm); color: var(--text-muted); }
+
+/* Toasts wandern unter den Header statt über Fußbereich und Tabbar */
+.toasts { top: 68px; bottom: auto; }
+html[data-theme="dark"] .toast { border: 1px solid var(--border); }
+
+@media (max-width: 1100px) {
+  .toasts { top: calc(var(--kopf-h, 58px) + 8px); bottom: auto; width: min(92vw, 420px); }
+  body[data-sugbar="1"] .sugbar {
+    background: var(--surface) !important;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 14px -8px oklch(0.2 0.04 150 / .16);
+    padding: 8px 14px 8px 16px;
+  }
+  body[data-sugbar="1"] .sugbar::before { display: none; }
+  .sugbar__text { color: var(--text); font-weight: 650; }
+  .sugbar__accept, .sugbar .btn--primary, .sugbar .btn--primary:hover {
+    background: var(--ink); border-color: transparent; color: var(--on-ink); box-shadow: none;
+  }
+  .sugbar__close { color: var(--text-muted); opacity: 1; }
+}
+@media (max-width: 1100px) and (min-height: 501px) {
+  .tabbar .tabbar__plus, .tabbar .tabbar__plus:active {
+    width: 44px; height: 44px; min-height: 44px; margin: 0 auto; align-self: center;
+    background: var(--ink) !important; color: var(--on-ink);
+    box-shadow: 0 2px 6px oklch(0.25 0.06 150 / .22) !important;
+    transform: none;
+  }
+  .tabbar .tabbar__plus:active { transform: scale(.94); box-shadow: none !important; }
+  .tabbar .tabbar__plus svg { width: 22px; height: 22px; stroke-width: 2.3; }
+}
+@media (max-height: 500px) and (max-width: 1000px) {
+  body[data-sugoben="1"][data-sugbar="1"] .sugbar {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-strong);
+    box-shadow: none;
+    padding: 0 4px 0 12px;
+  }
+  body[data-sugoben="1"] .sugbar__text { color: var(--text); }
+  body[data-sugoben="1"] .sugbar__close { color: var(--text-muted); }
+}
 </style>
 </head>
 <body>
@@ -3819,7 +3947,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
         <div class="goals" id="goalsList"></div>
         <div class="goals__foot" id="goalsFoot"></div>
         <button type="button" class="zusage__einstieg" id="zusageBtn">
-          <span><b>Neue Zusage?</b> Erst durchspielen, was sie deine Woche kostet.</span>
+          <span><b>Passt das noch?</b> Kurz durchrechnen, was eine neue Zusage kostet.</span>
           <span aria-hidden="true">›</span>
         </button>
       </section>
@@ -3845,6 +3973,10 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
         <div><h1>Deine Woche</h1></div>
         <div class="waage" id="waage" role="group"></div>
         <div class="planhead__actions">
+          <div class="planmode" id="tagModus" role="group" aria-label="Tagesumfang">
+            <button type="button" data-tage="1" aria-pressed="true">Tag</button>
+            <button type="button" data-tage="3" aria-pressed="false">3 Tage</button>
+          </div>
           <button type="button" class="btn btn--ghost wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span>Idee würfeln</span></button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
@@ -3852,10 +3984,10 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
           </button>
         </div>
       </div>
+      <div class="loose" id="looseBand" hidden></div>
       <div class="gridwrap" id="gridWrap">
         <div class="grid" id="grid"></div>
       </div>
-      <div class="loose" id="looseBand" hidden></div>
     </div>
 
   </div>
@@ -4490,6 +4622,10 @@ function migrate(s) {
     if (b.bis !== undefined && !(typeof b.bis === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.bis) &&
         (b.repeat === "weekly" || b.repeat === "2wochen" || b.ganztag))) delete b.bis;
   });
+  // b.sperrt: nur true, nur an ganztägigen Einträgen (keine neue s.version).
+  s.blocks.forEach(b => {
+    if (b.sperrt !== true || !b.ganztag) delete b.sperrt;
+  });
   // Notiz und frei eingetippter Ort (Nutzer-Feedback 2026-11): wertbasiert
   // wie die Regeln oben, keine neue s.version. Nur Text, sonst weg.
   [...s.blocks, ...s.tasks].forEach(r => {
@@ -4547,6 +4683,21 @@ const QUER_Q = "(max-height: 500px) and (max-width: 1000px)";
 const SUG_OBEN_Q = "(max-height: 500px) and (min-width: 700px) and (max-width: 1000px)";
 let isMobile = window.matchMedia(MOBILE_Q).matches;
 let einTag   = window.matchMedia(EINTAG_Q).matches;
+let mobilTage = 1;
+function sichtbareTage() {
+  if (!einTag) return [0, 1, 2, 3, 4, 5, 6];
+  if (mobilTage === 3) {
+    const s = clamp(selectedDayIdx, 0, 4);
+    return [s, s + 1, s + 2];
+  }
+  return [selectedDayIdx];
+}
+function tagModusSync() {
+  document.body.dataset.tage = einTag ? String(mobilTage) : "7";
+  document.querySelectorAll("#tagModus button[data-tage]").forEach(b => {
+    b.setAttribute("aria-pressed", String(+b.dataset.tage === mobilTage));
+  });
+}
 
 /* ============================================================
    Änderungen erkennen — Grundlage für den Abgleich zwischen Geräten.
@@ -4748,7 +4899,12 @@ function feiertagAm(dateIso) {
 function feiertagFrei(dateIso) {
   return state.settings.feiertageFrei !== false && !!feiertagAm(dateIso);
 }
-function vorschlagGesperrt(dateIso) { return istFrei(dateIso) || feiertagFrei(dateIso); }
+function ganztagSperrtBlock(dateIso, excludeId) {
+  const d = new Date(dateIso + "T12:00:00");
+  const idx = (d.getDay() + 6) % 7;
+  return state.blocks.find(b => b.ganztag && b.sperrt === true && !b.sug && b.id !== excludeId && onDay(b, dateIso, idx)) || null;
+}
+function vorschlagGesperrt(dateIso) { return istFrei(dateIso) || feiertagFrei(dateIso) || !!ganztagSperrtBlock(dateIso); }
 const kurzDatum = d => DAY_SHORT[(d.getDay() + 6) % 7] + " " + d.getDate() + "." + (d.getMonth() + 1) + ".";
 
 /* Brückentage: wo wenige Urlaubstage viele freie Tage am Stück ergeben.
@@ -5138,7 +5294,9 @@ function renderHeader() {
   const sun = addDays(mon, 6);
   const sameMonth = mon.getMonth() === sun.getMonth();
   const range = isMobile
-    ? mon.getDate() + "." + (mon.getMonth() + 1) + ".–" + sun.getDate() + "." + (sun.getMonth() + 1) + "."
+    ? (sameMonth
+        ? mon.getDate() + ".–" + sun.getDate() + "." + (sun.getMonth() + 1) + "."
+        : mon.getDate() + "." + (mon.getMonth() + 1) + ".–" + sun.getDate() + "." + (sun.getMonth() + 1) + ".")
     : sameMonth
       ? mon.getDate() + ".–" + sun.getDate() + ". " + MONTHS[mon.getMonth()]
       : mon.getDate() + ". " + MONTHS[mon.getMonth()].slice(0, 3) + " – " + sun.getDate() + ". " + MONTHS[sun.getMonth()].slice(0, 3);
@@ -5910,6 +6068,7 @@ function renderDaySwitch() {
   band.className = "dayswitch__band";
   const mon = mondayOf(anchor), monIso = iso(mon);
   const todayIso = iso(new Date());
+  const fensterTage = einTag && mobilTage === 3 ? sichtbareTage() : null;
   const heuteMo = mondayOf(new Date());
   let start = addDays(heuteMo, -7 * BAND_ZURUECK), ende = addDays(heuteMo, 7 * BAND_VOR);
   if (iso(mon) < iso(start)) start = mon;
@@ -5925,7 +6084,9 @@ function renderDaySwitch() {
 
     const b = document.createElement("button");
     b.type = "button";
+    const imFenster = woche && fensterTage && fensterTage.includes(i);
     b.className = "dayswitch__btn" + (woche ? " is-woche" : "")
+      + (imFenster ? " is-im-fenster" : "")
       + (frei ? " is-frei" : "") + (last.quote > 1 ? " is-voll" : "") + (heute ? " is-today" : "");
     b.dataset.tag = key;
     b.setAttribute("aria-pressed", String(woche && i === selectedDayIdx));
@@ -5944,7 +6105,7 @@ function renderDaySwitch() {
     const tag = new Date(d);
     b.onclick = () => {
       selectedDayIdx = i;
-      if (woche) { renderGrid(); renderDaySwitch(); renderAgenda(); renderEnergy(); }
+      if (woche) { renderGrid(); renderLoose(); renderDaySwitch(); renderAgenda(); renderEnergy(); }
       else { anchor = tag; renderAll(); }
     };
     band.appendChild(b);
@@ -7051,9 +7212,8 @@ function ampelZeichnen(el) {
     "</span><span style='color:var(--text-faint)'>" + fmtDur(Math.round(k.bedarf)) + " von " +
       fmtDur(Math.round(k.wach)) + "</span></div>" +
     (k.ok ? "" :
-      "<div class='goalrow__sub' style='margin:-2px 0 10px'>Über der Marke bei " +
-      Math.round(VERPLANT_GRENZE * 100) + " % wird es eng — Pläne reißen an zu vollen Tagen, " +
-      "nicht an schlechter Sortierung.</div>");
+      "<div class='goalrow__sub' style='margin:-2px 0 10px'>Über " +
+      Math.round(VERPLANT_GRENZE * 100) + " % verplant — wenig Puffer für Ungeplantes.</div>");
   return k;
 }
 
@@ -7112,6 +7272,13 @@ function fensterErlaubtTag(regeln, dayIdx) {
    Vorschlags beim Warm Start. ignoreFrei/ignoreFenster/ignoreAnker schalten
    je einen harten Filter probeweise ab — Grundlage für das Minimal
    Correction Subset (Teil C): welcher einzelne Filter schafft wieder Platz? */
+function schlafDauer() {
+  const sl = state.settings.sleep;
+  if (!sl || !sl.on) return 0;
+  const d = (sl.to - sl.from + 1440) % 1440;
+  return d > 0 ? d : 480;
+}
+
 function freeGaps(day, plan, area, opts) {
   opts = opts || {};
   const areaId = area && area.id;
@@ -7122,6 +7289,8 @@ function freeGaps(day, plan, area, opts) {
   const leer = () => { const g = []; g.gruende = gruende; return g; };
   if (!opts.ignoreFrei && istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
   if (!opts.ignoreFrei && feiertagFrei(day.key)) { gruende.push("Feiertag"); return leer(); }
+  const sperr = !opts.ignoreFrei && ganztagSperrtBlock(day.key, opts.excludeId);
+  if (sperr) { gruende.push(sperr.title || "Ganztägig verplant"); return leer(); }
 
   const regeln = area && area.regeln;
   if (!opts.ignoreFenster && !fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
@@ -7176,12 +7345,20 @@ function freeGaps(day, plan, area, opts) {
   // Orten und die Pause nach dem vorhandenen Block. Gleicher Ort heißt keine
   // Fahrt — zwei Lernblöcke hintereinander sitzen am selben Schreibtisch.
   const zielOrt = area ? (area.plan.ortId || state.settings.heimOrt || null) : null;
+  const sd = schlafDauer();
   const busy = state.blocks
     .filter(b => !b.grob && b.id !== opts.excludeId && onDay(b, day.key, day.i))
-    .map(b => {
+    .flatMap(b => {
       const pause = pauseNach(b.end - b.start, areaById(b.areaId));
       const fahrt = weg(ortOf(b), zielOrt);
-      return { start: b.start - Math.max(fahrt, pause), end: b.end + Math.max(fahrt, pause) };
+      const span = { start: b.start - Math.max(fahrt, pause), end: b.end + Math.max(fahrt, pause) };
+      // Nach einem Termin über Mitternacht hält der Verteiler ab Blockende
+      // die eingestellte Schlafdauer frei (manuelle Einträge bleiben erlaubt).
+      const paar = sd > 0 && b.nacht && b.start === 0 && !b.sug ? nachtPaar(b) : null;
+      if (paar && paar.erst.id !== opts.excludeId && b.end > 0) {
+        return [span, { start: b.end, end: Math.min(1440, b.end + sd) }];
+      }
+      return [span];
     })
     .concat(restSpans())
     .sort((a, b) => a.start - b.start);
@@ -9441,7 +9618,7 @@ function renderLoose() {
   const band = $("#looseBand");
   if (!band) return;
   const mon = mondayOf(anchor);
-  const tage = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
+  const tage = sichtbareTage();
 
   const daten = tage.map(i => {
     const d = addDays(mon, i);
@@ -9510,21 +9687,20 @@ function renderLoose() {
         if (fertig) chip.classList.add("is-done");
         chip.title = (fertig ? "Erledigt: " : "") + b.title + " · " + ungefaehrText(b, " · ")
                    + (b.sug ? " (Vorschlag)" : "");
+        let ganztagMeta = "";
+        if (b.ganztag && b.bis && b.bis > b.date && b.date <= daten[n].key && daten[n].key <= b.bis) {
+          const tageDiff = (x, y) => Math.round((new Date(x + "T12:00:00") - new Date(y + "T12:00:00")) / 864e5);
+          ganztagMeta = "Tag " + (tageDiff(daten[n].key, b.date) + 1) + "/" + (tageDiff(b.bis, b.date) + 1);
+        }
         chip.innerHTML = "<span class='loosechip__t'>" + escapeHtml(b.title) + "</span>" +
-                         (b.ganztag ? "" : "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>");
+                         (ganztagMeta ? "<span class='loosechip__d'>" + ganztagMeta + "</span>"
+                           : b.ganztag ? "" : "<span class='loosechip__d'>" + fmtDur(b.dauer) + "</span>");
         chip.onclick = () => (b.sug ? sugSheet(b) : blockSheet({ ...b }, daten[n].key));
         cell.appendChild(chip);
       });
       band.appendChild(cell);
     });
   });
-
-  const hinweis = document.createElement("div");
-  hinweis.className = "loose__hint";
-  hinweis.textContent = isMobile
-    ? "Ohne feste Uhrzeit."
-    : "Ohne feste Uhrzeit — der Abschnitt ist reserviert, die Minute nicht.";
-  band.appendChild(hinweis);
 }
 
 /* ============================================================ Raster */
@@ -9538,7 +9714,22 @@ let scrollMerkSchluessel = null;
 let kopfMessen = () => {};
 const kopfBeobachter = window.ResizeObserver ? new ResizeObserver(() => kopfMessen()) : null;
 function scrollSchluessel() {
-  return einTag ? iso(addDays(mondayOf(anchor), selectedDayIdx)) : "woche";
+  if (!einTag) return "woche";
+  return mobilTage === 3 ? "3t-" + sichtbareTage()[0] : iso(addDays(mondayOf(anchor), selectedDayIdx));
+}
+
+function rasterGrenzen(dayIdxs, mon) {
+  let lo = state.settings.dayStart;
+  let hi = state.settings.dayEnd;
+  dayIdxs.forEach(i => {
+    const d = addDays(mon, i);
+    const alle = blocksFor(d, i).concat(fremdeFor(d, i));
+    alle.forEach(b => {
+      if (b.start < lo * 60) lo = Math.floor(b.start / 60);
+      if (b.end > hi * 60) hi = Math.ceil(b.end / 60);
+    });
+  });
+  return { dayStart: clamp(lo, 0, 23), dayEnd: clamp(hi, lo + 1, 24) };
 }
 
 function renderGrid() {
@@ -9546,24 +9737,34 @@ function renderGrid() {
   const wrap = $("#gridWrap");
   grid.innerHTML = "";
 
-  const { dayStart, dayEnd } = state.settings;
+  const mon = mondayOf(anchor);
+  const dayIdxs = sichtbareTage();
+  const mehrTage = dayIdxs.length > 1;
+  const { dayStart, dayEnd } = rasterGrenzen(dayIdxs, mon);
+  grid.dataset.dayStart = dayStart;
+  grid.dataset.dayEnd = dayEnd;
   const hours = dayEnd - dayStart;
   const hourH = parseFloat(getComputedStyle(grid).getPropertyValue("--hourh")) || 52;
   const bodyH = hours * hourH;
-  const mon = mondayOf(anchor);
   const planTitel = $(".planhead h1");
   const planTag = addDays(mon, selectedDayIdx);
-  planTitel.innerHTML = einTag
-    ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
-      + (feiertagAm(iso(planTag)) ? "<span class='planhead__feiertag'>" + feiertagAm(iso(planTag)) + "</span>" : "")
-    : "Deine Woche";
+  if (einTag && mehrTage) {
+    const dA = addDays(mon, dayIdxs[0]), dB = addDays(mon, dayIdxs[dayIdxs.length - 1]);
+    const sameM = dA.getMonth() === dB.getMonth();
+    planTitel.textContent = DAY_SHORT[dayIdxs[0]] + " " + dA.getDate() + "." + (sameM ? "" : (dA.getMonth() + 1) + ".") +
+      "–" + DAY_SHORT[dayIdxs[dayIdxs.length - 1]] + " " + dB.getDate() + "." + (dB.getMonth() + 1) + ".";
+  } else {
+    planTitel.innerHTML = einTag
+      ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
+        + (feiertagAm(iso(planTag)) ? "<span class='planhead__feiertag'>" + feiertagAm(iso(planTag)) + "</span>" : "")
+      : "Deine Woche";
+  }
   renderWaage();
   const todayIso = iso(new Date());
-  const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
 
-  // Kopfzeile — am Handy übernimmt das der Tag-Umschalter oben
-  if (!einTag) {
+  // Kopfzeile — ab zwei Spalten (Desktop 7 Tage, Telefon 3-Tage-Ansicht)
+  if (mehrTage) {
   const gh = document.createElement("div");
   gh.className = "dayhead dayhead--gutter";
   grid.appendChild(gh);
@@ -9599,8 +9800,8 @@ function renderGrid() {
     h.title = h.getAttribute("aria-label");
     const waehlen = () => {
       selectedDayIdx = i;
-      grid.querySelectorAll(".dayhead[aria-pressed]").forEach((k, j) => k.setAttribute("aria-pressed", String(j === i)));
-      renderEnergy(); renderDaySwitch(); renderAgenda(); if (einTag) renderGrid();
+      grid.querySelectorAll(".dayhead[aria-pressed]").forEach((k, j) => k.setAttribute("aria-pressed", String(dayIdxs[j] === i)));
+      renderEnergy(); renderDaySwitch(); renderAgenda(); if (!mehrTage) { renderGrid(); renderLoose(); }
     };
     h.onclick = waehlen;
     h.addEventListener("keydown", e => {
@@ -9672,14 +9873,14 @@ function renderGrid() {
       }
     }
 
-    fremdeFor(d, i).forEach(b => col.appendChild(fremdEl(b, hourH)));
+    fremdeFor(d, i).forEach(b => col.appendChild(fremdEl(b, hourH, dayStart)));
     const eintraege = layout(blocksFor(d, i));
     // Auch ein Eintrag ohne Uhrzeit (grob, ganztägig) im Band darunter zählt —
     // sonst stünde „Noch nichts geplant" über dem eigenen Geburtstag.
     if (eintraege.length || grobeFor(iso(d), i).some(b => !b.sug)) hatEintraege = true;
-    eintraege.forEach(p => col.appendChild(blockEl(p, hourH, iso(d))));
+    eintraege.forEach(p => col.appendChild(blockEl(p, hourH, iso(d), dayStart)));
 
-    attachColumnHandlers(col, hourH);
+    attachColumnHandlers(col, hourH, dayStart, dayEnd);
     grid.appendChild(col);
   });
 
@@ -9693,7 +9894,7 @@ function renderGrid() {
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.style.gridColumn = "1 / -1";
-    empty.style.gridRow = einTag ? "1" : "2";
+    empty.style.gridRow = mehrTage ? "2" : "1";
     empty.style.alignSelf = "start";
     if (einzelTag && istFrei(einzelTag)) empty.classList.add("empty--frei");
     empty.innerHTML = (einzelTag && istFrei(einzelTag))
@@ -9735,7 +9936,7 @@ function renderGrid() {
 
   scrollMerkSchluessel = scrollSchluessel();
   const gemerkt = scrollMerk[scrollMerkSchluessel];
-  wrap.scrollTop = gemerkt != null ? gemerkt : (hatEintraege ? startScroll(hourH) : 0);
+  wrap.scrollTop = gemerkt != null ? gemerkt : (hatEintraege ? startScroll(hourH, dayStart) : 0);
 }
 
 /* v1.42: Was in einem Rasterblock nicht ganz passt, fällt ganz weg, statt
@@ -9806,7 +10007,8 @@ function verschiebeJetztLinie() {
   const grid = $("#grid");
   if (!grid) return;
   const hourH = parseFloat(getComputedStyle(grid).getPropertyValue("--hourh")) || 52;
-  const { dayStart, dayEnd } = state.settings;
+  const dayStart = grid.dataset.dayStart != null ? +grid.dataset.dayStart : state.settings.dayStart;
+  const dayEnd = grid.dataset.dayEnd != null ? +grid.dataset.dayEnd : state.settings.dayEnd;
   const todayIso = iso(new Date());
   const mins = new Date().getHours() * 60 + new Date().getMinutes();
   grid.querySelectorAll(".daycol").forEach(col => {
@@ -9830,15 +10032,17 @@ function verschiebeJetztLinie() {
    einen einzelnen Tag, und wer den Sonntag ansieht, will nicht die Uhrzeit
    von heute sehen, sondern was an dem Tag ansteht. Und wenn der erste
    Eintrag um neun beginnt, ist eine Kopfzeile bei zehn nutzlos. */
-function startScroll(hourH) {
-  const { dayStart } = state.settings;
+function startScroll(hourH, visStart) {
+  const g = $("#grid");
+  const dayStart = visStart != null ? visStart : (g && g.dataset.dayStart != null ? +g.dataset.dayStart : state.settings.dayStart);
   const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
   let ziel;
 
   if (isMobile) {
     const d = addDays(mondayOf(anchor), selectedDayIdx);
     const heute = iso(d) === iso(new Date());
-    const starts = blocksFor(d, selectedDayIdx).map(b => b.start);
+    const tageScroll = einTag && mobilTage === 3 ? sichtbareTage() : [selectedDayIdx];
+    const starts = tageScroll.flatMap(i => blocksFor(addDays(mondayOf(anchor), i), i).map(b => b.start));
     if (starts.length) ziel = Math.min(...starts);
     else if (heute) ziel = jetzt;
     else ziel = Math.max(dayStart * 60, 8 * 60);
@@ -9854,8 +10058,8 @@ function startScroll(hourH) {
 
 /* Termin eines anderen Plans: schraffierte, nicht bedienbare Fläche hinter den
    eigenen Blöcken — belegt, aber nicht Teil dieses Plans (v1.56). */
-function fremdEl(b, hourH) {
-  const { dayStart } = state.settings;
+function fremdEl(b, hourH, visStart) {
+  const dayStart = visStart != null ? visStart : state.settings.dayStart;
   const el = document.createElement("div");
   const k = planInfo(planVon(state.areas.find(a => a.id === b.areaId)));
   el.className = "fremd";
@@ -9869,8 +10073,8 @@ function fremdEl(b, hourH) {
   el.appendChild(t);
   return el;
 }
-function blockEl({ b, col, of }, hourH, dayKey) {
-  const { dayStart } = state.settings;
+function blockEl({ b, col, of }, hourH, dayKey, visStart) {
+  const dayStart = visStart != null ? visStart : state.settings.dayStart;
   const el = document.createElement("div");
   const area = areaById(b.areaId);
   const h = (b.end - b.start) / 60 * hourH;
@@ -10018,8 +10222,9 @@ function naechsteStelle(day, laenge, wunsch, area) {
   return ziel.st;
 }
 
-function attachColumnHandlers(col, hourH) {
-  const { dayStart, dayEnd } = state.settings;
+function attachColumnHandlers(col, hourH, visStart, visEnd) {
+  const dayStart = visStart != null ? visStart : state.settings.dayStart;
+  const dayEnd = visEnd != null ? visEnd : state.settings.dayEnd;
   const minAt = clientY => {
     const r = col.getBoundingClientRect();
     return clamp(snap(dayStart * 60 + (clientY - r.top) / hourH * 60), dayStart * 60, dayEnd * 60);
@@ -10098,7 +10303,7 @@ function attachColumnHandlers(col, hourH) {
     if (blockNode) {
       const b = state.blocks.find(x => x.id === blockNode.dataset.id);
       const tapAbbrechen = tapOrScroll(e, () => editBlock(blockNode.dataset.id, col.dataset.date));
-      if (b) holdToMove(e, blockNode, b, col, hourH, tapAbbrechen);
+      if (b) holdToMove(e, blockNode, b, col, hourH, tapAbbrechen, dayStart, dayEnd);
       return;
     }
 
@@ -10138,7 +10343,7 @@ function attachColumnHandlers(col, hourH) {
        ständig freie Flächen; ein Eintrag, den man nicht wollte, ist
        ärgerlicher als ein Weg, den man einmal lernen muss. Für alles
        andere gibt es den Plus-Knopf. */
-    holdToCreate(e, col, minAt, hourH, dayEnd);
+    holdToCreate(e, col, minAt, hourH, dayEnd, dayStart);
   });
 
   /* Aufgabe per Drag&Drop einplanen */
@@ -10158,7 +10363,7 @@ function attachColumnHandlers(col, hourH) {
     // Startzeit klemmen, nicht die Endzeit — sonst entsteht beim Fallenlassen
     // ganz unten ein Block „22:00–22:00" ohne Dauer.
     const laenge = t.dauer || 60;
-    const wunsch = Math.min(minAt(e.clientY), state.settings.dayEnd * 60 - 30);
+    const wunsch = clamp(minAt(e.clientY), state.settings.dayStart * 60, state.settings.dayEnd * 60 - 30);
     // Stufe 12: nicht stur auf die Fingerposition — die nächstgelegene
     // wirklich freie Stelle desselben Tages nehmen (naechsteStelle). Passt
     // nirgends etwas hinein, bleibt die Fingerposition als grober Rückfall.
@@ -10214,7 +10419,8 @@ function tapOrScroll(e, run) {
   return () => { abgesagt = true; };
 }
 
-function holdToCreate(e, col, minAt, hourH, dayEnd) {
+function holdToCreate(e, col, minAt, hourH, dayEnd, visStart) {
+  const dayStart = visStart != null ? visStart : state.settings.dayStart;
   const x0 = e.clientX, y0 = e.clientY;
   const start = minAt(e.clientY);
   let abgebrochen = false;
@@ -10223,7 +10429,7 @@ function holdToCreate(e, col, minAt, hourH, dayEnd) {
   const ghost = document.createElement("div");
   ghost.className = "block__ghost is-holding";
   ghost.style.setProperty("--h", planBereiche()[0].hue);
-  ghost.style.top = ((start - state.settings.dayStart * 60) / 60 * hourH) + "px";
+  ghost.style.top = ((start - dayStart * 60) / 60 * hourH) + "px";
   ghost.style.height = Math.max(16, hourH - 2) + "px";
   ghost.textContent = fmtTime(start) + "–" + fmtTime(start + 60);
   col.appendChild(ghost);
@@ -10259,8 +10465,9 @@ function holdToCreate(e, col, minAt, hourH, dayEnd) {
    aber aus, übernimmt ab da dieselbe Verschieben-Logik wie am Schreibtisch
    mit der Maus (15-Minuten-Raster über snap()), nur eben erst nach der
    Haltezeit statt sofort bei der ersten Bewegung. */
-function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen) {
-  const { dayStart, dayEnd } = state.settings;
+function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen, visStart, visEnd) {
+  const dayStart = visStart != null ? visStart : state.settings.dayStart;
+  const dayEnd = visEnd != null ? visEnd : state.settings.dayEnd;
   const x0 = e.clientX, y0 = e.clientY;
   const origStart = b.start, len = b.end - b.start;
   let pendStart = origStart, dragging = false;
@@ -10806,6 +11013,8 @@ function blockSheet(draft, dayKey) {
   // Lieblingssteine nur im frischen, noch leeren Eintrag — wer schon einen
   // Titel hat (Kopie, Aufgabe, „Passt das noch?"), braucht keine Abkürzung.
   const lieblinge = isNew && !draft.title && !draft.taskId ? lieblingsSteine() : [];
+  const hatDetails = (draft.repeat === "weekly" || draft.repeat === "2wochen") ||
+    !!draft.ortId || !!draft.ort || !!draft.notiz || !!(draft.schritte && draft.schritte.length);
 
   modal((s, close) => {
     s.innerHTML =
@@ -10814,64 +11023,76 @@ function blockSheet(draft, dayKey) {
         // Telefon schon zwei Zeilen Knöpfe, eine dritte verdeckte das Formular.
         : "<div class='sheet__kopf'><h2 class='sheet__title'>Eintrag bearbeiten</h2>" +
           "<button type='button' class='btn btn--sm' id='bKopie'>Kopieren</button></div>") +
-      // Begründungszeile (Stufe 13 Nachtrag zu Teil A) — bei einem
-      // angenommenen Vorschlag mit Ort zeigt die Agenda den Ort statt des
-      // Grundes (s. renderAgenda). Ohne diese Zeile wäre der Grund dann
-      // nirgends mehr zu lesen: sugSheet zeigt ihn nur, solange b.sug noch
-      // gilt, und acceptSuggestions() löscht nur .sug, nicht .grund.
-      // Dasselbe Muster wie dort: .agenda__sub.
-      (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
-      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>" + (aktiverPlan ? "Bausteine" : "Oft geplant") + "</span>" +
-        "<div class='chipset' id='bLieblinge'></div></div>" : "") +
+      (draft.grund ? "<p class='agenda__sub' style='margin:0 0 12px'>" + escapeHtml(draft.grund) + "</p>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'>" +
         (isNew ? "<div id='bSchnell' class='schnell' role='status' hidden></div>" : "") + "</div>" +
+      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>" + (aktiverPlan ? "Bausteine" : "Oft geplant") + "</span>" +
+        "<div class='chipset chipset--leiste' id='bLieblinge'></div></div>" : "") +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
-        "<div class='chipset' id='bDays'></div>" +
-        "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
-        "<div style='display:flex;align-items:center;gap:12px;margin-top:10px'>" +
+        "<div class='chipset chipset--tage' id='bDays'></div>" +
+        "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px' hidden></div>" +
+        "<div style='display:flex;align-items:center;gap:10px;margin-top:8px'>" +
           "<label class='label' for='bDatum' style='margin:0'>Datum</label>" +
-          "<input class='field' id='bDatum' type='date' style='max-width:200px'></div>" +
+          "<input class='field' id='bDatum' type='date' style='max-width:190px'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
-        "<div id='bGenauHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
       "</div>" +
       "<div class='sheet__row sheet__cols' id='bZeitRow'>" +
         "<div><label class='label' for='bFrom'>Von</label><input class='field' id='bFrom' type='time' step='300'></div>" +
         "<div><label class='label' for='bTo'>Bis</label><input class='field' id='bTo' type='time' step='300'></div>" +
       "</div>" +
       "<p class='field-error' id='bZeitError' role='status' hidden></p>" +
-      "<p id='bNachtHint' role='status' style='margin:-6px 0 14px;font-size:var(--t-sm);color:var(--text-faint);line-height:1.5' hidden></p>" +
+      "<p id='bNachtHint' role='status' style='margin:-6px 0 12px;font-size:var(--t-sm);color:var(--text-faint);line-height:1.45' hidden></p>" +
       "<div class='sheet__row' id='bGrobRow' hidden>" +
         "<span class='label'>Wann ungefähr?</span><div class='chipset' id='bTeil'></div>" +
-        "<label class='label' style='margin-top:14px' for='bDauer'>Wie lange etwa?</label>" +
+        "<label class='label' style='margin-top:12px' for='bDauer'>Wie lange etwa?</label>" +
         "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
-      "<div class='sheet__row'><span class='label'>Wiederholen?</span><div class='chipset' id='bRepeat'></div></div>" +
       "<div class='sheet__row' id='bBisRow' hidden><label class='label' for='bBis' id='bBisLab'>Endet am</label>" +
-        "<input class='field' id='bBis' type='date' style='max-width:200px'>" +
-        "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "<input class='field' id='bBis' type='date' style='max-width:190px'>" +
+        "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px;line-height:1.45'></div>" +
         "<p class='field-error' id='bBisError' role='status' hidden></p></div>" +
+      "<div class='sheet__row' id='bSperrtRow' hidden>" +
+        "<label class='switch'><input type='checkbox' class='task__check' id='bSperrt'><span>Keine Vorschläge an diesen Tagen</span></label>" +
+      "</div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset chipset--raster' id='bAreas'></div></div>" +
-      "<div class='sheet__row'><label class='label' for='bOrt'>Wo? <span style='font-weight:400'>(optional)</span></label>" +
-        "<input class='field' id='bOrt' maxlength='120' placeholder='z.B. Uni, Café Lotte, bei Mama' autocomplete='off'>" +
-        "<div class='chipset' id='bOrte' style='margin-top:8px'></div>" +
-        "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
-      "<div class='sheet__row'><label class='label' for='bNotiz'>Notiz <span style='font-weight:400'>(optional)</span></label>" +
-        "<textarea class='field' id='bNotiz' rows='2' maxlength='2000' placeholder='z.B. Raum 2.14, Unterlagen mitnehmen'></textarea></div>" +
-      "<div class='sheet__row'><label class='label' for='bSchritt'>Checkliste <span style='font-weight:400'>(optional)</span></label>" +
-        "<div class='schritte' id='bSchritte'></div>" +
-        "<div class='schritt-neu'><input class='field' id='bSchritt' maxlength='80' placeholder='z.B. Sportschuhe, Wasserflasche' autocomplete='off' enterkeyhint='done'>" +
-        "<button type='button' class='btn btn--sm' id='bSchrittDazu'>Dazu</button></div></div>" +
+      "<details class='sheet__mehr' id='bMehr'" + (hatDetails ? " open" : "") + ">" +
+        "<summary class='sheet__mehr-kopf'><span>Mehr Details</span><span class='sheet__mehr-info' id='bMehrInfo'></span></summary>" +
+        "<div class='sheet__row'><span class='label'>Wiederholen?</span><div class='chipset' id='bRepeat'></div></div>" +
+        "<div class='sheet__row'><label class='label' for='bOrt'>Wo? <span style='font-weight:400'>(optional)</span></label>" +
+          "<input class='field' id='bOrt' maxlength='120' placeholder='z.B. Uni, Café Lotte, bei Mama' autocomplete='off'>" +
+          "<div class='chipset' id='bOrte' style='margin-top:8px'></div>" +
+          "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.45'></div></div>" +
+        "<div class='sheet__row'><label class='label' for='bNotiz'>Notiz <span style='font-weight:400'>(optional)</span></label>" +
+          "<textarea class='field' id='bNotiz' rows='2' maxlength='2000' placeholder='z.B. Raum 2.14, Unterlagen mitnehmen'></textarea></div>" +
+        "<div class='sheet__row'><label class='label' for='bSchritt'>Checkliste <span style='font-weight:400'>(optional)</span></label>" +
+          "<div class='schritte' id='bSchritte'></div>" +
+          "<div class='schritt-neu'><input class='field' id='bSchritt' maxlength='80' placeholder='z.B. Sportschuhe, Wasserflasche' autocomplete='off' enterkeyhint='done'>" +
+          "<button type='button' class='btn btn--sm' id='bSchrittDazu'>Dazu</button></div></div>" +
+      "</details>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
         "<label class='switch schritt'><input type='checkbox' class='task__check' id='bDone'><span>Erledigt</span></label>" +
-        "<div id='bDoneHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
+        "<div id='bDoneHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px;line-height:1.45'></div>" +
       "</div>");
 
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
+    const mehrInfo = s.querySelector("#bMehrInfo");
+    let ortInp, notizFeld, schritte = [], repeatMode = "none";
+    const paintMehrInfo = () => {
+      if (!mehrInfo) return;
+      const teile = [];
+      if (repeatMode === "weekly") teile.push("Wöchentlich");
+      else if (repeatMode === "2wochen") teile.push("Alle 2 Wochen");
+      const o = ortInp ? ortInp.value.trim() : "";
+      if (o) teile.push(o);
+      if (notizFeld && notizFeld.value.trim()) teile.push("Notiz");
+      if (schritte.length) teile.push(schritte.length + (schritte.length === 1 ? " Punkt" : " Punkte"));
+      mehrInfo.textContent = teile.join(" · ");
+    };
     // Schnelleingabe: steht im Titel etwas Eindeutiges („Do 18:30 #Sport"),
     // bietet ein Knopf an, es in die Felder zu übernehmen. Derselbe Weg wie
     // „Oft geplant": der Editor öffnet neu vorausgefüllt, nichts wird gespeichert.
@@ -10933,11 +11154,12 @@ function blockSheet(draft, dayKey) {
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     // 24:00 kennt <input type=time> nicht — „bis Mitternacht" heißt 00:00.
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end % 1440);
-    const notizFeld = s.querySelector("#bNotiz");
+    notizFeld = s.querySelector("#bNotiz");
     notizFeld.value = draft.notiz || "";
+    notizFeld.addEventListener("input", () => paintMehrInfo());
     // ---- Checkliste: Arbeitskopie; gespeichert wird wie alles hier erst mit
     // „Eintragen"/„Speichern". Haken gibt es nur am bestehenden Eintrag.
-    let schritte = (draft.schritte || []).map(x => ({ t: x.t, ok: !isNew && schrittOk(draft, x, hakenTag) }));
+    schritte = (draft.schritte || []).map(x => ({ t: x.t, ok: !isNew && schrittOk(draft, x, hakenTag) }));
     const schrittListe = s.querySelector("#bSchritte");
     const schrittFeld = s.querySelector("#bSchritt");
     const schritteMalen = () => {
@@ -10965,6 +11187,7 @@ function blockSheet(draft, dayKey) {
       });
       const voll = schritte.length >= SCHRITTE_MAX;
       schrittFeld.disabled = voll; s.querySelector("#bSchrittDazu").disabled = voll;
+      paintMehrInfo();
     };
     const schrittDazu = () => {
       const t = schrittFeld.value.trim().slice(0, 80);
@@ -10982,7 +11205,7 @@ function blockSheet(draft, dayKey) {
     // ---- Wiederholung: drei Zustände statt eines Hakens (Chips statt
     // Dropdown — bei drei überschaubaren Werten sofort anklickbar, der
     // gewählte Rhythmus ist ohne weiteren Klick sichtbar).
-    let repeatMode = draft.repeat === "2wochen" ? "2wochen" : draft.repeat === "weekly" ? "weekly" : "none";
+    repeatMode = draft.repeat === "2wochen" ? "2wochen" : draft.repeat === "weekly" ? "weekly" : "none";
     const repWrap = s.querySelector("#bRepeat");
     const paintRepeat = () => {
       repWrap.innerHTML = "";
@@ -10998,6 +11221,7 @@ function blockSheet(draft, dayKey) {
         };
         repWrap.appendChild(c);
       });
+      paintMehrInfo();
     };
     paintRepeat();
 
@@ -11010,8 +11234,9 @@ function blockSheet(draft, dayKey) {
         const d = hakenTag ? new Date(hakenTag + "T12:00:00") : null;
         const tagText = d ? DAY_LONG[(d.getDay() + 6) % 7] + ", " + d.getDate() + "." + (d.getMonth() + 1) + "." : "diesen Tag";
         dh.textContent = istSerie(draft)
-          ? "Gilt nur für " + tagText + " — die anderen Wochen bleiben unberührt."
-          : (doneBox.checked ? "Zählt auf das Wochenziel als wirklich passiert." : "Hake ab, was stattgefunden hat — daraus wird dein Wochenrückblick.");
+          ? "Gilt nur für " + tagText + "."
+          : (doneBox.checked ? "Zählt auf das Wochenziel." : "");
+        dh.hidden = !dh.textContent;
       };
       doneBox.onchange = malen;
       malen();
@@ -11037,12 +11262,12 @@ function blockSheet(draft, dayKey) {
       const falsch = exakt && (fehltVon || fehltBis || parseTime(to.value) === parseTime(from.value));
       zeitFehler.hidden = !falsch;
       zeitFehler.textContent = falsch
-        ? (fehltVon || fehltBis ? "Bitte gib Start- und Endzeit an." : "Start und Ende sind gleich. Bitte passe „Bis“ an.") : "";
+        ? (fehltVon || fehltBis ? "Bitte Start- und Endzeit angeben." : "Start und Ende sind gleich.") : "";
       const nacht = ueberNacht();
       nachtHint.hidden = !nacht;
       if (nacht) {
         const tage = [...days].map(i => DAY_SHORT[(i + 1) % 7]).join(", ");
-        nachtHint.textContent = "Geht über Mitternacht — endet am nächsten Tag (" + tage + ") um " + to.value + ".";
+        nachtHint.textContent = "Über Mitternacht — endet am nächsten Tag (" + tage + ") um " + to.value + ".";
       }
       from.setAttribute("aria-invalid", String(exakt && fehltVon));
       to.setAttribute("aria-invalid", String(falsch && !fehltVon));
@@ -11053,7 +11278,6 @@ function blockSheet(draft, dayKey) {
     to.addEventListener("input", () => pruefeZeit());
 
     const genauWrap = s.querySelector("#bGenau");
-    const genauHint = s.querySelector("#bGenauHint");
     const zeitRow = s.querySelector("#bZeitRow");
     const grobRow = s.querySelector("#bGrobRow");
     const teilWrap = s.querySelector("#bTeil");
@@ -11091,11 +11315,6 @@ function blockSheet(draft, dayKey) {
       zeitRow.hidden = grob || ganztag;
       grobRow.hidden = !grob;
       pruefeZeit();
-      genauHint.textContent = ganztag
-        ? "Steht den ganzen Tag oben im Band, ohne Uhrzeit und ohne Stunden — z.B. Geburtstag, Urlaub, Messe."
-        : grob
-        ? "Steht ohne Uhrzeit im Band unter dem Raster. Nichts kollidiert, nichts muss umgeplant werden."
-        : "Liegt fest im Raster. Endet „Bis“ vor „Von“, geht der Termin über Mitternacht.";
     };
 
     const paintTeil = () => {
@@ -11148,7 +11367,7 @@ function blockSheet(draft, dayKey) {
     // Ort (Nutzer-Feedback 2026-11: „Orte ohne anlegen") — einfach eintippen.
     // Passt der Text zu einem gemerkten Ort, gilt dessen Fahrzeit; sonst ist
     // er nur ein Hinweis am Termin. Gemerkte Orte stehen als Abkürzung darunter.
-    const ortInp = s.querySelector("#bOrt");
+    ortInp = s.querySelector("#bOrt");
     const ortWrap = s.querySelector("#bOrte");
     const ortHint = s.querySelector("#bOrtHint");
     ortInp.value = draft.ortId ? ortName(draft.ortId) : (draft.ort || "");
@@ -11165,7 +11384,7 @@ function blockSheet(draft, dayKey) {
         c.type = "button"; c.className = "chip";
         c.setAttribute("aria-pressed", String(!!g && g.id === o.id));
         c.textContent = o.name;
-        c.onclick = () => { ortInp.value = (g && g.id === o.id) ? "" : o.name; paintOrte(); paintOrtHint(); };
+        c.onclick = () => { ortInp.value = (g && g.id === o.id) ? "" : o.name; paintOrte(); paintOrtHint(); paintMehrInfo(); };
         ortWrap.appendChild(c);
       });
     };
@@ -11175,7 +11394,7 @@ function blockSheet(draft, dayKey) {
       const g = gemerkt();
       const text = ortInp.value.trim();
       if (text && !g) {
-        ortHint.append("Steht nur als Ort am Termin. ");
+        ortHint.append("Nur als Hinweis am Termin. ");
         const merk = document.createElement("button");
         merk.type = "button"; merk.className = "btn btn--sm"; merk.id = "bOrtMerken";
         merk.textContent = "Als Ort merken";
@@ -11186,7 +11405,7 @@ function blockSheet(draft, dayKey) {
           state.orte.push(o);
           // Der erste Ort ist der Heimatort — wie bisher beim „＋ Ort".
           if (!state.settings.heimOrt) state.settings.heimOrt = o.id;
-          paintOrte(); paintOrtHint();
+          paintOrte(); paintOrtHint(); paintMehrInfo();
         };
         ortHint.append(merk);
         return;
@@ -11198,8 +11417,8 @@ function blockSheet(draft, dayKey) {
         .map(o => o.name + " " + (weg(gewaehlt, o.id) || 0) + " min");
       ortHint.textContent = "Fahrzeit von hier: " + andere.join(" · ");
     };
-    ortInp.addEventListener("input", () => { paintOrte(); paintOrtHint(); });
-    paintOrte(); paintOrtHint();
+    ortInp.addEventListener("input", () => { paintOrte(); paintOrtHint(); paintMehrInfo(); });
+    paintOrte(); paintOrtHint(); paintMehrInfo();
 
     // Tage
     const dayWrap = s.querySelector("#bDays");
@@ -11221,9 +11440,12 @@ function blockSheet(draft, dayKey) {
       const rhythmus = repeatMode === "2wochen" ? "alle 2 Wochen" : "jede Woche";
       const erster = addDays(mon, Math.min(...days));
       datumFeld.value = iso(erster);
-      hint.textContent = repeatMode !== "none"
-        ? (isNew && days.size > 1 ? days.size + " Einträge, " + rhythmus + " — z.B. Arbeit von Mo bis Fr in einem Rutsch." : "Taucht " + rhythmus + " auf.")
-        : "Einmalig (" + [...days].sort().map(i => DAY_SHORT[i]).join(", ") + ", Woche ab " + mon.getDate() + "." + (mon.getMonth() + 1) + ".).";
+      const zeigen = repeatMode !== "none" || days.size > 1;
+      hint.hidden = !zeigen;
+      hint.textContent = !zeigen ? ""
+        : repeatMode !== "none"
+        ? (isNew && days.size > 1 ? days.size + " Einträge, " + rhythmus : "Taucht " + rhythmus + " auf.")
+        : [...days].sort().map(i => DAY_SHORT[i]).join(", ");
       paintBis();
     };
     // Datum: springt in eine beliebige Woche; der Wochentag folgt dem Datum.
@@ -11243,14 +11465,24 @@ function blockSheet(draft, dayKey) {
     const bisLab = s.querySelector("#bBisLab");
     const bisHint = s.querySelector("#bBisHint");
     const bisFehler = s.querySelector("#bBisError");
+    const sperrtRow = s.querySelector("#bSperrtRow");
+    const sperrtBox = s.querySelector("#bSperrt");
+    let sperrtManuell = !isNew;
+    sperrtBox.checked = !!draft.sperrt;
+    sperrtBox.addEventListener("change", () => { sperrtManuell = true; });
     bisFeld.value = draft.bis || "";
     function paintBis() {
       const serie = repeatMode !== "none";
       bisRow.hidden = !serie && !ganztag;
+      sperrtRow.hidden = !ganztag;
+      if (ganztag && !sperrtManuell) {
+        sperrtBox.checked = !!bisFeld.value && !!datumFeld.value && bisFeld.value > datumFeld.value;
+      }
       bisLab.textContent = serie ? "Endet am (optional)" : "Bis einschließlich (optional)";
       bisHint.textContent = serie
-        ? (bisFeld.value ? "Letzter Termin spätestens am " + bisFeld.value.split("-").reverse().join(".") + "." : "Ohne Datum läuft die Serie weiter, z.B. bis Semesterende eintragen.")
-        : "Für mehrere Tage am Stück, z.B. Urlaub oder Messe.";
+        ? (bisFeld.value ? "Letzter Termin spätestens am " + bisFeld.value.split("-").reverse().join(".") + "." : "")
+        : "Optional, für mehrere Tage am Stück.";
+      bisHint.hidden = !bisHint.textContent;
       pruefeBis();
     }
     function pruefeBis() {
@@ -11323,7 +11555,7 @@ function blockSheet(draft, dayKey) {
           id: null, title: draft.title, areaId: draft.areaId,
           day: draft.day, date: istSerie(draft) ? (hakenTag || draft.date) : draft.date,
           repeat: draft.repeat, start: draft.start, end: draft.end,
-          grob: draft.grob, teil: draft.teil, dauer: draft.dauer, ganztag: draft.ganztag,
+          grob: draft.grob, teil: draft.teil, dauer: draft.dauer, ganztag: draft.ganztag, sperrt: draft.sperrt,
           ortId: draft.ortId, ort: draft.ort, notiz: draft.notiz, bis: draft.bis, frog: false,
           schritte: draft.schritte ? draft.schritte.map(x => ({ t: x.t })) : undefined
         };
@@ -11350,10 +11582,10 @@ function blockSheet(draft, dayKey) {
       // nur als Anhaltspunkt gefüllt, damit Sortierungen weiter funktionieren.
       // Ganztägig = grob ohne Dauer (s. migrate()).
       const grobFelder = () => ganztag
-        ? { grob: true, ganztag: true, teil: "mo", dauer: 0, start: 0, end: 0 }
+        ? { grob: true, ganztag: true, teil: "mo", dauer: 0, start: 0, end: 0, sperrt: sperrtBox.checked ? true : undefined }
         : grob
-        ? { grob: true, ganztag: undefined, teil, dauer, start: abschnittVon(teil).von, end: abschnittVon(teil).von + dauer }
-        : { grob: false, ganztag: undefined, teil: undefined, dauer: undefined, start: st, end: nacht ? 1440 : en };
+        ? { grob: true, ganztag: undefined, teil, dauer, start: abschnittVon(teil).von, end: abschnittVon(teil).von + dauer, sperrt: undefined }
+        : { grob: false, ganztag: undefined, teil: undefined, dauer: undefined, start: st, end: nacht ? 1440 : en, sperrt: undefined };
       // Ort und Notiz: frei getippter Ort bleibt Text, ein gemerkter wird ortId.
       const g = gemerkt();
       const ortText = ortInp.value.trim().slice(0, 120);
@@ -11686,10 +11918,10 @@ function taskEl(t) {
     return DAY_SHORT[(tag.getDay() + 6) % 7] + ", " + tag.getDate() + "." + (tag.getMonth() + 1) + "."
       + (tag.getFullYear() !== new Date().getFullYear() ? tag.getFullYear() : "") + " · " + zeit;
   })() : "";
-  meta.innerHTML = "<span class='chip__dot'></span>" + escapeHtml(a.name)
+  meta.innerHTML = "<span class='task__area'><span class='chip__dot'></span>" + escapeHtml(a.name) + "</span>"
     + (geplantBlock
         ? "<span class='task__dur num'>" + (geplantBlock.sug ? "Vorschlag " : "eingeplant ") + tagText + "</span>"
-        : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "<span>· Dauer offen</span>"));
+        : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "<span>Dauer offen</span>"));
 
   body.append(ti, meta);
   const frist = t.done ? null : fristText(t);
@@ -12875,8 +13107,7 @@ function renderRitual() {
   const offen = wocheEintraege(addDays(mon, -7)).filter(x => !istErledigt(x.b, x.key)).length;
   card.innerHTML =
     "<div class='ritual__head'>Neue Woche</div>" +
-    "<p class='ritual__txt'>Zehn Minuten, drei Schritte: Was ist letzte Woche gelaufen, " +
-    "was nimmst du dir vor, wie verteilt es sich." +
+    "<p class='ritual__txt'>Kurz zurückblicken, Ziele prüfen und die Woche verteilen." +
     (offen ? " <b>" + offen + "</b> Einträge aus der letzten Woche sind noch nicht abgehakt." : "") +
     "</p>";
   const los = document.createElement("button");
@@ -14678,10 +14909,21 @@ function wischenEinrichten() {
 
 /* Einen Tag weiter oder zurück — über den Wochenrand hinweg. */
 function tagWechseln(richtung) {
-  let i = selectedDayIdx + richtung;
-  if (i > 6)      { anchor = addDays(mondayOf(anchor), 7);  i = 0; }
-  else if (i < 0) { anchor = addDays(mondayOf(anchor), -7); i = 6; }
-  selectedDayIdx = i;
+  if (einTag && mobilTage === 3) {
+    const s = clamp(selectedDayIdx, 0, 4);
+    if (richtung > 0) {
+      if (s < 4) selectedDayIdx = Math.min(4, s + 3);
+      else { anchor = addDays(mondayOf(anchor), 7); selectedDayIdx = 0; }
+    } else {
+      if (s > 0) selectedDayIdx = Math.max(0, s - 3);
+      else { anchor = addDays(mondayOf(anchor), -7); selectedDayIdx = 4; }
+    }
+  } else {
+    let i = selectedDayIdx + richtung;
+    if (i > 6)      { anchor = addDays(mondayOf(anchor), 7);  i = 0; }
+    else if (i < 0) { anchor = addDays(mondayOf(anchor), -7); i = 6; }
+    selectedDayIdx = i;
+  }
 
   const wrap = $("#gridWrap");
   if (wrap) {
@@ -14705,7 +14947,7 @@ window.matchMedia(MOBILE_Q).addEventListener("change", e => {
 // renderGrid: Kopfzeile, Tagwechsler und Band hängen alle daran.
 window.matchMedia(EINTAG_Q).addEventListener("change", e => {
   einTag = e.matches;
-  document.body.dataset.tage = einTag ? "1" : "7";
+  tagModusSync();
   renderAll();
 });
 
@@ -15241,7 +15483,16 @@ function beispielFuellen() {
 if (BEISPIEL) beispielFuellen();
 
 applyTheme();
-document.body.dataset.tage = einTag ? "1" : "7";
+tagModusSync();
+document.querySelectorAll("#tagModus button[data-tage]").forEach(btn => {
+  btn.onclick = () => {
+    const neu = +btn.dataset.tage;
+    if (neu === mobilTage) return;
+    mobilTage = neu;
+    tagModusSync();
+    renderGrid(); renderLoose(); renderDaySwitch();
+  };
+});
 setView("heute");
 renderAll();
 paintSyncBadge();
