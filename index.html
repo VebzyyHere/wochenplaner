@@ -3649,6 +3649,56 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   .sheet__foot--eintrag > .btn:not(.btn--leise) { order: 2; flex: 1 1 40%; }
   .banner--beispiel .banner__lang { display: none; }
 }
+
+/* ============================================================
+   v1.56 Mehrere Pläne: Plan-Knopf im Kopf, Plan-Studio, schraffierte
+   Termine anderer Pläne im Raster.
+   ============================================================ */
+.planbtn { display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 40px; max-width: 240px; padding: 0 12px;
+  border-radius: 999px; border: 1.5px solid var(--rand); background: var(--surface); color: var(--text);
+  font: inherit; font-size: var(--t-sm); font-weight: 650; cursor: pointer; }
+.planbtn:hover { border-color: var(--ink); }
+.planbtn__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planbtn__emoji { font-size: 1.1em; line-height: 1; }
+.fremd { position: absolute; left: 3px; right: 3px; z-index: 0; overflow: hidden; pointer-events: none; border-radius: 10px;
+  border: 1px dashed var(--rand); color: var(--text-muted); font-size: var(--t-xs); font-weight: 600; padding: 4px 6px;
+  background: repeating-linear-gradient(135deg, var(--tray) 0 6px, transparent 6px 12px); }
+.fremd__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planstudio__lead { margin: 0 0 var(--s-4); color: var(--text-muted); font-size: var(--t-sm); line-height: 1.5; }
+.planstudio__label { display: block; margin: var(--s-5) 0 var(--s-2); }
+.planliste { display: flex; flex-direction: column; gap: var(--s-2); }
+.planzeile { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.planzeile__wahl { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px;
+  text-align: left; border-radius: 16px; border: 1.5px solid var(--fein, var(--rand)); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.planzeile__wahl[aria-pressed="true"] { border-color: var(--ink); background: var(--tray); box-shadow: var(--hart-klein, none); }
+.planzeile__emoji { font-size: 1.4em; line-height: 1; flex: none; }
+.planzeile__text { display: flex; flex-direction: column; min-width: 0; }
+.planzeile__text b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planzeile__text small { color: var(--text-muted); font-size: var(--t-sm); }
+.planzeile .field { flex: 1 1 140px; min-width: 0; }
+.planzeile .planzeile__emojifeld { flex: 0 0 64px; text-align: center; }
+.planvorlagen { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--s-2); }
+.planvorlage { display: flex; flex-direction: column; gap: 4px; min-height: 76px; padding: 10px 12px; text-align: left; border-radius: 16px;
+  border: 1.5px solid var(--rand); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.planvorlage[aria-pressed="true"] { border-color: var(--ink); background: var(--tray); }
+.planvorlage__kopf { display: flex; align-items: center; gap: 8px; }
+.planvorlage__kopf b { font-weight: 650; }
+.planvorlage small { color: var(--text-muted); font-size: var(--t-sm); line-height: 1.4; }
+.planneu { margin-top: var(--s-4); padding: var(--s-4); border-radius: 18px; background: var(--tray); display: flex; flex-direction: column; gap: var(--s-3); }
+.planneu__zeile { display: flex; gap: var(--s-3); align-items: flex-end; flex-wrap: wrap; }
+.planneu__zeile > div { flex: 1 1 140px; min-width: 0; }
+.planneu__zeile > .planneu__emoji { flex: 0 0 76px; }
+.planneu__emoji .field { text-align: center; }
+.planneu__zeile > .btn { flex: 1 1 140px; }
+.planneu__info { margin: 0; color: var(--text-muted); font-size: var(--t-sm); }
+@media (max-width: 1100px) {
+  .planbtn { min-height: 44px; min-width: 44px; padding: 0 6px; justify-content: center; gap: 0; border-color: transparent; background: transparent; }
+  .planbtn__name, .planbtn .weeknav__caret { display: none; }
+  .planbtn__emoji { font-size: 1.35em; }
+  .planbtn.is-allein { display: none; }
+  .planzeile { justify-content: flex-end; }
+  .planzeile__wahl { flex-basis: 100%; }
+}
 </style>
 </head>
 <body>
@@ -3666,6 +3716,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
       <div class="brand__copy"><span class="brand__name">Wochenplaner</span><span class="brand__tagline">Platz für das, was zählt.</span></div>
       <span class="brand__who" id="whoLabel"></span>
     </div>
+    <button type="button" class="planbtn" id="planBtn" aria-haspopup="dialog"><span class="planbtn__emoji" aria-hidden="true"></span><span class="planbtn__name"></span><svg class="weeknav__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button>
 
     <div class="weeknav">
       <button class="btn btn--icon btn--ghost" id="prevWeek" aria-label="Woche zurück"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5"/></svg></button>
@@ -4360,6 +4411,14 @@ function migrate(s) {
   // Ideenglas (v1.49): area.ideen = [{ t, min }] — eigene Ideen fürs Würfeln,
   // am Bereich, zu dem sie gehören (Geschwister von plan, wie regeln).
   // Wertbasiert gesäubert; ein leeres Glas trägt kein Feld.
+  // Mehrere Pläne (v1.56): area.kalender = { id, name, emoji }, wertbasiert.
+  s.areas.forEach(a => {
+    if (a.kalender === undefined) return;
+    const k = a.kalender;
+    if (!k || typeof k !== "object" || typeof k.id !== "string" || !k.id.trim()) { delete a.kalender; return; }
+    a.kalender = { id: k.id.trim().slice(0, 40), name: (String(k.name || "").trim() || "Plan").slice(0, 40),
+                   emoji: String(k.emoji || "").trim().slice(0, 8) };
+  });
   s.areas.forEach(a => {
     if (a.ideen === undefined) return;
     const sauber = (Array.isArray(a.ideen) ? a.ideen : [])
@@ -4540,6 +4599,48 @@ function undoLast() {
 }
 
 const areaById = id => state.areas.find(a => a.id === id) || state.areas[0];
+
+/* ============================================================
+   Mehrere Pläne (v1.56, Sunny: Studio-Entwurf „Plan-Studio", Festival,
+   Wochenende, Reise). Ein Plan ist eine Gruppe von Bereichen:
+   area.kalender = { id, name, emoji }. Ohne Feld gehört ein Bereich zu
+   „Meine Woche". Bewusst kein neues Wurzelfeld — Bereiche gleicht
+   mergeStates() schon ab, ein Plan reist so mit seinen Bereichen.
+   Welcher Plan offen ist, merkt sich jedes Gerät selbst (localStorage, nie
+   synchronisiert). Gezeigt werden nur Einträge des offenen Plans
+   (blocksFor()/grobeFor() filtern über imPlan()); Lückenrechnung und
+   Verteiler sehen über onDay() weiter ALLE Blöcke — ein Festival bleibt in
+   „Meine Woche" belegt und erscheint dort schraffiert (fremdeFor()).
+   ============================================================ */
+const HAUPTPLAN = { id: null, name: "Meine Woche", emoji: "🗓️" };
+let aktiverPlan = null;
+const planSchluessel = () => "wochenplaner." + Store.scope + ".plan";
+function planVon(a) { return a && a.kalender ? a.kalender.id : null; }
+function plaene() {
+  const m = new Map();
+  state.areas.forEach(a => { if (a.kalender && !m.has(a.kalender.id)) m.set(a.kalender.id, a.kalender); });
+  return [HAUPTPLAN, ...m.values()];
+}
+function planInfo(id) { return plaene().find(p => p.id === (id || null)) || HAUPTPLAN; }
+function planLaden() {
+  let id = null;
+  try { id = localStorage.getItem(planSchluessel()); } catch (e) {}
+  aktiverPlan = id && state.areas.some(a => planVon(a) === id) ? id : null;
+}
+function planMerken(id) {
+  aktiverPlan = id || null;
+  try {
+    if (aktiverPlan) localStorage.setItem(planSchluessel(), aktiverPlan);
+    else localStorage.removeItem(planSchluessel());
+  } catch (e) {}
+}
+/* Bereiche des offenen Plans; hat er keine (sollte nicht vorkommen), alle. */
+function planBereiche() {
+  const l = state.areas.filter(a => planVon(a) === aktiverPlan);
+  return l.length ? l : state.areas;
+}
+function bereichImPlan(areaId) { return planVon(state.areas.find(x => x.id === areaId)) === aktiverPlan; }
+function imPlan(b) { return bereichImPlan(b.areaId); }
 function dayMeta(dateIso) {
   if (!state.days[dateIso]) state.days[dateIso] = { energy: null };
   return state.days[dateIso];
@@ -5021,6 +5122,184 @@ function renderHeader() {
   // wurde angeschnitten. Der Knopf erscheint nur, wenn er etwas tut.
   const heuteBtn = $("#todayBtn");
   if (heuteBtn) heuteBtn.hidden = iso(mon) === iso(mondayOf(new Date()));
+  const pb = $("#planBtn"), pk = planInfo(aktiverPlan);
+  if (pb) {
+    pb.querySelector(".planbtn__emoji").textContent = pk.emoji || "•";
+    pb.querySelector(".planbtn__name").textContent = pk.name;
+    pb.setAttribute("aria-label", "Plan: " + pk.name + " — Pläne anzeigen");
+    pb.title = pk.name;
+    // Am Telefon erscheint der Knopf erst, wenn es mehr als einen Plan gibt —
+    // sonst kostet er die Kopfzeile Platz (Wochenspanne wurde gekürzt) und
+    // steht als zweites Kalendersymbol neben dem Monat. Anlegen: Einstellungen.
+    pb.classList.toggle("is-allein", plaene().length === 1);
+  }
+}
+
+/* ============================================================
+   Plan-Studio (v1.56): Pläne wechseln, umbenennen, löschen und aus einer
+   Vorlage anlegen. Vorlagen nach Sunnys Entwurf „Studio" — Bereiche und
+   Bausteine (Ideenglas) übernommen, Wochenziele bewusst NICHT (keine
+   erfundenen Stundenzahlen; Ziele setzt jede:r selbst).
+   ============================================================ */
+const PLAN_VORLAGEN = [
+  { id: "festival", name: "Wochenende & Festival", emoji: "🎪", text: "Fr–So mit Lineup, Nacht-Sets, Food & Camp", freitag: true,
+    bereiche: [["Bühnen & Acts", 22, [["Mainstage Headliner", 120], ["Afterhour", 180]]], ["Food & Drinks", 75, [["Streetfood & Drinks", 60]]],
+               ["Camp & Chill", 152, [["Camp-Chill & Powernap", 120]]], ["Anreise & Orga", 248, [["Anreise & Zeltaufbau", 120]]]] },
+  { id: "reise", name: "Reise", emoji: "✈️", text: "Entdecken, Genuss, Entspannen und Logistik",
+    bereiche: [["Entdecken", 22, [["Altstadt erkunden", 150], ["Museum / Galerie", 120], ["Aussichtspunkt", 60]]],
+               ["Genuss", 75, [["Espresso & Cornetto", 60], ["Trattoria / Dinner", 120]]], ["Entspannen", 196, [["Strand / Pool", 180], ["Siesta & Lesen", 90]]],
+               ["Logistik", 295, [["Flug / Zugfahrt", 120], ["Hotel Check-in", 60]]]] },
+  { id: "projekt", name: "Projekt-Sprint", emoji: "🚀", text: "Umsetzen, Konzept, Orga und bewusste Pausen",
+    bereiche: [["Umsetzen", 248, [["Deep Build", 120], ["Prototyp testen", 60]]], ["Konzept", 196, [["Brainstorming", 60], ["UI & Feinschliff", 90]]],
+               ["Orga", 75, [["Roadmap & Doku", 60]]], ["Erholung", 152, [["Kopf-frei-Pause", 60], ["Bewegung / Sport", 60]]]] },
+  { id: "lernen", name: "Lernphase", emoji: "🎓", text: "Theorie, Übungen, Wiederholen und Ausgleich",
+    bereiche: [["Theorie", 295, [["Kapitel lesen", 90], ["Zusammenfassung", 60]]], ["Übungen", 248, [["Übungsaufgaben", 120], ["Altklausur testen", 90]]],
+               ["Wiederholen", 75, [["Karteikarten", 30]]], ["Ausgleich", 152, [["Spaziergang", 30], ["Belohnung / Spaß", 90]]]] },
+  { id: "eigen", name: "Eigener Plan", emoji: "✨", text: "Frei für eigene Bereiche und Ideen",
+    bereiche: [["Fokus", 248, []], ["Spaß", 22, []], ["Aktiv", 152, []], ["Orga", 330, []]] }
+];
+function planAnlegen(v, name, emoji, ab) {
+  const id = "p-" + uid();
+  v.bereiche.forEach(([n, hue, ideen]) => {
+    const a = { id: uid(), name: n, hue, plan: defaultPlan(), kalender: { id, name, emoji } };
+    a.plan.art = artRaten(a);
+    if (ideen.length) a.ideen = ideen.map(([t, min]) => ({ t, min }));
+    state.areas.push(a);
+  });
+  planMerken(id);
+  if (ab) { const d = new Date(ab + "T12:00:00"); if (!isNaN(d)) { anchor = d; selectedDayIdx = (d.getDay() + 6) % 7; } }
+  return id;
+}
+function planWechseln(id) {
+  planMerken(id);
+  waageFilter = null;
+  renderAll();
+}
+function planSheet() {
+  modal((s, close) => {
+    s.classList.add("planstudio");
+    s.innerHTML =
+      "<h2 class='sheet__title'>Pläne</h2>" +
+      "<p class='planstudio__lead'>Jeder Plan hat eigene Bereiche. Termine aus anderen Plänen bleiben belegt und erscheinen schraffiert.</p>" +
+      "<div class='planliste' id='planListe'></div>" +
+      "<span class='label planstudio__label'>Neuer Plan aus Vorlage</span>" +
+      "<div class='planvorlagen' id='planVorlagen'></div>" +
+      "<div class='planneu' id='planNeu' hidden></div>";
+    const liste = s.querySelector("#planListe");
+    const zaehlen = id => {
+      const ids = new Set(state.areas.filter(a => planVon(a) === id).map(a => a.id));
+      return { bereiche: ids.size, eintraege: state.blocks.filter(b => !b.sug && ids.has(b.areaId)).length,
+               aufgaben: state.tasks.filter(t => ids.has(t.areaId)).length, ids };
+    };
+    const malen = () => {
+      liste.innerHTML = "";
+      plaene().forEach(p => {
+        const z = zaehlen(p.id);
+        const row = document.createElement("div");
+        row.className = "planzeile";
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "planzeile__wahl";
+        b.setAttribute("aria-pressed", String(p.id === aktiverPlan));
+        b.innerHTML = "<span class='planzeile__emoji' aria-hidden='true'></span><span class='planzeile__text'><b></b><small></small></span>";
+        b.querySelector(".planzeile__emoji").textContent = p.emoji || "•";
+        b.querySelector("b").textContent = p.name;
+        b.querySelector("small").textContent = z.bereiche + (z.bereiche === 1 ? " Bereich" : " Bereiche") + " · " + z.eintraege + (z.eintraege === 1 ? " Eintrag" : " Einträge");
+        b.onclick = () => { close(); planWechseln(p.id); toast((p.emoji ? p.emoji + " " : "") + p.name); };
+        row.appendChild(b);
+        if (p.id) {
+          const um = document.createElement("button");
+          um.type = "button"; um.className = "btn btn--sm btn--leise"; um.textContent = "Umbenennen";
+          um.onclick = () => {
+            row.innerHTML = "";
+            const em = document.createElement("input");
+            em.className = "field planzeile__emojifeld"; em.value = p.emoji || ""; em.maxLength = 8; em.setAttribute("aria-label", "Symbol");
+            const inp = document.createElement("input");
+            inp.className = "field"; inp.value = p.name; inp.maxLength = 40; inp.setAttribute("aria-label", "Name des Plans");
+            const ok = document.createElement("button");
+            ok.type = "button"; ok.className = "btn btn--sm btn--primary"; ok.textContent = "Speichern";
+            const fertig = () => {
+              const name = inp.value.trim() || p.name, emoji = em.value.trim();
+              state.areas.forEach(a => { if (planVon(a) === p.id) a.kalender = { id: p.id, name, emoji }; });
+              save(); renderAll(); malen();
+            };
+            ok.onclick = fertig;
+            inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); fertig(); } });
+            row.append(em, inp, ok);
+            inp.focus();
+          };
+          const del = document.createElement("button");
+          del.type = "button"; del.className = "btn btn--sm btn--danger btn--leise"; del.textContent = "Löschen";
+          del.onclick = () => {
+            const teile = [z.bereiche + (z.bereiche === 1 ? " Bereich" : " Bereiche"), z.eintraege + (z.eintraege === 1 ? " Eintrag" : " Einträge")];
+            if (z.aufgaben) teile.push(z.aufgaben + (z.aufgaben === 1 ? " Aufgabe" : " Aufgaben"));
+            confirmSheet("„" + p.name + "“ löschen?",
+              "Damit verschwinden " + teile.join(", ") + " — auf allen Geräten, die abgleichen. „Rückgängig“ geht nur gleich danach.",
+              "Plan löschen", () => {
+                state.blocks = state.blocks.filter(b => !z.ids.has(b.areaId));
+                state.tasks = state.tasks.filter(t => !z.ids.has(t.areaId));
+                state.areas = state.areas.filter(a => !z.ids.has(a.id));
+                if (aktiverPlan === p.id) planMerken(null);
+                save(); renderAll(); toastUndo("Plan gelöscht");
+              }, { push: true });
+          };
+          row.append(um, del);
+        }
+        liste.appendChild(row);
+      });
+    };
+    malen();
+
+    const vorlagen = s.querySelector("#planVorlagen"), neu = s.querySelector("#planNeu");
+    PLAN_VORLAGEN.forEach(v => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "planvorlage";
+      c.setAttribute("aria-pressed", "false");
+      c.innerHTML = "<span class='planvorlage__kopf'><span aria-hidden='true'></span><b></b></span><small></small>";
+      c.querySelector(".planvorlage__kopf span").textContent = v.emoji;
+      c.querySelector("b").textContent = v.name;
+      c.querySelector("small").textContent = v.text;
+      c.onclick = () => {
+        vorlagen.querySelectorAll(".planvorlage").forEach(x => x.setAttribute("aria-pressed", String(x === c)));
+        const heute = new Date();
+        let ab = heute;
+        if (v.freitag) { ab = new Date(heute); while (ab.getDay() !== 5) ab = addDays(ab, 1); }
+        neu.hidden = false;
+        neu.innerHTML =
+          "<div class='planneu__zeile'>" +
+            "<div class='planneu__emoji'><label class='label' for='pnEmoji'>Symbol</label><input class='field' id='pnEmoji' maxlength='8'></div>" +
+            "<div class='planneu__name'><label class='label' for='pnName'>Name</label><input class='field' id='pnName' maxlength='40' autocomplete='off'></div>" +
+          "</div>" +
+          "<div class='planneu__zeile'>" +
+            "<div><label class='label' for='pnAb'>Ab wann?</label><input class='field' id='pnAb' type='date'></div>" +
+            "<button type='button' class='btn btn--primary' id='pnOk'>Plan anlegen</button>" +
+          "</div>" +
+          "<p class='planneu__info'></p>";
+        neu.querySelector("#pnEmoji").value = v.emoji;
+        neu.querySelector("#pnName").value = v.name;
+        neu.querySelector("#pnAb").value = iso(ab);
+        neu.querySelector(".planneu__info").textContent = "Bereiche: " + v.bereiche.map(x => x[0]).join(", ") + ".";
+        neu.querySelector("#pnOk").onclick = () => {
+          const name = neu.querySelector("#pnName").value.trim() || v.name;
+          const emoji = neu.querySelector("#pnEmoji").value.trim();
+          planAnlegen(v, name, emoji, neu.querySelector("#pnAb").value);
+          save(); close(); renderAll();
+          toast("Plan „" + name + "“ angelegt");
+        };
+        neu.scrollIntoView({ block: "nearest" });
+        neu.querySelector("#pnName").focus({ preventScroll: true });
+      };
+      vorlagen.appendChild(c);
+    });
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const sp = document.createElement("span"); sp.className = "spacer"; foot.appendChild(sp);
+    const fertig = document.createElement("button");
+    fertig.type = "button"; fertig.className = "btn"; fertig.textContent = "Fertig";
+    fertig.onclick = close;
+    foot.appendChild(fertig);
+    s.appendChild(foot);
+  }, { label: "Pläne" });
 }
 
 /* ============================================================
@@ -6063,15 +6342,21 @@ function onDay(b, dayKey, dayIdx) {
    Tagesabschnitt und stehen im Band darunter. */
 function blocksFor(date, dayIdx) {
   const key = iso(date);
-  return state.blocks.filter(b => !b.grob && onDay(b, key, dayIdx))
+  return state.blocks.filter(b => !b.grob && imPlan(b) && onDay(b, key, dayIdx))
     .sort((a, b) => a.start - b.start);
+}
+
+/* Feste Termine anderer Pläne an diesem Tag — nur fürs Raster, schraffiert. */
+function fremdeFor(date, dayIdx) {
+  const key = iso(date);
+  return state.blocks.filter(b => !b.grob && !b.sug && !imPlan(b) && onDay(b, key, dayIdx));
 }
 
 /* Die groben eines Tages, nach Abschnitt sortiert. */
 function grobeFor(dayKey, dayIdx) {
   const rang = { mo: 0, vm: 1, nm: 2, ab: 3 };
   const r = b => b.ganztag ? -1 : rang[b.teil];
-  return state.blocks.filter(b => b.grob && onDay(b, dayKey, dayIdx))
+  return state.blocks.filter(b => b.grob && imPlan(b) && onDay(b, dayKey, dayIdx))
     .sort((a, b) => (r(a) - r(b)) || (b.dauer - a.dauer));
 }
 
@@ -6646,13 +6931,13 @@ function wochenWaage(montag) {
   for (let i = 0; i < 7; i++) {
     const key = iso(addDays(mon, i));
     state.blocks.forEach(b => {
-      if (b.sug || !onDay(b, key, i)) return;
+      if (b.sug || !imPlan(b) || !onDay(b, key, i)) return;
       const a = areaById(b.areaId);
       if (!a) return;
       jeBereich.set(a.id, (jeBereich.get(a.id) || 0) + dauerVon(b));
     });
   }
-  const teile = state.areas.filter(a => jeBereich.get(a.id) > 0)
+  const teile = planBereiche().filter(a => jeBereich.get(a.id) > 0)
     .map(a => ({ area: a, min: jeBereich.get(a.id) }));
   const verplant = teile.reduce((sum, t) => sum + t.min, 0);
   return { wach, verplant, frei: Math.max(0, wach - verplant), teile };
@@ -6667,7 +6952,7 @@ function wochenMehr(montag) {
   for (let i = 0; i < 7; i++) {
     const key = iso(addDays(mon, i));
     state.blocks.forEach(b => {
-      if (b.sug || !onDay(b, key, i)) return;
+      if (b.sug || !imPlan(b) || !onDay(b, key, i)) return;
       if (b.nacht && b.start === 0 && nachtPaar(b)) return;   // zweiter Teil über Mitternacht zählt nicht doppelt
       zahl++;
       if (istErledigt(b, key)) fertig++;
@@ -7699,13 +7984,15 @@ function springZumFruehestenVorschlag() {
    (--fuss-oben, s. Responsive-Media-Query). */
 function renderSugBar() {
   const bar = $("#sugBar");
-  const aktiv = hasSuggestions() && (mview === "plan" || mview === "heute");
+  // v1.56: in einem anderen Plan sind die Vorschläge von „Meine Woche" unsichtbar —
+  // die Leiste darf sie dort weder zählen noch übernehmen.
+  const aktiv = hasSuggestions() && state.blocks.some(b => b.sug && imPlan(b)) && (mview === "plan" || mview === "heute");
   document.body.dataset.sugbar = aktiv ? "1" : "0";
   bar.innerHTML = "";
   if (!aktiv) return;
 
   const keys = new Set(weekDays().map(d => d.key));
-  const n = state.blocks.filter(b => b.sug && keys.has(b.date)).length;
+  const n = state.blocks.filter(b => b.sug && imPlan(b) && keys.has(b.date)).length;
 
   // Stufe B2: das Label ist ein echter Weg, kein bloßer Text mehr — Tipp
   // darauf springt zum frühesten offenen Vorschlag, auch wenn er in einer
@@ -8448,7 +8735,7 @@ function renderGoals() {
     list.appendChild(bar);
   }
 
-  const withGoal = state.areas.filter(a => a.plan.goal > 0);
+  const withGoal = planBereiche().filter(a => a.plan.goal > 0);
 
   if (withGoal.length) {
     const amp = document.createElement("div");
@@ -8788,7 +9075,7 @@ function goalsSheet() {
     }));
     modalOnCancel = () => sicherung.forEach(x => { x.a.plan = x.plan; x.a.regeln = x.regeln; });
 
-    state.areas.forEach(a => {
+    planBereiche().forEach(a => {
       const p = a.plan;
       const row = document.createElement("div");
       row.className = "goalrow";
@@ -9322,6 +9609,7 @@ function renderGrid() {
       }
     }
 
+    fremdeFor(d, i).forEach(b => col.appendChild(fremdEl(b, hourH)));
     const eintraege = layout(blocksFor(d, i));
     // Auch ein Eintrag ohne Uhrzeit (grob, ganztägig) im Band darunter zählt —
     // sonst stünde „Noch nichts geplant" über dem eigenen Geburtstag.
@@ -9501,6 +9789,23 @@ function startScroll(hourH) {
   return Math.max(0, (ziel - 45 - dayStart * 60) / 60 * hourH);
 }
 
+/* Termin eines anderen Plans: schraffierte, nicht bedienbare Fläche hinter den
+   eigenen Blöcken — belegt, aber nicht Teil dieses Plans (v1.56). */
+function fremdEl(b, hourH) {
+  const { dayStart } = state.settings;
+  const el = document.createElement("div");
+  const k = planInfo(planVon(state.areas.find(a => a.id === b.areaId)));
+  el.className = "fremd";
+  el.style.top = ((b.start - dayStart * 60) / 60 * hourH) + "px";
+  el.style.height = Math.max(18, (b.end - b.start) / 60 * hourH - 2) + "px";
+  el.title = k.name + ": " + (b.title || "Ohne Titel") + ", " + fmtTime(b.start) + "–" + fmtTime(b.end);
+  el.setAttribute("aria-hidden", "true");
+  const t = document.createElement("span");
+  t.className = "fremd__name";
+  t.textContent = (k.emoji ? k.emoji + " " : "") + k.name;
+  el.appendChild(t);
+  return el;
+}
 function blockEl({ b, col, of }, hourH, dayKey) {
   const { dayStart } = state.settings;
   const el = document.createElement("div");
@@ -9740,7 +10045,7 @@ function attachColumnHandlers(col, hourH) {
       const a = minAt(e.clientY);
       const ghost = document.createElement("div");
       ghost.className = "block__ghost";
-      ghost.style.setProperty("--h", state.areas[0].hue);
+      ghost.style.setProperty("--h", planBereiche()[0].hue);
       col.appendChild(ghost);
       let from = a, to = a + 60;
       const paint = () => {
@@ -9799,7 +10104,7 @@ function attachColumnHandlers(col, hourH) {
     const s = gefunden == null ? wunsch : gefunden;
     const id = uid();
     state.blocks.push({
-      id, title: t.title, areaId: t.areaId || state.areas[0].id, taskId: t.id,
+      id, title: t.title, areaId: t.areaId || planBereiche()[0].id, taskId: t.id,
       day: day.i, date: day.key, repeat: "none",
       start: s, end: Math.min(s + laenge, state.settings.dayEnd * 60), frog: !!t.frog
     });
@@ -9854,7 +10159,7 @@ function holdToCreate(e, col, minAt, hourH, dayEnd) {
   // Sichtbare Rückmeldung, damit klar ist, dass gerade etwas entsteht
   const ghost = document.createElement("div");
   ghost.className = "block__ghost is-holding";
-  ghost.style.setProperty("--h", state.areas[0].hue);
+  ghost.style.setProperty("--h", planBereiche()[0].hue);
   ghost.style.top = ((start - state.settings.dayStart * 60) / 60 * hourH) + "px";
   ghost.style.height = Math.max(16, hourH - 2) + "px";
   ghost.textContent = fmtTime(start) + "–" + fmtTime(start + 60);
@@ -9967,7 +10272,7 @@ function holdToMove(e, blockNode, b, col, hourH, tapAbbrechen) {
 /* ============================================================ Block-Editor */
 function newBlock(dayIdx, dateIso, start, end) {
   blockSheet({
-    id: null, title: "", areaId: state.areas[0].id,
+    id: null, title: "", areaId: planBereiche()[0].id,
     day: dayIdx, date: dateIso, repeat: "none",
     start, end, frog: false
   });
@@ -10390,7 +10695,7 @@ function lieblingsSteine() {
   const gruppen = new Map();
   state.blocks.forEach(b => {
     const titel = (b.title || "").trim();
-    if (!titel || b.sug || b.ganztag || b.nacht || b.taskId) return;
+    if (!titel || b.sug || b.ganztag || b.nacht || b.taskId || !imPlan(b)) return;
     const dauer = dauerVon(b);
     if (!(dauer > 0)) return;
     const key = b.areaId + "|" + titel.toLowerCase();
@@ -10404,7 +10709,19 @@ function lieblingsSteine() {
     .sort((x, y) => y.n - x.n || (y.wann > x.wann ? 1 : y.wann < x.wann ? -1 : 0))
     .slice(0, LIEBLINGE_MAX)
     .map(g => ({ title: g.b.title.trim(), areaId: g.b.areaId, dauer: dauerVon(g.b),
-      grob: !!g.b.grob, teil: g.b.teil, ortId: g.b.ortId || null, ort: g.b.ort || "" }));
+      grob: !!g.b.grob, teil: g.b.teil, ortId: g.b.ortId || null, ort: g.b.ort || "" }))
+    .concat(planBausteine())
+    .filter((l, i, alle) => alle.findIndex(x => x.title.toLowerCase() === l.title.toLowerCase()) === i)
+    .slice(0, LIEBLINGE_MAX);
+}
+/* In einem eigenen Plan (nicht „Meine Woche") stehen dazu die Bausteine aus seinem
+   Ideenglas — so hat ein frischer Festival-Plan schon „Mainstage Headliner · 2 h". */
+function planBausteine() {
+  if (!aktiverPlan) return [];
+  const l = [];
+  planBereiche().forEach(a => (a.ideen || []).forEach(i =>
+    l.push({ title: i.t, areaId: a.id, dauer: i.min, grob: false, teil: null, ortId: null, ort: "" })));
+  return l;
 }
 
 function blockSheet(draft, dayKey) {
@@ -10441,7 +10758,7 @@ function blockSheet(draft, dayKey) {
       // gilt, und acceptSuggestions() löscht nur .sug, nicht .grund.
       // Dasselbe Muster wie dort: .agenda__sub.
       (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
-      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>Oft geplant</span>" +
+      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>" + (aktiverPlan ? "Bausteine" : "Oft geplant") + "</span>" +
         "<div class='chipset' id='bLieblinge'></div></div>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'>" +
@@ -10747,7 +11064,11 @@ function blockSheet(draft, dayKey) {
     const areaWrap = s.querySelector("#bAreas");
     const paintAreas = () => {
       areaWrap.innerHTML = "";
-      state.areas.forEach(a => {
+      // Bereiche des offenen Plans; gehört der Eintrag zu einem anderen, steht dessen Bereich dabei.
+      const liste = planBereiche().slice();
+      const eigen = state.areas.find(a => a.id === draft.areaId);
+      if (eigen && !liste.includes(eigen)) liste.push(eigen);
+      liste.forEach(a => {
         const c = document.createElement("button");
         c.type = "button"; c.className = "chip";
         c.style.setProperty("--h", a.hue);
@@ -11127,13 +11448,14 @@ function renderTasks() {
   list.innerHTML = "";
   foot.hidden = true; foot.innerHTML = "";
 
-  if (!state.tasks.length) {
+  const planAufgaben = state.tasks.filter(t => bereichImPlan(t.areaId));
+  if (!planAufgaben.length) {
     list.innerHTML = "<div class='empty'><b>Was möchtest du angehen?</b>Notiere den nächsten Schritt. „Planen“ gibt ihm einen Platz in der Woche.</div>";
     return;
   }
 
-  const open = state.tasks.filter(t => !t.done);
-  const done = state.tasks.filter(t => t.done);
+  const open = planAufgaben.filter(t => !t.done);
+  const done = planAufgaben.filter(t => t.done);
   if (!open.length) {
     const leer = document.createElement("div");
     leer.className = "empty";
@@ -11214,7 +11536,7 @@ function renderTasks() {
         const n = done.length;
         const ids = new Set(done.map(t => t.id));
         state.blocks.forEach(b => { if (ids.has(b.taskId)) delete b.taskId; });
-        state.tasks = state.tasks.filter(x => !x.done);
+        state.tasks = state.tasks.filter(x => !(x.done && bereichImPlan(x.areaId)));
         save(); renderAll(); toastUndo(n + " erledigt & weggeräumt");
       };
       list.appendChild(weg);
@@ -11442,7 +11764,7 @@ function planTask(t) {
 
 function taskSheet(t) {
   modal((s, close) => {
-    let areaId = t.areaId || state.areas[0].id;
+    let areaId = t.areaId || planBereiche()[0].id;
     let dauer = t.dauer || 0;
     let wichtig = !!t.frog;
 
@@ -11482,7 +11804,10 @@ function taskSheet(t) {
     const areaWrap = s.querySelector("#tkAreas");
     const malAreas = () => {
       areaWrap.innerHTML = "";
-      state.areas.forEach(a => {
+      const liste = planBereiche().slice();
+      const eigen = state.areas.find(a => a.id === areaId);
+      if (eigen && !liste.includes(eigen)) liste.push(eigen);
+      liste.forEach(a => {
         const c = document.createElement("button");
         c.type = "button"; c.className = "chip";
         c.style.setProperty("--h", a.hue);
@@ -11616,7 +11941,7 @@ $("#taskForm").addEventListener("submit", e => {
     inp.focus(); return;
   }
   const ein = aufgabeAusEingabe(v);
-  const neu = { id: uid(), title: ein.title, areaId: ein.areaId || state.areas[0].id, done: false, frog: false };
+  const neu = { id: uid(), title: ein.title, areaId: ein.areaId || planBereiche()[0].id, done: false, frog: false };
   if (ein.dauer) neu.dauer = ein.dauer;
   state.tasks.unshift(neu);
   inp.value = "";
@@ -11644,7 +11969,7 @@ function aufgabeAusEingabe(text) {
   if (tag) {
     const norm = x => x.toLocaleLowerCase("de").replace(/[^\p{L}\p{N}]/gu, "");
     const such = norm(tag[1]);
-    const area = such && state.areas.find(a => norm(a.name).startsWith(such));
+    const area = such && planBereiche().find(a => norm(a.name).startsWith(such));
     if (area) {
       areaId = area.id; erkannt.push(area.name);
       title = title.replace(tag[0], " ");
@@ -12946,7 +13271,10 @@ $("#settingsBtn").onclick = () => {
         "An gesetzlichen Feiertagen in Baden-Württemberg schlägt der Planer nichts vor. Von Hand eintragen kannst du dort trotzdem.</div>" +
       "</div>" +
       "<div class='sheet__row' id='sAcctRow' data-page='konto'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
-      "<div class='sheet__row' data-page='bereiche'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
+      "<div class='sheet__row' data-page='bereiche'><span class='label'>Pläne</span>" +
+        "<button class='btn btn--sm' id='sPlaene' type='button'>Pläne verwalten …</button>" +
+        "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>Festival, Reise, Lernphase: jeder Plan mit eigenen Bereichen.</div></div>" +
+      "<div class='sheet__row' data-page='bereiche'><span class='label' id='sAreasLabel'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
       "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
       "<div class='sheet__row' data-page='orte'><span class='label'>Orte und Fahrzeiten</span>" +
         "<div class='arealist' id='sOrte'></div>" +
@@ -13036,7 +13364,7 @@ $("#settingsBtn").onclick = () => {
     const areasWrap = s.querySelector("#sAreas");
     const paint = () => {
       areasWrap.innerHTML = "";
-      state.areas.forEach((a, i) => {
+      planBereiche().forEach((a, i) => {
         const row = document.createElement("div");
         row.className = "arearow";
         row.style.setProperty("--h", a.hue);
@@ -13060,7 +13388,7 @@ $("#settingsBtn").onclick = () => {
         const del = document.createElement("button");
         del.type = "button"; del.className = "btn btn--sm btn--danger"; del.textContent = "×";
         del.setAttribute("aria-label", "Bereich " + a.name + " löschen");
-        del.disabled = state.areas.length <= 1;
+        del.disabled = planBereiche().length <= 1;
         del.onclick = () => {
           const fallback = state.areas.find(x => x.id !== a.id).id;
           state.blocks.forEach(b => { if (b.areaId === a.id) b.areaId = fallback; });
@@ -13184,8 +13512,13 @@ $("#settingsBtn").onclick = () => {
       knopf();
     }
 
+    s.querySelector("#sPlaene").onclick = () => { close(); planSheet(); };
+    if (aktiverPlan) s.querySelector("#sAreasLabel").textContent = "Bereiche in „" + planInfo(aktiverPlan).name + "“";
     s.querySelector("#sAddArea").onclick = () => {
-      state.areas.push({ id: uid(), name: "Neuer Bereich", hue: (state.areas.length * 47 + 20) % 360, plan: defaultPlan() });
+      const neu = { id: uid(), name: "Neuer Bereich", hue: (state.areas.length * 47 + 20) % 360, plan: defaultPlan() };
+      const k = planInfo(aktiverPlan);
+      if (aktiverPlan) neu.kalender = { id: k.id, name: k.name, emoji: k.emoji };
+      state.areas.push(neu);
       save(); paint(); renderAll();
     };
     s.querySelector("#sExport").onclick = exportData;
@@ -14120,6 +14453,7 @@ $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAl
 // Absturz beim Bauen dieser Stufe, s. Bericht). Ohne Argument aufrufen,
 // damit beide auf ihre eigene Vorgabe (anchor) zurückfallen.
 $("#weekLabel").onclick = () => freizeitSheet();
+$("#planBtn").onclick = () => planSheet();
 // Wochenwaage: dasselbe Blatt im Belegt-Gesicht, dort steht die ganze Legende.
 $("#waage").onclick = e => {
   const item = e.target.closest(".waage__item[data-filter]");
@@ -14705,6 +15039,7 @@ function maybeWelcome() {
 
 /* ============================================================ Start */
 function renderAll() {
+  planLaden();
   renderHeader();
   wischenEinrichten();
   renderLoose();
@@ -14781,14 +15116,10 @@ function beispielFuellen() {
   einmal("Zahnarzt", "a7", 2, t(17), t(17, 45), { ort: "Praxis Dr. Berg" });
   einmal("Einkaufen", "a7", 4, t(17), t(18));
   einmal("Yoga", "a3", 5, t(10), t(11));
-  einmal("Mainstage Headliner", "a6", 5, t(20), t(22), { ort: "Mainstage", notiz: "Treffpunkt am Riesenrad" });
   grob("Gitarre üben", "a4", 2, "ab", 60);
   grob("Wäsche", "a7", 0, "ab", 45);
   grob("Spaziergang", "a5", 6, "nm", 90);
   grob("Serienabend", "a5", 3, "ab", 120);
-  B.push({ id: "bsp-festival", title: "Festival-Wochenende", areaId: "a6", day: 4, date: tag(4), bis: tag(6),
-    repeat: "none", start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0, frog: false,
-    schritte: [{ t: "Zelt einpacken", ok: true }, { t: "Bändchen abholen", ok: false }, { t: "Powerbank laden", ok: false }] });
   B.push({ id: "bsp-geburtstag", title: "Geburtstag Mama", areaId: "a6", day: 3, date: tag(3),
     repeat: "none", start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0, frog: false });
   s.blocks = B;
@@ -14804,6 +15135,24 @@ function beispielFuellen() {
   s.areas.find(a => a.id === "a5").ideen = [{ t: "Kaffee-Date einladen", min: 60 }];
 
   state = s;
+  // Zweiter Plan „Wochenende & Festival“ (v1.56) mit eigenen Bereichen und Terminen.
+  planAnlegen(PLAN_VORLAGEN[0], "Wochenende & Festival", "🎪", null);
+  planMerken(null);
+  const fb = name => state.areas.find(a => a.kalender && a.name === name).id;
+  state.blocks.push(
+    { id: "bsp-festival", title: "Festival-Wochenende", areaId: fb("Anreise & Orga"), day: 4, date: tag(4), bis: tag(6),
+      repeat: "none", start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0, frog: false,
+      schritte: [{ t: "Zelt einpacken", ok: true }, { t: "Bändchen abholen", ok: false }, { t: "Powerbank laden", ok: false }] },
+    { id: "bsp-anreise", title: "Anreise & Zeltaufbau", areaId: fb("Anreise & Orga"), day: 4, date: tag(4), repeat: "none",
+      start: t(18, 30), end: t(20, 30), grob: false, frog: false, ort: "Campingplatz" },
+    { id: "bsp-headliner", title: "Mainstage Headliner", areaId: fb("Bühnen & Acts"), day: 5, date: tag(5), repeat: "none",
+      start: t(20), end: t(22), grob: false, frog: false, ort: "Mainstage", notiz: "Treffpunkt am Riesenrad" },
+    { id: "bsp-streetfood", title: "Streetfood & Drinks", areaId: fb("Food & Drinks"), day: 5, date: tag(5), repeat: "none",
+      start: t(18, 30), end: t(19, 30), grob: false, frog: false },
+    { id: "bsp-powernap", title: "Camp-Chill & Powernap", areaId: fb("Camp & Chill"), day: 5, date: tag(5), repeat: "none",
+      start: 0, end: 0, grob: true, teil: "nm", dauer: 120, frog: false },
+    { id: "bsp-abbau", title: "Abbau & Heimreise", areaId: fb("Anreise & Orga"), day: 6, date: tag(6), repeat: "none",
+      start: t(13), end: t(15, 30), grob: false, frog: false });
   migrate(state);
   // Vergangene Tage dieser Woche: fast alles abgehakt, ein Eintrag bleibt offen.
   const heute = iso(new Date());

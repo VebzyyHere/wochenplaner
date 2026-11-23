@@ -107,6 +107,16 @@ Checklisten-Punkte (`#freizeitMehr`); dort speichert nur ein Schritt-Haken. Kein
 false, `beispielFuellen()` baut beim Laden jedes Mal frisch eine Woche relativ zu heute (danach `buildSuggestions()`),
 Banner mit Rückweg. Der echte Plan wird nie gelesen oder geschrieben (`beispiel.js`). Inhalt ist sichtbarer Text.
 
+**Mehrere Pläne** (v1.56). Ein Plan ist eine Gruppe von Bereichen: `area.kalender = {id, name, emoji}` (fehlt =
+„Meine Woche", `HAUPTPLAN`), kein Wurzelfeld; `migrate()` säubert wertbasiert. Der offene Plan (`aktiverPlan`) liegt je
+Gerät unter `localStorage["wochenplaner.<scope>.plan"]`, nie in `state`; `renderAll()` ruft `planLaden()`. Anzeige filtert
+über `imPlan()`/`planBereiche()` (`blocksFor()`, `grobeFor()`, Waage, `wochenMehr()`, Aufgaben, Ziele, Editor-Chips,
+Einstellungen, Vorschlagsleiste) — `onDay()`, `freeGaps()` und der Verteiler sehen weiter ALLE Blöcke, deshalb bleibt
+ein Festival in „Meine Woche" belegt und steht dort als `.fremd` (schraffiert, `pointer-events: none`, `fremdeFor()`).
+`PLAN_VORLAGEN` (sichtbarer Text, Bereiche/Bausteine aus Sunnys Studio-Entwurf, bewusst ohne Wochenziele) →
+`planAnlegen()`; Bausteine = `area.ideen`, im Editor über `planBausteine()` als „Bausteine". Am Telefon steht `#planBtn`
+erst ab zwei Plänen im Kopf (`.is-allein`), sonst über Einstellungen (`plaene.js`).
+
 **Lieblingssteine.** `lieblingsSteine()` leitet „Oft geplant" rein aus `state.blocks` ab (gleicher Titel im
 selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — kein Feld, nichts gespeichert.
 Die Zeile steht nur im frischen, leeren `blockSheet()`; ein Tipp öffnet den Editor neu vorausgefüllt
