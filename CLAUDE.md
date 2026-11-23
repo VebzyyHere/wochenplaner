@@ -107,6 +107,14 @@ anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`r
   `erledigt`-Schlüssel eines ausgelassenen Datums bleibt bewusst verwaist (Löschen ohne Grabstein
   käme per Sync zurück).
 
+**Feiertage & Ausblick** (v1.47). `feiertageBW(jahr)`/`feiertagAm(iso)` rechnen die zwölf gesetzlichen
+Feiertage Baden-Württembergs (Feiertagsgesetz BW § 1; bewegliche über `osterSonntag()`) — nichts in
+`state`, reine Anzeige (Honigpunkt im Monat, Zeile darunter, Tagestitel); der Verteiler kennt sie
+nicht. Keine Tage dazuerfinden (Heiligabend/Silvester sind keine). `brueckenTipps()` nimmt eine
+Mo–Fr-Woche an; `ausblickSheet()` (Knopf im Monatsblatt, per `modalPush()`) ist rein lesend, ein Tipp
+öffnet nur `blockSheet()` vorausgefüllt. Wischen im Monat blättert lokal und bewegt `anchor` nie
+(`ausblick.js`).
+
 **Rest des Tages** (`restDesTagesBauen()`, derselbe Verteiler nur für heute) — zwei rote Linien: auf
 einem freigehaltenen Tag (`istFrei()`) kein Vorschlag; ein vergangener eigener Vorschlag von heute
 bleibt unangetastet — `growSuggestions()` verlängert kein schon erreichtes Ende (ein laufender Block
