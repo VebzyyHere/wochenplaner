@@ -185,8 +185,15 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
   console.log('=== i) Tab-Wechsel mit Richtung ===');
   await p.evaluate(() => setView('heute'));
+  // Der Klick nach einem Touch-Tipp kommt vom Browser nachgereicht — erst
+  // lesen, wenn die Ansicht wirklich gewechselt hat (sonst liest man den
+  // Stand des vorigen Tipps). Beim selben Reiter gibt es nichts abzuwarten
+  // ausser einer kurzen Frist, in der ein faelschlicher Uebergang begaenne.
   const tab = async v => {
+    const gleich = await p.evaluate(v => mview === v, v);
     await p.locator('#tabbar button[data-view="' + v + '"]').tap();
+    if (gleich) await p.waitForTimeout(150);
+    else await p.waitForFunction(v => mview === v, v, { timeout: 3000 });
     const r = await p.evaluate(() => ({ x: $('#main').style.getPropertyValue('--wechsel-x'), an: $('#main').classList.contains('is-wechsel'),
       quer: document.documentElement.scrollWidth <= window.innerWidth }));
     await p.waitForTimeout(450);
