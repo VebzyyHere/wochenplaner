@@ -1,5 +1,5 @@
 /* ============================================================
-   Pruefskript Wochenwaage (v1.48)
+   Pruefskript Wochenwaage (v1.49)
 
    a) Rechnung: wochenWaage() summiert feste Eintraege je Bereich ueber die
       ganze gezeigte Woche; Vorschlaege (sug) zaehlen nicht, Serien einmal

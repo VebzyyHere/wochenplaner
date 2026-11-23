@@ -3371,7 +3371,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .sheet__kopf .sheet__title { min-width: 0; margin: 0; }
 .sheet__kopf .btn { flex: none; }
 /* ============================================================
-   v1.48 „Wochenwaage" — die Woche als ein Balken
+   v1.49 „Wochenwaage" — die Woche als ein Balken
    Am Desktop steht sie im Rasterkopf neben „Deine Woche" (dort war Platz),
    am Telefon im Wochen-Blatt — nie auf „Heute" (Falz-Vertrag). Bewusst
    flach, ohne Kontur und Versatz: sie ist Auskunft, kein Aufkleber.
@@ -3404,7 +3404,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 @media (hover: hover) { .planhead .waage:hover { background: var(--surface-2); } }
 
 /* ============================================================
-   v1.48 „Ruhe" — der Aufkleber-Effekt nur noch dort, wo man drückt
+   v1.49 „Ruhe" — der Aufkleber-Effekt nur noch dort, wo man drückt
    (Sunny, 2026-11-23: „ruhig, ausgewogen, clean" und trotzdem verspielt).
    Vorher trug fast jede Fläche Kontur + Versatz; wenn alles ein Aufkleber
    ist, fällt keiner mehr auf. Jetzt: Behälter (Listen, Karten, Ziele,
@@ -3424,7 +3424,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .loosechip { box-shadow: none; }
 .card__title, .goal__name { font-family: var(--font-display); font-variation-settings: normal; letter-spacing: -.015em; font-weight: 750; }
 
-/* ---- v1.48 „Ideen würfeln": Knopf im Rasterkopf, Blatt mit einer Idee ---- */
+/* ---- v1.49 „Ideen würfeln": Knopf im Rasterkopf, Blatt mit einer Idee ---- */
 .wuerfel { gap: 6px; flex: none; }
 .wuerfel .ui-icon { width: 20px; height: 20px; }
 @media (max-width: 1100px) {
@@ -4256,7 +4256,7 @@ function migrate(s) {
   // fremder oder alter Stand beim nächsten Kontakt genauso sauber ankommt.
   // task.regeln bekommt hier absichtlich keine Behandlung — migrate() baut
   // Aufgaben nicht aus einer Whitelist neu auf, also droht dort kein Verlust.
-  // Ideenglas (v1.48): area.ideen = [{ t, min }] — eigene Ideen fürs Würfeln,
+  // Ideenglas (v1.49): area.ideen = [{ t, min }] — eigene Ideen fürs Würfeln,
   // am Bereich, zu dem sie gehören (Geschwister von plan, wie regeln).
   // Wertbasiert gesäubert; ein leeres Glas trägt kein Feld.
   s.areas.forEach(a => {
@@ -6444,7 +6444,7 @@ function ampelFarbe(q) {
 }
 
 /* ============================================================
-   Wochenwaage (v1.48)
+   Wochenwaage (v1.49)
    Eine reine Anzeige-Summe über die GANZE gezeigte Woche: wie viele Stunden
    je Bereich fest eingetragen sind und wie viel wache Zeit frei bleibt.
    Bewusst nicht wochenKapazitaet(): die rechnet „ab jetzt" (für die Frage
@@ -9871,7 +9871,7 @@ function nachtPaar(b) {
 }
 
 /* ============================================================
-   Ideen würfeln (v1.48)
+   Ideen würfeln (v1.49)
    Eine Idee für freie Zeit, passend zu einer ECHTEN Lücke der gezeigten
    Woche (freeGaps() ohne Bereich — dieselbe Rechnung wie das Frei-Gesicht;
    Vergangenes, freigehaltene Tage und Feiertage liefern dort keine Lücke).
@@ -10065,7 +10065,7 @@ function ideeSheet() {
 }
 
 /* ============================================================
-   Lieblingssteine (v1.48) — „Oft geplant" im neuen Eintrag
+   Lieblingssteine (v1.49) — „Oft geplant" im neuen Eintrag
    Kein Baukasten zum Pflegen: die Steine entstehen aus dem, was wirklich
    mehrfach im Plan steht (gleicher Titel im selben Bereich, mindestens
    zweimal; eine Serie zählt doppelt, sie kehrt ja wieder). Reine Ableitung

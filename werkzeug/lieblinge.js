@@ -1,5 +1,5 @@
 /* ============================================================
-   Pruefskript Lieblingssteine (v1.48) — „Oft geplant" im neuen Eintrag
+   Pruefskript Lieblingssteine (v1.49) — „Oft geplant" im neuen Eintrag
 
    a) Ableitung: lieblingsSteine() nennt nur, was mindestens zweimal im
       Plan steht (gleicher Titel im selben Bereich, Gross/Klein egal); eine

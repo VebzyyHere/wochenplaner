@@ -1,5 +1,5 @@
 /* ============================================================
-   Pruefskript Ideen wuerfeln (v1.48)
+   Pruefskript Ideen wuerfeln (v1.49)
 
    a) Fenster: ideeFenster() nennt nur Luecken ab jetzt, mindestens 15 min,
       Start auf Viertelstunden; vergangene Tage und ein freigehaltener Tag
