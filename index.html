@@ -3371,6 +3371,83 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .sheet__kopf .sheet__title { min-width: 0; margin: 0; }
 .sheet__kopf .btn { flex: none; }
 /* ============================================================
+   v1.49 „Wochenwaage" — die Woche als ein Balken
+   Am Desktop steht sie im Rasterkopf neben „Deine Woche" (dort war Platz),
+   am Telefon im Wochen-Blatt — nie auf „Heute" (Falz-Vertrag). Bewusst
+   flach, ohne Kontur und Versatz: sie ist Auskunft, kein Aufkleber.
+   Farben nur aus den Stein-Tokens, der Bereich bringt allein --h mit.
+   ============================================================ */
+.waage { display: none; }
+.waage__kopf { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); min-width: 0; }
+/* Eine Zeile Legende: was nicht passt, bricht in die (abgeschnittene) zweite
+   Zeile um und fehlt dann ganz, statt mitten im Wort zu enden. Vollständig
+   steht sie im Wochen-Blatt. */
+.waage__leg { display: flex; flex-wrap: wrap; gap: 0 var(--s-4); min-width: 0; height: 1.45em; line-height: 1.45; overflow: hidden; }
+.waage__item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--text-muted); }
+.waage__item b, .waage__sum b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+.waage__dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: oklch(var(--stone-L) var(--stone-C) var(--h)); }
+.waage__sum { flex: none; white-space: nowrap; color: var(--text-muted); }
+.waage__bar { display: flex; gap: 2px; height: 10px; border-radius: 999px; overflow: hidden; background: var(--tray); }
+.waage__bar i { display: block; flex: var(--g) 1 0; min-width: 3px; background: oklch(var(--stone-L) var(--stone-C) var(--h)); }
+.waage__bar i.waage__frei { min-width: 0; background: transparent; }
+.waage--blatt { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--s-4); font-size: var(--t-sm); }
+.waage--blatt[hidden] { display: none; }
+.waage--blatt .waage__leg { height: auto; overflow: visible; gap: 2px var(--s-4); }
+@media (min-width: 1101px) {
+  .planhead .waage {
+    display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; max-width: 720px;
+    margin: 0 var(--s-5); padding: 2px 10px; border: 0; border-radius: 12px;
+    background: transparent; color: inherit; font: inherit; font-size: var(--t-sm); text-align: left; cursor: pointer;
+  }
+  .planhead .waage:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+}
+@media (hover: hover) { .planhead .waage:hover { background: var(--surface-2); } }
+
+/* ============================================================
+   v1.49 „Ruhe" — der Aufkleber-Effekt nur noch dort, wo man drückt
+   (Sunny, 2026-11-23: „ruhig, ausgewogen, clean" und trotzdem verspielt).
+   Vorher trug fast jede Fläche Kontur + Versatz; wenn alles ein Aufkleber
+   ist, fällt keiner mehr auf. Jetzt: Behälter (Listen, Karten, Ziele,
+   Termine im Raster) sind flach mit feiner Kante; Kontur und Versatz
+   bleiben den Dingen, die man drückt (Hauptknopf, gewählter Chip, „+",
+   Planen-Knopf, Haken, Eingabezeile). Weiterhin nur box-shadow, nie border
+   — kein Maß ändert sich, die Falz-Verträge bleiben unberührt.
+   Fraunces sparsamer: Blatt- und Ansichtstitel, Schwerpunkt, laufender
+   Termin und Tageszahlen; Kartentitel und Bereichsnamen stehen in Gabarito.
+   ============================================================ */
+:root { --fein: 0 0 0 1px var(--border); }
+.agenda__list, .energy, .goal, .task { box-shadow: var(--fein); }
+.freischalter { box-shadow: none; background: transparent; }
+/* Termine: die Farbe des Bereichs trägt die Kante, kein dunkler Rahmen. */
+.block, .block:hover { box-shadow: inset 0 0 0 1.5px var(--area-line); }
+.block.is-sug { box-shadow: none; }
+.loosechip { box-shadow: none; }
+.card__title, .goal__name { font-family: var(--font-display); font-variation-settings: normal; letter-spacing: -.015em; font-weight: 750; }
+
+/* ---- v1.49 „Ideen würfeln": Knopf im Rasterkopf, Blatt mit einer Idee ---- */
+.wuerfel { gap: 6px; flex: none; }
+.wuerfel .ui-icon { width: 20px; height: 20px; }
+@media (max-width: 1100px) {
+  /* 44 px Trefferfläche, ohne den Rasterkopf am Telefon höher zu machen. */
+  .wuerfel { min-width: 44px; min-height: 44px; padding: 0 10px; margin: -4px 0; }
+  .wuerfel span { display: none; }
+}
+@media (max-height: 500px) and (max-width: 1000px) { .wuerfel { display: none; } }
+.idee { margin: 4px 0 var(--s-4); padding: 18px 16px; border-radius: 20px; background: var(--area-bg, var(--surface-2)); text-align: center; }
+.idee__titel { font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-size: 1.5rem; line-height: 1.2; font-weight: 660; color: var(--text); overflow-wrap: anywhere; }
+.idee__wann { margin-top: 8px; font-size: var(--t-body); color: var(--text-muted); }
+.idee__wann b { color: var(--text); font-weight: 650; }
+.ideenglas { margin-bottom: var(--s-4); }
+.ideenglas #ideeNeuForm { margin-top: var(--s-3); }
+.ideenglas #ideeNeuAuf { padding-left: 0; }
+.idee__leer { margin: 0 0 var(--s-4); color: var(--text-muted); line-height: 1.5; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ideeRollt { from { opacity: 0; transform: translateY(8px) rotate(-3deg) scale(.96); } }
+  .idee.is-neu { animation: ideeRollt .32s var(--feder) both; }
+}
+
+/* ============================================================
    v1.47 „Ausblick": Feiertage im Monat, Vorfreude-Zähler und
    Brückentag-Tipps — im Aufkleber-Stil von v1.43 (Kontur und Versatz nur
    über box-shadow). Honig bleibt bei „heute" und Aufklebern: der
@@ -3587,7 +3664,9 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     <div class="planwrap">
       <div class="planhead">
         <div><h1>Deine Woche</h1></div>
+        <button type="button" class="waage" id="waage"></button>
         <div class="planhead__actions">
+          <button type="button" class="btn btn--ghost wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span>Idee würfeln</span></button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Eintrag</span>
@@ -3788,6 +3867,7 @@ function isoWeek(date) {
 }
 
 /* ============================================================ Zustand */
+const IDEENGLAS_MAX = 30;   // eigene Ideen je Bereich (migrate() kappt darüber)
 const DEFAULT_AREAS = [
   { id: "a1", name: "Arbeit",           hue: 248 },
   { id: "a2", name: "Uni & Lernen",     hue: 295 },
@@ -4176,6 +4256,17 @@ function migrate(s) {
   // fremder oder alter Stand beim nächsten Kontakt genauso sauber ankommt.
   // task.regeln bekommt hier absichtlich keine Behandlung — migrate() baut
   // Aufgaben nicht aus einer Whitelist neu auf, also droht dort kein Verlust.
+  // Ideenglas (v1.49): area.ideen = [{ t, min }] — eigene Ideen fürs Würfeln,
+  // am Bereich, zu dem sie gehören (Geschwister von plan, wie regeln).
+  // Wertbasiert gesäubert; ein leeres Glas trägt kein Feld.
+  s.areas.forEach(a => {
+    if (a.ideen === undefined) return;
+    const sauber = (Array.isArray(a.ideen) ? a.ideen : [])
+      .filter(i => i && typeof i.t === "string" && i.t.trim())
+      .map(i => { const m = Math.round(+i.min / 15) * 15; return { t: i.t.trim().slice(0, 60), min: isFinite(m) ? clamp(m, 15, 240) : 60 }; })
+      .slice(0, IDEENGLAS_MAX);
+    if (sauber.length) a.ideen = sauber; else delete a.ideen;
+  });
   s.areas.forEach(a => {
     if (a.regeln === undefined) a.regeln = null;
     if (!a.regeln || typeof a.regeln !== "object") return;
@@ -4985,6 +5076,7 @@ function freizeitSheet(startMontag) {
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
       "</div>" +
       "<div class='gesichtumschalter' id='gesichtUmschalter'></div>" +
+      "<div class='waage waage--blatt' id='freizeitWaage'></div>" +
       // Die Nachtruhe nur nennen, wenn sie auch eingeschaltet ist — defaultSleep()
       // liefert on:false, und ein Blatt, aus dem man jemandem vorliest, darf nicht
       // behaupten, es rechne etwas ein, das gar nicht wirkt. Gehört nur zum
@@ -5099,6 +5191,13 @@ function freizeitSheet(startMontag) {
       titelEl.innerHTML = titel
         + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>";
       s.setAttribute("aria-label", titel);
+      // Wochenwaage nur im Belegt-Gesicht: das Frei-Gesicht muss ohne
+      // Scrollen ins Blatt passen (freiwoche.js), und „wie ist die Woche
+      // gefüllt" ist ohnehin die Belegt-Frage.
+      const waageEl = s.querySelector("#freizeitWaage");
+      waageEl.hidden = freizeitGesicht === "frei";
+      const wt = waageTeile(wochenWaage(mon));
+      waageEl.innerHTML = waageEl.hidden ? "" : wt.sum + wt.bar + wt.leg;
       if (freizeitGesicht === "frei") zeichnenFrei(); else zeichnenBelegt();
     };
     paintUmschalter();
@@ -6342,6 +6441,64 @@ function wochenKapazitaet() {
    viel vornimmt, nicht weil man schlecht sortiert. */
 function ampelFarbe(q) {
   return q <= 0.60 ? "var(--success)" : q <= 0.70 ? "var(--warn)" : "var(--danger)";
+}
+
+/* ============================================================
+   Wochenwaage (v1.49)
+   Eine reine Anzeige-Summe über die GANZE gezeigte Woche: wie viele Stunden
+   je Bereich fest eingetragen sind und wie viel wache Zeit frei bleibt.
+   Bewusst nicht wochenKapazitaet(): die rechnet „ab jetzt" (für die Frage
+   „passt noch etwas rein?"), die Waage zeigt das Bild der Woche und soll
+   sich am Mittwoch nicht anders lesen als am Montag. Vorschläge (sug)
+   zählen nicht mit, sie sind noch nicht zugesagt. Nur lesend, nie save().
+   Keine Bewertung („zu viel Arbeit") — dafür gibt es keine Regel von Sunny.
+   ============================================================ */
+function wochenWaage(montag) {
+  const mon = mondayOf(montag || anchor);
+  const { dayStart, dayEnd } = state.settings;
+  let wachTag = (dayEnd - dayStart) * 60;
+  restSpans().forEach(r => {
+    wachTag -= Math.max(0, Math.min(dayEnd * 60, r.end) - Math.max(dayStart * 60, r.start));
+  });
+  const wach = Math.max(0, wachTag) * 7;
+  const jeBereich = new Map();
+  for (let i = 0; i < 7; i++) {
+    const key = iso(addDays(mon, i));
+    state.blocks.forEach(b => {
+      if (b.sug || !onDay(b, key, i)) return;
+      const a = areaById(b.areaId);
+      if (!a) return;
+      jeBereich.set(a.id, (jeBereich.get(a.id) || 0) + dauerVon(b));
+    });
+  }
+  const teile = state.areas.filter(a => jeBereich.get(a.id) > 0)
+    .map(a => ({ area: a, min: jeBereich.get(a.id) }));
+  const verplant = teile.reduce((sum, t) => sum + t.min, 0);
+  return { wach, verplant, frei: Math.max(0, wach - verplant), teile };
+}
+function waageTeile(w) {
+  const leg = "<span class='waage__leg'>" + w.teile.map(t =>
+    "<span class='waage__item' style='--h:" + t.area.hue + "'><i class='waage__dot'></i>"
+    + escapeHtml(t.area.name) + " <b>" + fmtDur(t.min) + "</b></span>").join("") + "</span>";
+  const sum = "<span class='waage__sum'>"
+    + (w.verplant ? "<b>" + fmtDur(w.verplant) + "</b> verplant" : "Noch nichts verplant")
+    + " · <b>" + fmtDur(w.frei) + "</b> frei</span>";
+  const bar = "<span class='waage__bar' aria-hidden='true'>" + w.teile.map(t =>
+    "<i style='--h:" + t.area.hue + ";--g:" + t.min + "'></i>").join("")
+    + (w.frei ? "<i class='waage__frei' style='--g:" + w.frei + "'></i>" : "") + "</span>";
+  return { leg, sum, bar };
+}
+function waageText(w) {
+  return (w.verplant ? fmtDur(w.verplant) + " verplant" : "Noch nichts verplant") + ", " + fmtDur(w.frei) + " frei"
+    + (w.teile.length ? ". " + w.teile.map(t => t.area.name + " " + fmtDur(t.min)).join(", ") : "");
+}
+function renderWaage() {
+  const el = $("#waage");
+  if (!el) return;
+  const w = wochenWaage();
+  const t = waageTeile(w);
+  el.innerHTML = "<span class='waage__kopf'>" + t.leg + t.sum + "</span>" + t.bar;
+  el.setAttribute("aria-label", "Wochenwaage: " + waageText(w) + ". Wochenübersicht öffnen");
 }
 function ampelZeichnen(el) {
   if (!el) return;
@@ -8836,6 +8993,7 @@ function renderGrid() {
     ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
       + (feiertagAm(iso(planTag)) ? "<span class='planhead__feiertag'>" + feiertagAm(iso(planTag)) + "</span>" : "")
     : "Deine Woche";
+  renderWaage();
   const todayIso = iso(new Date());
   const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
@@ -9712,6 +9870,232 @@ function nachtPaar(b) {
   return passt ? { erst, zweit } : null;
 }
 
+/* ============================================================
+   Ideen würfeln (v1.49)
+   Eine Idee für freie Zeit, passend zu einer ECHTEN Lücke der gezeigten
+   Woche (freeGaps() ohne Bereich — dieselbe Rechnung wie das Frei-Gesicht;
+   Vergangenes, freigehaltene Tage und Feiertage liefern dort keine Lücke).
+   Das Blatt rechnet nur und öffnet höchstens blockSheet() vorausgefüllt —
+   nie still speichern (wie „Passt das noch?"). Die Ideenliste ist sichtbarer
+   Text: Änderungen daran vorher mit Sunny abstimmen.
+   ============================================================ */
+const IDEEN = [
+  // Kleinigkeiten für zwischendurch
+  { t: "Spontan spazieren gehen", min: 30, art: "koerper" },
+  { t: "Kaffeepause, ganz in Ruhe", min: 15 },
+  { t: "Ein neues Kaffeerezept ausprobieren", min: 30 },
+  { t: "Ein, zwei Kapitel lesen", min: 30 },
+  { t: "Kurz was für die Uni lesen", min: 15, bei: /uni|lern|studi/i, nurMit: true },
+  { t: "Dehnen und durchatmen", min: 15, art: "koerper" },
+  { t: "Jemanden anrufen, der dir fehlt", min: 30, bei: /mensch|freund/i },
+  { t: "Musik an, Handy weg", min: 30 },
+  { t: "Eine Podcastfolge hören", min: 30 },
+  { t: "Lange baden oder heiß duschen", min: 30 },
+  // Wenn mehr Luft ist
+  { t: "Ins Lieblingscafé setzen", min: 60 },
+  { t: "Jemanden spontan zum Kaffee einladen", min: 60, bei: /mensch|freund/i },
+  { t: "Ein neues Rezept ausprobieren", min: 90 },
+  { t: "Etwas backen", min: 90 },
+  { t: "Etwas basteln oder zeichnen", min: 60 },
+  { t: "Etwas Neues lernen, nur zum Spaß", min: 60 },
+  // Abende (ab 18 Uhr)
+  { t: "Filmabend mit Decke", min: 120, ab: 1080 },
+  { t: "Serienabend", min: 90, ab: 1080 },
+  { t: "Podcastabend", min: 60, ab: 1080 },
+  { t: "Spieleabend mit Karten oder Brettspiel", min: 120, ab: 1080 }
+];
+const IDEE_MIN = 15;
+/* Eigene Ideen liegen am Bereich (area.ideen) und würfeln gleichberechtigt mit. */
+function alleIdeen() {
+  const eigene = [];
+  state.areas.forEach(a => (a.ideen || []).forEach(i => eigene.push({ t: i.t, min: i.min, areaId: a.id })));
+  // "nurMit": die Idee gibt es nur, wenn ein Bereich mit passendem Namen da ist
+  // (ohne Uni-Bereich keine Uni-Idee).
+  const feste = IDEEN.filter(i => !i.nurMit || state.areas.some(x => i.bei.test(x.name)));
+  return feste.concat(eigene);
+}
+const IDEE_FRUEH = 9 * 60;
+function ideeFenster() {
+  const liste = [];
+  weekDays().forEach(day => {
+    freeGaps(day, {}, null, {}).forEach(g => {
+      const start = Math.ceil(g.start / 15) * 15;
+      if (g.end - start >= IDEE_MIN) liste.push({ day, start, end: g.end });
+    });
+  });
+  return liste;
+}
+function ideeBereich(idee) {
+  if (idee.areaId && state.areas.some(a => a.id === idee.areaId)) return areaById(idee.areaId);
+  // "bei": bevorzugter Bereich nach Namen (Uni, Menschen), sonst nach Art.
+  const nachName = idee.bei && state.areas.find(x => idee.bei.test(x.name));
+  if (nachName) return nachName;
+  const art = idee.art || "erholung";
+  return state.areas.find(a => a.plan && a.plan.art === art)
+    || state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0];
+}
+/* Würfelt eine Idee, die in eine der Lücken passt; "nicht" ist die zuletzt
+   gezeigte Idee und kommt nicht direkt wieder (solange es eine andere gibt). */
+function ideeWuerfeln(nicht) {
+  const fenster = ideeFenster();
+  if (!fenster.length) return null;
+  // Frühester Beginn: Abend-Ideen ("ab") nicht mittags, alle anderen nicht
+  // vor 9 Uhr — ein Café-Besuch um 7 ist eine Lücke, aber keine gute Idee.
+  const frueh = i => i.ab || IDEE_FRUEH;
+  const platz = (i, f) => f.end - Math.max(f.start, frueh(i)) >= i.min;
+  let pool = alleIdeen().filter(i => fenster.some(f => platz(i, f)));
+  if (pool.length > 1 && nicht) pool = pool.filter(i => i.t !== nicht.t);
+  if (!pool.length) return null;
+  const idee = pool[Math.floor(Math.random() * pool.length)];
+  const passend = fenster.filter(f => platz(idee, f));
+  const f = passend[Math.floor(Math.random() * passend.length)];
+  const start = Math.max(f.start, frueh(idee));
+  return { idee, day: f.day, start, end: start + idee.min, area: ideeBereich(idee) };
+}
+function ideeSheet() {
+  let wurf = ideeWuerfeln(null);
+  modal((s, close) => {
+    s.innerHTML = "<h2 class='sheet__title'>Idee für freie Zeit</h2><div id='ideeFeld' aria-live='polite'></div>" +
+      "<div class='ideenglas'>" +
+        "<div class='sheet__row' id='ideenglasRow' hidden><span class='label'>Dein Ideenglas</span><div class='chipset' id='ideenglasListe'></div></div>" +
+        "<button type='button' class='btn btn--ghost btn--sm' id='ideeNeuAuf' aria-expanded='false'>+ Eigene Idee dazulegen</button>" +
+        "<div id='ideeNeuForm' hidden>" +
+          "<div class='sheet__row'><label class='label' for='ideeNeuText'>Deine Idee</label>" +
+          "<input class='field' id='ideeNeuText' maxlength='60' placeholder='z.B. Schwimmen gehen' autocomplete='off'></div>" +
+          "<div class='sheet__row'><span class='label'>Wie lange etwa?</span><div class='chipset' id='ideeNeuDauer'></div></div>" +
+          "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='ideeNeuBereich'></div></div>" +
+          "<p class='field-error' id='ideeNeuFehler' role='status' hidden></p>" +
+          "<button type='button' class='btn' id='ideeNeuOk'>Ins Glas legen</button>" +
+        "</div>" +
+      "</div>";
+    const feld = s.querySelector("#ideeFeld");
+
+    // ---- Ideenglas: eigene Ideen dazulegen und wieder herausnehmen. Das ist
+    // der einzige Weg in diesem Blatt, der speichert — und nur auf Knopfdruck.
+    const glasRow = s.querySelector("#ideenglasRow"), glasListe = s.querySelector("#ideenglasListe");
+    const neuAuf = s.querySelector("#ideeNeuAuf"), neuForm = s.querySelector("#ideeNeuForm");
+    const neuText = s.querySelector("#ideeNeuText"), neuFehler = s.querySelector("#ideeNeuFehler");
+    let neuMin = 60;
+    let neuBereich = (state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0]).id;
+    const glasZeichnen = () => {
+      glasListe.innerHTML = "";
+      state.areas.forEach(a => (a.ideen || []).forEach(i => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip ideenglas__chip";
+        c.style.setProperty("--h", a.hue);
+        c.setAttribute("aria-label", "Aus dem Glas nehmen: " + i.t);
+        c.innerHTML = "<span class='chip__dot'></span>";
+        c.append(i.t + " · " + fmtDur(i.min) + " ×");
+        c.onclick = () => {
+          a.ideen = a.ideen.filter(x => x !== i);
+          if (!a.ideen.length) delete a.ideen;
+          save(); glasZeichnen();
+        };
+        glasListe.appendChild(c);
+      }));
+      glasRow.hidden = !glasListe.children.length;
+    };
+    const chips = (wrap, werte, ist, setze) => {
+      wrap.innerHTML = "";
+      werte.forEach(([wert, text, hue]) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "chip";
+        if (hue != null) { c.style.setProperty("--h", hue); c.innerHTML = "<span class='chip__dot'></span>"; }
+        c.setAttribute("aria-pressed", String(ist() === wert));
+        c.append(text);
+        c.onclick = () => { setze(wert); chips(wrap, werte, ist, setze); };
+        wrap.appendChild(c);
+      });
+    };
+    chips(s.querySelector("#ideeNeuDauer"), [[30, "30 min"], [60, "1 h"], [90, "1,5 h"], [120, "2 h"]], () => neuMin, v => { neuMin = v; });
+    chips(s.querySelector("#ideeNeuBereich"), state.areas.map(a => [a.id, a.name, a.hue]), () => neuBereich, v => { neuBereich = v; });
+    neuAuf.onclick = () => {
+      neuForm.hidden = !neuForm.hidden;
+      neuAuf.setAttribute("aria-expanded", String(!neuForm.hidden));
+      if (!neuForm.hidden) neuText.focus();
+    };
+    s.querySelector("#ideeNeuOk").onclick = () => {
+      const t = neuText.value.trim().slice(0, 60);
+      const a = areaById(neuBereich);
+      const zeige = msg => { neuFehler.textContent = msg; neuFehler.hidden = !msg; };
+      if (!t) { zeige("Schreib kurz auf, was du gern machen würdest."); neuText.focus(); return; }
+      if (alleIdeen().some(i => i.t.toLowerCase() === t.toLowerCase())) { zeige("Die Idee liegt schon im Glas."); return; }
+      if ((a.ideen || []).length >= IDEENGLAS_MAX) { zeige("In diesem Bereich ist das Glas voll. Nimm erst eine Idee heraus."); return; }
+      zeige("");
+      a.ideen = (a.ideen || []).concat([{ t, min: neuMin }]);
+      save();
+      neuText.value = "";
+      glasZeichnen();
+      toast("Liegt im Glas");
+    };
+    glasZeichnen();
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const nochmal = document.createElement("button");
+    nochmal.type = "button"; nochmal.className = "btn"; nochmal.id = "ideeNochmal"; nochmal.textContent = "Nochmal würfeln";
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const zu = document.createElement("button");
+    zu.type = "button"; zu.className = "btn"; zu.textContent = "Schließen";
+    const planen = document.createElement("button");
+    planen.type = "button"; planen.className = "btn btn--primary"; planen.id = "ideePlanen"; planen.textContent = "Einplanen";
+    const zeichnen = neu => {
+      if (!wurf) {
+        feld.innerHTML = "<p class='idee__leer'>In dieser Woche ist kein freies Fenster mehr offen. Blättere eine Woche weiter und würfle dort.</p>";
+        nochmal.hidden = true; planen.hidden = true;
+        return;
+      }
+      const d = wurf.day.d;
+      feld.innerHTML = "<div class='idee" + (neu ? " is-neu" : "") + "' style='--h:" + wurf.area.hue + "'>"
+        + "<div class='idee__titel'>" + escapeHtml(wurf.idee.t) + "</div>"
+        + "<div class='idee__wann'><b>" + DAY_LONG[wurf.day.i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".</b> · "
+        + fmtTime(wurf.start) + "–" + fmtTime(wurf.end) + " · " + fmtDur(wurf.idee.min) + "</div></div>";
+    };
+    nochmal.onclick = () => { wurf = ideeWuerfeln(wurf && wurf.idee); zeichnen(true); };
+    zu.onclick = close;
+    planen.onclick = () => {
+      const w = wurf;
+      close();
+      blockSheet({ id: null, title: w.idee.t, areaId: w.area.id, day: w.day.i, date: w.day.key,
+        repeat: "none", start: w.start, end: w.end, frog: false });
+    };
+    foot.append(nochmal, sp, zu, planen);
+    s.appendChild(foot);
+    zeichnen(true);
+  });
+}
+
+/* ============================================================
+   Lieblingssteine (v1.49) — „Oft geplant" im neuen Eintrag
+   Kein Baukasten zum Pflegen: die Steine entstehen aus dem, was wirklich
+   mehrfach im Plan steht (gleicher Titel im selben Bereich, mindestens
+   zweimal; eine Serie zählt doppelt, sie kehrt ja wieder). Reine Ableitung
+   aus state.blocks — nichts wird gespeichert, also kein neues Feld und
+   nichts für migrate()/mergeStates(). Form (Dauer, grob, Ort) kommt vom
+   jüngsten Eintrag der Gruppe. Vorschläge, ganztägige Einträge, Nacht-Hälften
+   und verknüpfte Aufgaben zählen nicht.
+   ============================================================ */
+const LIEBLINGE_MAX = 5;
+function lieblingsSteine() {
+  const gruppen = new Map();
+  state.blocks.forEach(b => {
+    const titel = (b.title || "").trim();
+    if (!titel || b.sug || b.ganztag || b.nacht || b.taskId) return;
+    const dauer = dauerVon(b);
+    if (!(dauer > 0)) return;
+    const key = b.areaId + "|" + titel.toLowerCase();
+    const g = gruppen.get(key) || { n: 0, wann: "", b: null };
+    g.n += istSerie(b) ? 2 : 1;
+    const wann = (istSerie(b) ? b.since : b.date) || "";
+    if (!g.b || wann >= g.wann) { g.b = b; g.wann = wann; }
+    gruppen.set(key, g);
+  });
+  return [...gruppen.values()].filter(g => g.n >= 2 && state.areas.some(a => a.id === g.b.areaId))
+    .sort((x, y) => y.n - x.n || (y.wann > x.wann ? 1 : y.wann < x.wann ? -1 : 0))
+    .slice(0, LIEBLINGE_MAX)
+    .map(g => ({ title: g.b.title.trim(), areaId: g.b.areaId, dauer: dauerVon(g.b),
+      grob: !!g.b.grob, teil: g.b.teil, ortId: g.b.ortId || null, ort: g.b.ort || "" }));
+}
+
 function blockSheet(draft, dayKey) {
   const isNew = !draft.id;
   let hakenTag = dayKey || draft.date;
@@ -9725,6 +10109,10 @@ function blockSheet(draft, dayKey) {
     draft = { ...paar.erst, end: paar.zweit.end };
   }
   let days = new Set([draft.day]);
+
+  // Lieblingssteine nur im frischen, noch leeren Eintrag — wer schon einen
+  // Titel hat (Kopie, Aufgabe, „Passt das noch?"), braucht keine Abkürzung.
+  const lieblinge = isNew && !draft.title && !draft.taskId ? lieblingsSteine() : [];
 
   modal((s, close) => {
     s.innerHTML =
@@ -9740,6 +10128,8 @@ function blockSheet(draft, dayKey) {
       // gilt, und acceptSuggestions() löscht nur .sug, nicht .grund.
       // Dasselbe Muster wie dort: .agenda__sub.
       (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
+      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>Oft geplant</span>" +
+        "<div class='chipset' id='bLieblinge'></div></div>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
@@ -9784,6 +10174,23 @@ function blockSheet(draft, dayKey) {
 
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
+    // Ein Tipp auf einen Lieblingsstein öffnet denselben Editor vorausgefüllt
+    // (Muster „Kopieren"): Titel, Bereich, übliche Dauer, Ort. Gespeichert
+    // wird erst mit „Eintragen".
+    lieblinge.forEach(l => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.style.setProperty("--h", areaById(l.areaId).hue);
+      c.innerHTML = "<span class='chip__dot'></span>";
+      c.append(l.title + " · " + fmtDur(l.dauer));
+      c.onclick = () => {
+        const neu = { ...draft, title: l.title, areaId: l.areaId, ortId: l.ortId, ort: l.ort };
+        if (l.grob) { neu.grob = true; neu.teil = l.teil; neu.dauer = l.dauer; }
+        else { delete neu.grob; neu.end = Math.min(1440, neu.start + l.dauer); }
+        close(); blockSheet(neu, dayKey);
+      };
+      s.querySelector("#bLieblinge").appendChild(c);
+    });
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     // 24:00 kennt <input type=time> nicht — „bis Mitternacht" heißt 00:00.
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end % 1440);
@@ -13221,6 +13628,8 @@ $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAl
 // Absturz beim Bauen dieser Stufe, s. Bericht). Ohne Argument aufrufen,
 // damit beide auf ihre eigene Vorgabe (anchor) zurückfallen.
 $("#weekLabel").onclick = () => freizeitSheet();
+// Wochenwaage: dasselbe Blatt im Belegt-Gesicht, dort steht die ganze Legende.
+$("#waage").onclick = () => { freizeitGesicht = "belegt"; freizeitSheet(); };
 $("#monthBtn").onclick = () => monatSheet();
 $("#todayBtn").onclick = () => {
   anchor = new Date();
@@ -13482,6 +13891,7 @@ document.querySelectorAll("#panelNav button").forEach(b => {
   };
 });
 $("#desktopAdd").onclick = () => $("#fabAdd").onclick();
+$("#wuerfelBtn").onclick = () => ideeSheet();
 
 /* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
    ab der nächsten vollen Stunde, aber nicht in der Vergangenheit. */

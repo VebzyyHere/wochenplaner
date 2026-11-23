@@ -89,6 +89,29 @@ bisher); `blattAbgang()` animiert nur eine Kopie in einem geschlossenen Shadow-R
 inert, ohne Zeigerereignisse, für `querySelector`/Playwright unsichtbar). Ein aus `modalPush()`
 zurückkehrendes Blatt steht ohne Animation da (`.is-zurueck`); „Bewegung reduzieren" = keine Kopie.
 
+**Wochenwaage.** `wochenWaage(montag)` ist eine reine Anzeige-Summe über die **ganze** gezeigte Woche
+(feste Einträge je Bereich, ohne `sug`; frei = wache Zeit minus verplant) — bewusst nicht
+`wochenKapazitaet()`, die „ab jetzt" rechnet. Desktop: `#waage` im Rasterkopf (Kopf bleibt 56 px, eine
+Legendenzeile, Überzähliges fällt weg); Telefon: nur im Wochen-Blatt und dort nur im Belegt-Gesicht (das
+Frei-Gesicht muss ohne Scrollen passen, `freiwoche.js`). Flach, ohne Aufkleber-Kontur; keine Bewertung
+der Balance ohne Regel von Sunny (`waage.js`).
+
+**Lieblingssteine.** `lieblingsSteine()` leitet „Oft geplant" rein aus `state.blocks` ab (gleicher Titel im
+selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — kein Feld, nichts gespeichert.
+Die Zeile steht nur im frischen, leeren `blockSheet()`; ein Tipp öffnet den Editor neu vorausgefüllt
+(Muster „Kopieren"), gespeichert wird erst mit „Eintragen" (`lieblinge.js`).
+
+**Ideen würfeln.** `ideeSheet()` (`#wuerfelBtn` im Rasterkopf, am Telefon nur das Symbol in der Wochen-Ansicht,
+quer verborgen) würfelt aus `IDEEN` eine Idee, die in eine echte Lücke der gezeigten Woche passt
+(`ideeFenster()` = `freeGaps()` ohne Bereich; nicht vor 9 Uhr, Abend-Ideen ab 18 Uhr). Rechnet nur und öffnet
+höchstens `blockSheet()` vorausgefüllt — nie still speichern, keine `sug`-Blöcke. `IDEEN` ist sichtbarer Text:
+Änderungen mit Sunny abstimmen (`wuerfel.js`).
+Ideenglas: eigene Ideen liegen als `area.ideen` (`[{t, min}]`, höchstens `IDEENGLAS_MAX` je Bereich, leer = kein
+Feld; `migrate()` säubert wertbasiert, keine neue `s.version`) und würfeln über `alleIdeen()` mit. Dazulegen und
+Herausnehmen sind die einzigen Wege im Blatt, die speichern — nur auf Knopfdruck.
+Ideen dürfen klein sein (`IDEE_MIN` 15 min; Sunny 2026-11-23: spontane Kleinigkeiten, Kaffee, Abende). `bei` = bevorzugter
+Bereich nach Namen, `nurMit` = Idee nur, wenn so ein Bereich existiert (Uni-Idee).
+
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
 anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).
@@ -256,6 +279,11 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   `--ol` = `--rand` (3:1, `kontrastlauf.js`). Überschriften/große Zahlen in eingebetteter Fraunces
   (SOFT 100), Text bleibt Gabarito (`freude.js` prüft beides). Ganz abgehakte Ziele: `.goal.is-geschafft`
   mit Honigstern. Keine Dauer-Animationen (`doppeltipp.js` d misst knapp unter 100 ms).
+- „Ruhe" (v1.49, Sunny 2026-11-23: „ruhig, ausgewogen, clean", verspielt bleiben): Stilschicht nach v1.46.
+  Kontur + Versatz (`--hart`) nur noch auf dem, was man drückt (Hauptknopf, gewählter Chip, „+", Planen,
+  Haken, Eingabezeile, „Passt das noch?"); Behälter (`.agenda__list`, `.energy`, `.goal`, `.task`) flach mit
+  `--fein`, Termine im Raster mit Kante in Bereichsfarbe (`--area-line`). Fraunces nur für Blatt- und
+  Ansichtstitel, Schwerpunkt, laufenden Termin und Tageszahlen. Neue Flächen: erst fragen „drückt man das?".
 - Tage einkreisen (Review 2026-10-25): heute = Honigring `--honig-ring` (3:1) auf allen Flächen
   (Tagesband, Desktop-Tageskopf, Monat); gewählt = gefüllte Pille bzw. Mint-Spalte; beides = Pille mit
   Honigring und `--raised`-Rand dazwischen. Frei = Mulde `--tray` mit kleinem Ring statt Strich (wie im

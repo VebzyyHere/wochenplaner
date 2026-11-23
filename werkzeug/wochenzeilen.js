@@ -464,7 +464,10 @@ async function fixtureAufbauen(p) {
   await p.waitForTimeout(300);
   const h0 = await p.evaluate(() => {
     const el = document.getElementById('freizeitTitel');
-    return { tag: el.tagName, ariaLabel: el.getAttribute('aria-label'), hoehe: el.getBoundingClientRect().height };
+    return { tag: el.tagName, ariaLabel: el.getAttribute('aria-label'),
+      // offsetHeight statt getBoundingClientRect(): 300 ms nach dem Oeffnen federt das Blatt noch
+      // (translateY mit krummem Wert), das Rechteck misst dann mal 43,99999 px statt 44.
+      hoehe: el.offsetHeight };
   });
   ok(h0.tag === 'BUTTON', 'h) #freizeitTitel ist ein echter <button> (' + h0.tag + ')');
   ok(h0.ariaLabel === 'Monatsübersicht öffnen', 'h) aria-label "Monatsübersicht öffnen" (war ' + JSON.stringify(h0.ariaLabel) + ')');

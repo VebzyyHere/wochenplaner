@@ -10,6 +10,14 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.48 ergänzt `waage.js`: Wochenwaage (Rechnung je Bereich über die ganze Woche, Rasterkopf bleibt 56 px,
+Legende im Wochen-Blatt nur im Belegt-Gesicht, Telefon ohne Balken im Rasterkopf). Feste Uhr Mi 5.8.2026.
+`lieblinge.js`: „Oft geplant" im neuen Eintrag (Ableitung aus mehrfach Geplantem, Tipp füllt vor, nichts gespeichert
+vor dem Fußknopf, nicht in Bearbeiten/Kopie, iPhone SE). Feste Uhr Mi 5.8.2026.
+`wuerfel.js`: Ideen würfeln (nur echte Lücken ab jetzt, 200 Würfe ohne Kollision, nichts gespeichert vor dem
+Fußknopf, volle Woche, iPhone SE; Ideenglas: `area.ideen` speichern, säubern in `migrate()`, Abgleich,
+Herausnehmen). Feste Uhr Mi 5.8.2026.
+
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.
 `frist.js`: Feiertage im Verteiler frei (Schalter), Frist an Aufgaben, Platz vor der Frist. Feste Uhr Mo 21.12.2026.
