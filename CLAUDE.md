@@ -320,7 +320,7 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   schreibt weiter hinein); der Erklärtext `#energyHint` steht nur bei „Wenig". Die Tagesform steuert den Verteiler
   nicht, nur Hinweis und „Was kann heute weg?". „Prüfen"/„Planen" an Aufgaben ohne `--hart`, Frist „nah" als
   Honig-Tönung ohne Kontur, Vorschlagszeilen mit 1-px-Strichkante. Im Band unter dem Raster steht Mehrtägiges
-  (Festival, Urlaub) in der Wochenansicht als ein Balken (`.loose__spur`, nur Anzeige; `beispiel.js` f).
+  (Festival, Urlaub) in der Wochenansicht seit v1.58 als ein Balken (`.loose__spur`, nur Anzeige; `beispiel.js` f).
 - Tage einkreisen (Review 2026-10-25): heute = Honigring `--honig-ring` (3:1) auf allen Flächen
   (Tagesband, Desktop-Tageskopf, Monat); gewählt = gefüllte Pille bzw. Mint-Spalte; beides = Pille mit
   Honigring und `--raised`-Rand dazwischen. Frei = Mulde `--tray` mit kleinem Ring statt Strich (wie im
