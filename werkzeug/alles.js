@@ -95,8 +95,15 @@ async function serverStarten(datei, port) {
   const proc = spawn(process.execPath, [path.join(__dirname, datei)], { cwd: __dirname, stdio: 'ignore' });
   proc.on('error', () => {}); // sonst wirft ein unbeobachtetes "error" den ganzen Kettenläufer um
   serverProzesse.push(proc);
-  const bereit = await wartenAufPort(proc, port, 5000);
-  console.log(bereit ? '    bereit' : '    NICHT bereit — abhängige Skripte werden übersprungen');
+  // 15 s statt 5 s: auf Sunnys Windows-Rechner waren beide Server beim
+  // Kettenstart zweimal nicht rechtzeitig da, im Einzellauf sofort (2026-11-23).
+  // Die Meldung nennt den Grund, damit „zu langsam" und „Port schon belegt"
+  // (unser Prozess endet sofort mit EADDRINUSE) nicht mehr gleich aussehen.
+  const t0 = Date.now();
+  const bereit = await wartenAufPort(proc, port, 15000);
+  const grund = proc.exitCode !== null ? 'Prozess beendet (Exit ' + proc.exitCode + '), Port ' + port + ' vermutlich schon belegt'
+                                       : 'nach ' + Math.round((Date.now() - t0) / 1000) + ' s keine Verbindung';
+  console.log(bereit ? '    bereit' : '    NICHT bereit (' + grund + ') — abhängige Skripte werden übersprungen');
   return bereit;
 }
 

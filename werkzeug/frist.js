@@ -150,6 +150,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y, id: 1 }] });
     for (let i = 1; i <= 8; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + dx * i / 8, y, id: 1 }] }); await p.waitForTimeout(16); }
     if (halt) await halt();
+    await p.waitForTimeout(300);   // kein Schwung (Fling) nach dem Wisch, s. ausblick.js
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach(); await p.waitForTimeout(350);
   };

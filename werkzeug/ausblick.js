@@ -18,6 +18,8 @@
    f) Ausblick: ganztaegiger Eintrag mit Zaehler, Feiertage, Tipps; ein
       Tipp oeffnet nur den vorausgefuellten Eintrag und speichert nichts.
    g) Tagestitel nennt den Feiertag.
+   i) Tab-Wechsel am Telefon: die neue Ansicht kommt von der Seite ihres
+      Reiters, ohne seitliches Scrollen.
    h) keine Konsolenfehler.
 
    Feste Uhr: Mittwoch 2026-11-18, 09:30 Europe/Berlin.
@@ -120,6 +122,10 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(vonX + (bisX - vonX) * i / schritte) });
       await p.waitForTimeout(16);
     }
+    // Vor dem Loslassen kurz halten: ein schneller synthetischer Wisch hinterlaesst
+    // in Chromium einen Schwung (Fling), und der naechste Touch-Tipp haelt dann nur
+    // diesen an, ohne einen click zu erzeugen (gemessen unter Windows, 2026-11-23).
+    await p.waitForTimeout(300);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach();
     await p.waitForTimeout(400);
@@ -180,6 +186,28 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const g = await p.evaluate(() => ({ offen: !!document.querySelector('.sheet'), titel: document.querySelector('.planhead h1').textContent, sicht: document.body.dataset.mview }));
   ok(!g.offen && g.sicht === 'plan', 'g) Zeile springt in den Tag, alle Blaetter sind zu');
   ok(g.titel.includes('25. Dezember') && g.titel.includes('1. Weihnachtstag'), 'g) Tagestitel nennt den Feiertag: ' + JSON.stringify(g.titel));
+
+  console.log('=== i) Tab-Wechsel mit Richtung ===');
+  await p.evaluate(() => setView('heute'));
+  // Der Klick nach einem Touch-Tipp kommt vom Browser nachgereicht — erst
+  // lesen, wenn die Ansicht wirklich gewechselt hat (sonst liest man den
+  // Stand des vorigen Tipps). Beim selben Reiter gibt es nichts abzuwarten
+  // ausser einer kurzen Frist, in der ein faelschlicher Uebergang begaenne.
+  const tab = async v => {
+    const gleich = await p.evaluate(v => mview === v, v);
+    await p.locator('#tabbar button[data-view="' + v + '"]').tap();
+    if (gleich) await p.waitForTimeout(150);
+    else await p.waitForFunction(v => mview === v, v, { timeout: 3000 });
+    const r = await p.evaluate(() => ({ x: $('#main').style.getPropertyValue('--wechsel-x'), an: $('#main').classList.contains('is-wechsel'),
+      quer: document.documentElement.scrollWidth <= window.innerWidth }));
+    await p.waitForTimeout(450);
+    return r;
+  };
+  const i1 = await tab('aufgaben'), i2 = await tab('plan'), i3 = await tab('plan');
+  ok(i1.an && i1.x === '18px', 'i) nach rechts getippt: die Ansicht kommt von rechts (' + i1.x + ')');
+  ok(i2.an && i2.x === '-18px', 'i) nach links getippt: die Ansicht kommt von links (' + i2.x + ')');
+  ok(i1.quer && i2.quer, 'i) kein seitliches Scrollen waehrend des Uebergangs');
+  ok(!i3.an, 'i) derselbe Reiter noch einmal: kein Uebergang');
 
   console.log('=== h) Konsole ===');
   ok(konsolenfehler.length === 0, 'h) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));
