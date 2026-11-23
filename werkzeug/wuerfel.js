@@ -15,6 +15,12 @@
       „Einplanen".
    f) Telefon: Knopf 44 px, Blatt ohne waagerechtes Scrollen, Fuss sichtbar.
    g) keine Konsolenfehler.
+   h) Ideenglas: „Ins Glas legen" speichert genau area.ideen am gewaehlten
+      Bereich; leerer Text und Doppeltes werden abgelehnt; Nutzertext mit
+      Markup bleibt Text; die eigene Idee wird gewuerfelt und nutzt ihren
+      Bereich; migrate() saeubert Unsinn und ist idempotent; mergeStates()
+      behaelt das Feld; Herausnehmen loescht es wieder; Telefon ohne
+      waagerechtes Scrollen.
 
    Feste Uhr: Mittwoch 2026-08-05, 10:00 Europe/Berlin.
    ============================================================ */
@@ -138,6 +144,70 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const f2 = await t.evaluate(() => { const s = document.querySelector('.sheet'), fu = document.querySelector('.sheet__foot').getBoundingClientRect();
     return { quer: s.scrollWidth > s.clientWidth + 1, fuss: fu.bottom <= window.innerHeight + 1 && fu.top >= 0 }; });
   ok(!f2.quer && f2.fuss, 'f) Blatt ohne waagerechtes Scrollen, Fuss sichtbar');
+
+  console.log('=== h) Ideenglas ===');
+  await basis(p, PLAN);
+  await p.click('#wuerfelBtn');
+  await p.waitForSelector('#ideeNeuAuf');
+  const h0 = await p.evaluate(() => ({ glas: document.querySelector('#ideenglasRow').hidden, form: document.querySelector('#ideeNeuForm').hidden }));
+  ok(h0.glas && h0.form, 'h) leeres Glas und Formular sind anfangs verborgen');
+  await p.click('#ideeNeuAuf');
+  await p.click('#ideeNeuOk');
+  ok(await p.evaluate(() => !document.querySelector('#ideeNeuFehler').hidden && !state.areas.some(a => a.ideen)), 'h) leerer Text wird abgelehnt, nichts gespeichert');
+  await p.fill('#ideeNeuText', 'spieleabend');
+  await p.click('#ideeNeuOk');
+  ok(await p.evaluate(() => document.querySelector('#ideeNeuFehler').textContent.includes('schon im Glas') && !state.areas.some(a => a.ideen)), 'h) eine Idee, die es schon gibt, wird abgelehnt');
+  await p.fill('#ideeNeuText', '<b>Schwimmen</b> gehen');
+  await p.click('#ideeNeuDauer .chip:has-text("1,5 h")');
+  await p.click('#ideeNeuBereich .chip >> nth=1');
+  await p.click('#ideeNeuOk');
+  await p.waitForTimeout(150);
+  const h1 = await p.evaluate(() => {
+    const mit = state.areas.filter(a => a.ideen);
+    const chip = document.querySelector('.ideenglas__chip');
+    return { n: mit.length, id: mit[0] && mit[0].id, zweiter: state.areas[1].id, ideen: mit[0] && JSON.stringify(mit[0].ideen),
+      chip: chip && chip.textContent, fett: !!document.querySelector('.ideenglas b'),
+      gespeichert: JSON.stringify(Store.load().areas[1].ideen || null), wurzel: 'ideen' in state };
+  });
+  ok(h1.n === 1 && h1.id === h1.zweiter && h1.ideen === '[{"t":"<b>Schwimmen</b> gehen","min":90}]' && !h1.wurzel, 'h) gespeichert genau am gewaehlten Bereich: ' + h1.ideen);
+  ok(h1.gespeichert === h1.ideen, 'h) liegt auch im Speicher');
+  ok(h1.chip && h1.chip.includes('<b>Schwimmen</b> gehen') && !h1.fett, 'h) Nutzertext erscheint als Text, nicht als Markup („' + h1.chip + '")');
+  const h2 = await p.evaluate(() => {
+    let treffer = null;
+    for (let n = 0; n < 400 && !treffer; n++) { const w = ideeWuerfeln(null); if (w && w.idee.areaId) treffer = w; }
+    return treffer && { t: treffer.idee.t, dauer: treffer.end - treffer.start, bereich: treffer.area.id === state.areas[1].id };
+  });
+  ok(h2 && h2.dauer === 90 && h2.bereich, 'h) die eigene Idee wird gewuerfelt, 90 min, in ihrem Bereich');
+  const h3 = await p.evaluate(() => {
+    const s = JSON.parse(JSON.stringify(state));
+    s.areas[0].ideen = [null, { t: '   ' }, { t: 'x'.repeat(200), min: 'abc' }, { t: ' Kino ', min: 9999 }, { t: 'Tee', min: 7 }];
+    s.areas[2].ideen = 'kaputt';
+    migrate(s);
+    const eins = JSON.stringify(s.areas.map(a => a.ideen || null));
+    migrate(s);
+    const zwei = JSON.stringify(s.areas.map(a => a.ideen || null));
+    const i = s.areas[0].ideen;
+    const fremd = JSON.parse(JSON.stringify(state)); fremd.areas[1].ideen = [];  delete fremd.areas[1].ideen;
+    const m = mergeStates(JSON.parse(JSON.stringify(state)), fremd);
+    return { idem: eins === zwei, n: i.length, lang: i[0].t.length, min0: i[0].min, kino: i[1].t + '/' + i[1].min, tee: i[2].min,
+      kaputt: s.areas[2].ideen === undefined, merge: JSON.stringify((m.areas || m.state.areas)[1].ideen || null) };
+  });
+  ok(h3.idem && h3.n === 3 && h3.lang === 60 && h3.min0 === 60 && h3.kino === 'Kino/240' && h3.tee === 15 && h3.kaputt, 'h) migrate() saeubert (Leeres weg, 60 Zeichen, 15–240 min) und ist idempotent');
+  ok(h3.merge === h1.ideen, 'h) mergeStates() behaelt die Ideen des neueren Stands');
+  await p.click('.ideenglas__chip');
+  await p.waitForTimeout(100);
+  ok(await p.evaluate(() => !state.areas.some(a => 'ideen' in a) && document.querySelector('#ideenglasRow').hidden && !Store.load().areas.some(a => a.ideen)), 'h) Herausnehmen loescht das Feld wieder');
+  await p.evaluate(() => closeModal());
+  await t.evaluate(() => closeModal());
+  await t.waitForTimeout(500);
+  await t.evaluate(() => { state.areas[0].ideen = [{ t: 'Eine ziemlich lange eigene Idee fuer den Sonntagnachmittag', min: 120 }]; save(); });
+  await t.tap('#wuerfelBtn');
+  await t.waitForSelector('#ideeNeuAuf');
+  await t.tap('#ideeNeuAuf');
+  await t.waitForTimeout(400);
+  const h4 = await t.evaluate(() => { const s = document.querySelector('.sheet'); const r = document.querySelector('#ideeNeuAuf').getBoundingClientRect();
+    return { quer: s.scrollWidth > s.clientWidth + 1, seite: document.documentElement.scrollWidth, h: r.height }; });
+  ok(!h4.quer && h4.seite <= 320 && h4.h >= 44, 'h) Telefon: Glas und Formular ohne waagerechtes Scrollen, Knopf ' + Math.round(h4.h) + ' px hoch');
 
   console.log('=== g) Konsole ===');
   ok(konsolenfehler.length === 0, 'g) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));

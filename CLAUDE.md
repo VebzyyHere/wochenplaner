@@ -106,6 +106,9 @@ quer verborgen) würfelt aus `IDEEN` eine Idee, die in eine echte Lücke der gez
 (`ideeFenster()` = `freeGaps()` ohne Bereich; nicht vor 9 Uhr, Abend-Ideen ab 18 Uhr). Rechnet nur und öffnet
 höchstens `blockSheet()` vorausgefüllt — nie still speichern, keine `sug`-Blöcke. `IDEEN` ist sichtbarer Text:
 Änderungen mit Sunny abstimmen (`wuerfel.js`).
+Ideenglas: eigene Ideen liegen als `area.ideen` (`[{t, min}]`, höchstens `IDEENGLAS_MAX` je Bereich, leer = kein
+Feld; `migrate()` säubert wertbasiert, keine neue `s.version`) und würfeln über `alleIdeen()` mit. Dazulegen und
+Herausnehmen sind die einzigen Wege im Blatt, die speichern — nur auf Knopfdruck.
 
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
