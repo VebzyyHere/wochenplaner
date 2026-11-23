@@ -136,7 +136,8 @@ Feiertage Baden-Württembergs (Feiertagsgesetz BW § 1; bewegliche über `osterS
 (`vorschlagGesperrt()` = `istFrei()` oder Feiertag; abschaltbar: `settings.feiertageFrei === false`,
 sonst fehlt das Feld). Keine Tage dazuerfinden (Heiligabend/Silvester sind keine). `brueckenTipps()` nimmt eine
 Mo–Fr-Woche an; `ausblickSheet()` (Knopf im Monatsblatt, per `modalPush()`) ist rein lesend, ein Tipp
-öffnet nur `blockSheet()` vorausgefüllt. Wischen im Monat blättert lokal und bewegt `anchor` nie
+öffnet nur `blockSheet()` vorausgefüllt; liegen an allen zu nehmenden Tagen schon ganztägige Einträge,
+zeigt er „Schon eingetragen" und springt nur in den Tag (v1.50). Wischen im Monat blättert lokal und bewegt `anchor` nie
 (`ausblick.js`).
 
 **Fristen** (v1.47). `task.frist` (ISO-Datum, bis einschließlich; wertbasiert in `migrate()`, keine neue

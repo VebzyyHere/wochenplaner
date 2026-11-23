@@ -18,6 +18,8 @@
    f) Ausblick: ganztaegiger Eintrag mit Zaehler, Feiertage, Tipps; ein
       Tipp oeffnet nur den vorausgefuellten Eintrag und speichert nichts.
    g) Tagestitel nennt den Feiertag.
+   j) Ein Tipp, dessen Tage schon ganztaegig eingetragen sind, zeigt
+      „Schon eingetragen" und springt nur noch in den Tag.
    i) Tab-Wechsel am Telefon: die neue Ansicht kommt von der Seite ihres
       Reiters, ohne seitliches Scrollen.
    h) keine Konsolenfehler.
@@ -174,6 +176,31 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(a2.daten[0] === '2026-12-19' && a2.daten[1] === '2026-12-27', 'f) Zeitraum vorausgefuellt: ' + a2.daten.join(' bis '));
   ok(a2.bloecke === vorher, 'f) nichts wurde gespeichert');
   await p.evaluate(() => closeModal()); await p.waitForTimeout(150);
+
+  console.log('=== j) Tipp schon eingetragen ===');
+  const urlaub = (von, bis) => ({ id: 'url1', title: 'Urlaub', areaId: null, day: 0, date: von, repeat: 'none',
+    start: 0, end: 0, grob: true, ganztag: true, teil: 'mo', dauer: 0, bis });
+  await p.evaluate(b => { b.areaId = state.areas[0].id; state.blocks = [b]; save(); ausblickSheet(); }, urlaub('2026-12-21', '2026-12-23'));
+  await p.waitForTimeout(600);
+  const j0 = await p.evaluate(() => document.querySelectorAll('.tipp__opt.is-da').length);
+  ok(j0 === 0, 'j) drei von vier Tagen eingetragen: der Tipp gilt noch nicht als umgesetzt');
+  await p.evaluate(() => closeModal()); await p.waitForTimeout(150);
+  await p.evaluate(b => { b.areaId = state.areas[0].id; state.blocks = [b]; save(); ausblickSheet(); }, urlaub('2026-12-21', '2026-12-24'));
+  await p.waitForTimeout(600);
+  const j1 = await p.evaluate(() => {
+    const o = document.querySelector('.tipp__opt');
+    return { da: o.classList.contains('is-da'), text: o.textContent, label: o.getAttribute('aria-label'),
+      anzahl: document.querySelectorAll('.tipp__opt.is-da').length, bloecke: JSON.stringify(state.blocks) };
+  });
+  ok(j1.da && j1.text.includes('Schon eingetragen: Mo 21.12. – Do 24.12.'), 'j) Urlaub 21.–24.12.: erster Tipp zeigt „Schon eingetragen": ' + JSON.stringify(j1.text));
+  ok(j1.label.includes('Schon eingetragen') && !j1.label.includes('vorbereiten'), 'j) aria-label sagt es auch');
+  ok(j1.anzahl === 1, 'j) nur dieser eine Tipp ist markiert (' + j1.anzahl + ')');
+  if (process.env.WP_SHOT) await p.screenshot({ path: process.env.WP_SHOT });
+  await p.locator('.tipp__opt.is-da').first().click();
+  await p.waitForTimeout(400);
+  const j2 = await p.evaluate(() => ({ offen: !!document.querySelector('.sheet'), titel: document.querySelector('.planhead h1').textContent, bloecke: JSON.stringify(state.blocks) }));
+  ok(!j2.offen && j2.titel.includes('21. Dezember'), 'j) Tipp springt in den ersten Urlaubstag statt einen zweiten Eintrag vorzubereiten: ' + JSON.stringify(j2.titel));
+  ok(j2.bloecke === j1.bloecke, 'j) nichts wurde gespeichert');
 
   await p.evaluate(() => { state.blocks = []; save(); ausblickSheet(); });
   await p.waitForTimeout(600);
