@@ -96,6 +96,11 @@ Legendenzeile, Überzähliges fällt weg); Telefon: nur im Wochen-Blatt und dort
 Frei-Gesicht muss ohne Scrollen passen, `freiwoche.js`). Flach, ohne Aufkleber-Kontur; keine Bewertung
 der Balance ohne Regel von Sunny (`waage.js`).
 
+**Lieblingssteine.** `lieblingsSteine()` leitet „Oft geplant" rein aus `state.blocks` ab (gleicher Titel im
+selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — kein Feld, nichts gespeichert.
+Die Zeile steht nur im frischen, leeren `blockSheet()`; ein Tipp öffnet den Editor neu vorausgefüllt
+(Muster „Kopieren"), gespeichert wird erst mit „Eintragen" (`lieblinge.js`).
+
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
 anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).

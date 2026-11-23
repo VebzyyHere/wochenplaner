@@ -9813,6 +9813,38 @@ function nachtPaar(b) {
   return passt ? { erst, zweit } : null;
 }
 
+/* ============================================================
+   Lieblingssteine (v1.48) — „Oft geplant" im neuen Eintrag
+   Kein Baukasten zum Pflegen: die Steine entstehen aus dem, was wirklich
+   mehrfach im Plan steht (gleicher Titel im selben Bereich, mindestens
+   zweimal; eine Serie zählt doppelt, sie kehrt ja wieder). Reine Ableitung
+   aus state.blocks — nichts wird gespeichert, also kein neues Feld und
+   nichts für migrate()/mergeStates(). Form (Dauer, grob, Ort) kommt vom
+   jüngsten Eintrag der Gruppe. Vorschläge, ganztägige Einträge, Nacht-Hälften
+   und verknüpfte Aufgaben zählen nicht.
+   ============================================================ */
+const LIEBLINGE_MAX = 5;
+function lieblingsSteine() {
+  const gruppen = new Map();
+  state.blocks.forEach(b => {
+    const titel = (b.title || "").trim();
+    if (!titel || b.sug || b.ganztag || b.nacht || b.taskId) return;
+    const dauer = dauerVon(b);
+    if (!(dauer > 0)) return;
+    const key = b.areaId + "|" + titel.toLowerCase();
+    const g = gruppen.get(key) || { n: 0, wann: "", b: null };
+    g.n += istSerie(b) ? 2 : 1;
+    const wann = (istSerie(b) ? b.since : b.date) || "";
+    if (!g.b || wann >= g.wann) { g.b = b; g.wann = wann; }
+    gruppen.set(key, g);
+  });
+  return [...gruppen.values()].filter(g => g.n >= 2 && state.areas.some(a => a.id === g.b.areaId))
+    .sort((x, y) => y.n - x.n || (y.wann > x.wann ? 1 : y.wann < x.wann ? -1 : 0))
+    .slice(0, LIEBLINGE_MAX)
+    .map(g => ({ title: g.b.title.trim(), areaId: g.b.areaId, dauer: dauerVon(g.b),
+      grob: !!g.b.grob, teil: g.b.teil, ortId: g.b.ortId || null, ort: g.b.ort || "" }));
+}
+
 function blockSheet(draft, dayKey) {
   const isNew = !draft.id;
   let hakenTag = dayKey || draft.date;
@@ -9826,6 +9858,10 @@ function blockSheet(draft, dayKey) {
     draft = { ...paar.erst, end: paar.zweit.end };
   }
   let days = new Set([draft.day]);
+
+  // Lieblingssteine nur im frischen, noch leeren Eintrag — wer schon einen
+  // Titel hat (Kopie, Aufgabe, „Passt das noch?"), braucht keine Abkürzung.
+  const lieblinge = isNew && !draft.title && !draft.taskId ? lieblingsSteine() : [];
 
   modal((s, close) => {
     s.innerHTML =
@@ -9841,6 +9877,8 @@ function blockSheet(draft, dayKey) {
       // gilt, und acceptSuggestions() löscht nur .sug, nicht .grund.
       // Dasselbe Muster wie dort: .agenda__sub.
       (draft.grund ? "<p class='agenda__sub' style='margin:0 0 16px'>" + escapeHtml(draft.grund) + "</p>" : "") +
+      (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>Oft geplant</span>" +
+        "<div class='chipset' id='bLieblinge'></div></div>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
@@ -9885,6 +9923,23 @@ function blockSheet(draft, dayKey) {
 
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
+    // Ein Tipp auf einen Lieblingsstein öffnet denselben Editor vorausgefüllt
+    // (Muster „Kopieren"): Titel, Bereich, übliche Dauer, Ort. Gespeichert
+    // wird erst mit „Eintragen".
+    lieblinge.forEach(l => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "chip";
+      c.style.setProperty("--h", areaById(l.areaId).hue);
+      c.innerHTML = "<span class='chip__dot'></span>";
+      c.append(l.title + " · " + fmtDur(l.dauer));
+      c.onclick = () => {
+        const neu = { ...draft, title: l.title, areaId: l.areaId, ortId: l.ortId, ort: l.ort };
+        if (l.grob) { neu.grob = true; neu.teil = l.teil; neu.dauer = l.dauer; }
+        else { delete neu.grob; neu.end = Math.min(1440, neu.start + l.dauer); }
+        close(); blockSheet(neu, dayKey);
+      };
+      s.querySelector("#bLieblinge").appendChild(c);
+    });
     const from = s.querySelector("#bFrom"); from.value = fmtTime(draft.start);
     // 24:00 kennt <input type=time> nicht — „bis Mitternacht" heißt 00:00.
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end % 1440);
