@@ -112,6 +112,15 @@ Herausnehmen sind die einzigen Wege im Blatt, die speichern — nur auf Knopfdru
 Ideen dürfen klein sein (`IDEE_MIN` 15 min; Sunny 2026-11-23: spontane Kleinigkeiten, Kaffee, Abende). `bei` = bevorzugter
 Bereich nach Namen, `nurMit` = Idee nur, wenn so ein Bereich existiert (Uni-Idee).
 
+**Schnelleingabe, Fokus, Checkliste** (v1.52, aus Sunnys Entwurf „Studio"). `terminAusEingabe()` liest im Feld
+„Was?" eines neuen Eintrags Tag, Uhrzeit, Dauer, Wiederholung und `#Bereich` (nur Eindeutiges: Kürzel groß und
+nicht als erstes Wort, Minuten nur mit Doppelpunkt) und bietet `#bSchnellOk` an — der Editor öffnet neu
+vorausgefüllt (`draft.tage` nur im Entwurf), nie still speichern (`schnell.js`). `b.schritte` (`[{t, ok}]`,
+höchstens `SCHRITTE_MAX`, wertbasiert in `migrate()`): `ok` ist `true` oder bei Serien das Datum
+(`schrittOk()`/`schrittSetzen()`), so ist die Liste nächste Woche wieder offen. `fokusSheet()` öffnet nur über die
+Laufend-Karte (`#agendaHero`; „Fokus ›" steht in der Zeile „noch …" und kostet keine Höhe — Falz-Vertrag), Ring
+im 20-s-Takt statt Animation, kein Klang; speichert nur Schritt-Haken und „Erledigt" über `abhaken()` (`fokus.js`).
+
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
 anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).
