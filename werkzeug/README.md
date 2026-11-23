@@ -10,6 +10,9 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 ## Einrichten
 
+Version 1.48 ergänzt `waage.js`: Wochenwaage (Rechnung je Bereich über die ganze Woche, Rasterkopf bleibt 56 px,
+Legende im Wochen-Blatt nur im Belegt-Gesicht, Telefon ohne Balken im Rasterkopf). Feste Uhr Mi 5.8.2026.
+
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.
 `frist.js`: Feiertage im Verteiler frei (Schalter), Frist an Aufgaben, Platz vor der Frist. Feste Uhr Mo 21.12.2026.

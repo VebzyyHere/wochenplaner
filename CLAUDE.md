@@ -89,6 +89,13 @@ bisher); `blattAbgang()` animiert nur eine Kopie in einem geschlossenen Shadow-R
 inert, ohne Zeigerereignisse, für `querySelector`/Playwright unsichtbar). Ein aus `modalPush()`
 zurückkehrendes Blatt steht ohne Animation da (`.is-zurueck`); „Bewegung reduzieren" = keine Kopie.
 
+**Wochenwaage.** `wochenWaage(montag)` ist eine reine Anzeige-Summe über die **ganze** gezeigte Woche
+(feste Einträge je Bereich, ohne `sug`; frei = wache Zeit minus verplant) — bewusst nicht
+`wochenKapazitaet()`, die „ab jetzt" rechnet. Desktop: `#waage` im Rasterkopf (Kopf bleibt 56 px, eine
+Legendenzeile, Überzähliges fällt weg); Telefon: nur im Wochen-Blatt und dort nur im Belegt-Gesicht (das
+Frei-Gesicht muss ohne Scrollen passen, `freiwoche.js`). Flach, ohne Aufkleber-Kontur; keine Bewertung
+der Balance ohne Regel von Sunny (`waage.js`).
+
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
 anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).

@@ -3371,6 +3371,39 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .sheet__kopf .sheet__title { min-width: 0; margin: 0; }
 .sheet__kopf .btn { flex: none; }
 /* ============================================================
+   v1.48 „Wochenwaage" — die Woche als ein Balken
+   Am Desktop steht sie im Rasterkopf neben „Deine Woche" (dort war Platz),
+   am Telefon im Wochen-Blatt — nie auf „Heute" (Falz-Vertrag). Bewusst
+   flach, ohne Kontur und Versatz: sie ist Auskunft, kein Aufkleber.
+   Farben nur aus den Stein-Tokens, der Bereich bringt allein --h mit.
+   ============================================================ */
+.waage { display: none; }
+.waage__kopf { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); min-width: 0; }
+/* Eine Zeile Legende: was nicht passt, bricht in die (abgeschnittene) zweite
+   Zeile um und fehlt dann ganz, statt mitten im Wort zu enden. Vollständig
+   steht sie im Wochen-Blatt. */
+.waage__leg { display: flex; flex-wrap: wrap; gap: 0 var(--s-4); min-width: 0; height: 1.45em; line-height: 1.45; overflow: hidden; }
+.waage__item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--text-muted); }
+.waage__item b, .waage__sum b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+.waage__dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: oklch(var(--stone-L) var(--stone-C) var(--h)); }
+.waage__sum { flex: none; white-space: nowrap; color: var(--text-muted); }
+.waage__bar { display: flex; gap: 2px; height: 10px; border-radius: 999px; overflow: hidden; background: var(--tray); }
+.waage__bar i { display: block; flex: var(--g) 1 0; min-width: 3px; background: oklch(var(--stone-L) var(--stone-C) var(--h)); }
+.waage__bar i.waage__frei { min-width: 0; background: transparent; }
+.waage--blatt { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--s-4); font-size: var(--t-sm); }
+.waage--blatt[hidden] { display: none; }
+.waage--blatt .waage__leg { height: auto; overflow: visible; gap: 2px var(--s-4); }
+@media (min-width: 1101px) {
+  .planhead .waage {
+    display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; max-width: 720px;
+    margin: 0 var(--s-5); padding: 2px 10px; border: 0; border-radius: 12px;
+    background: transparent; color: inherit; font: inherit; font-size: var(--t-sm); text-align: left; cursor: pointer;
+  }
+  .planhead .waage:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+}
+@media (hover: hover) { .planhead .waage:hover { background: var(--surface-2); } }
+
+/* ============================================================
    v1.47 „Ausblick": Feiertage im Monat, Vorfreude-Zähler und
    Brückentag-Tipps — im Aufkleber-Stil von v1.43 (Kontur und Versatz nur
    über box-shadow). Honig bleibt bei „heute" und Aufklebern: der
@@ -3587,6 +3620,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     <div class="planwrap">
       <div class="planhead">
         <div><h1>Deine Woche</h1></div>
+        <button type="button" class="waage" id="waage"></button>
         <div class="planhead__actions">
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
@@ -4985,6 +5019,7 @@ function freizeitSheet(startMontag) {
         "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
       "</div>" +
       "<div class='gesichtumschalter' id='gesichtUmschalter'></div>" +
+      "<div class='waage waage--blatt' id='freizeitWaage'></div>" +
       // Die Nachtruhe nur nennen, wenn sie auch eingeschaltet ist — defaultSleep()
       // liefert on:false, und ein Blatt, aus dem man jemandem vorliest, darf nicht
       // behaupten, es rechne etwas ein, das gar nicht wirkt. Gehört nur zum
@@ -5099,6 +5134,13 @@ function freizeitSheet(startMontag) {
       titelEl.innerHTML = titel
         + "<svg class='weeknav__caret' viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M6 9l6 6 6-6'/></svg>";
       s.setAttribute("aria-label", titel);
+      // Wochenwaage nur im Belegt-Gesicht: das Frei-Gesicht muss ohne
+      // Scrollen ins Blatt passen (freiwoche.js), und „wie ist die Woche
+      // gefüllt" ist ohnehin die Belegt-Frage.
+      const waageEl = s.querySelector("#freizeitWaage");
+      waageEl.hidden = freizeitGesicht === "frei";
+      const wt = waageTeile(wochenWaage(mon));
+      waageEl.innerHTML = waageEl.hidden ? "" : wt.sum + wt.bar + wt.leg;
       if (freizeitGesicht === "frei") zeichnenFrei(); else zeichnenBelegt();
     };
     paintUmschalter();
@@ -6342,6 +6384,64 @@ function wochenKapazitaet() {
    viel vornimmt, nicht weil man schlecht sortiert. */
 function ampelFarbe(q) {
   return q <= 0.60 ? "var(--success)" : q <= 0.70 ? "var(--warn)" : "var(--danger)";
+}
+
+/* ============================================================
+   Wochenwaage (v1.48)
+   Eine reine Anzeige-Summe über die GANZE gezeigte Woche: wie viele Stunden
+   je Bereich fest eingetragen sind und wie viel wache Zeit frei bleibt.
+   Bewusst nicht wochenKapazitaet(): die rechnet „ab jetzt" (für die Frage
+   „passt noch etwas rein?"), die Waage zeigt das Bild der Woche und soll
+   sich am Mittwoch nicht anders lesen als am Montag. Vorschläge (sug)
+   zählen nicht mit, sie sind noch nicht zugesagt. Nur lesend, nie save().
+   Keine Bewertung („zu viel Arbeit") — dafür gibt es keine Regel von Sunny.
+   ============================================================ */
+function wochenWaage(montag) {
+  const mon = mondayOf(montag || anchor);
+  const { dayStart, dayEnd } = state.settings;
+  let wachTag = (dayEnd - dayStart) * 60;
+  restSpans().forEach(r => {
+    wachTag -= Math.max(0, Math.min(dayEnd * 60, r.end) - Math.max(dayStart * 60, r.start));
+  });
+  const wach = Math.max(0, wachTag) * 7;
+  const jeBereich = new Map();
+  for (let i = 0; i < 7; i++) {
+    const key = iso(addDays(mon, i));
+    state.blocks.forEach(b => {
+      if (b.sug || !onDay(b, key, i)) return;
+      const a = areaById(b.areaId);
+      if (!a) return;
+      jeBereich.set(a.id, (jeBereich.get(a.id) || 0) + dauerVon(b));
+    });
+  }
+  const teile = state.areas.filter(a => jeBereich.get(a.id) > 0)
+    .map(a => ({ area: a, min: jeBereich.get(a.id) }));
+  const verplant = teile.reduce((sum, t) => sum + t.min, 0);
+  return { wach, verplant, frei: Math.max(0, wach - verplant), teile };
+}
+function waageTeile(w) {
+  const leg = "<span class='waage__leg'>" + w.teile.map(t =>
+    "<span class='waage__item' style='--h:" + t.area.hue + "'><i class='waage__dot'></i>"
+    + escapeHtml(t.area.name) + " <b>" + fmtDur(t.min) + "</b></span>").join("") + "</span>";
+  const sum = "<span class='waage__sum'>"
+    + (w.verplant ? "<b>" + fmtDur(w.verplant) + "</b> verplant" : "Noch nichts verplant")
+    + " · <b>" + fmtDur(w.frei) + "</b> frei</span>";
+  const bar = "<span class='waage__bar' aria-hidden='true'>" + w.teile.map(t =>
+    "<i style='--h:" + t.area.hue + ";--g:" + t.min + "'></i>").join("")
+    + (w.frei ? "<i class='waage__frei' style='--g:" + w.frei + "'></i>" : "") + "</span>";
+  return { leg, sum, bar };
+}
+function waageText(w) {
+  return (w.verplant ? fmtDur(w.verplant) + " verplant" : "Noch nichts verplant") + ", " + fmtDur(w.frei) + " frei"
+    + (w.teile.length ? ". " + w.teile.map(t => t.area.name + " " + fmtDur(t.min)).join(", ") : "");
+}
+function renderWaage() {
+  const el = $("#waage");
+  if (!el) return;
+  const w = wochenWaage();
+  const t = waageTeile(w);
+  el.innerHTML = "<span class='waage__kopf'>" + t.leg + t.sum + "</span>" + t.bar;
+  el.setAttribute("aria-label", "Wochenwaage: " + waageText(w) + ". Wochenübersicht öffnen");
 }
 function ampelZeichnen(el) {
   if (!el) return;
@@ -8836,6 +8936,7 @@ function renderGrid() {
     ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
       + (feiertagAm(iso(planTag)) ? "<span class='planhead__feiertag'>" + feiertagAm(iso(planTag)) + "</span>" : "")
     : "Deine Woche";
+  renderWaage();
   const todayIso = iso(new Date());
   const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
   grid.style.setProperty("--cols", dayIdxs.length);
@@ -13221,6 +13322,8 @@ $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAl
 // Absturz beim Bauen dieser Stufe, s. Bericht). Ohne Argument aufrufen,
 // damit beide auf ihre eigene Vorgabe (anchor) zurückfallen.
 $("#weekLabel").onclick = () => freizeitSheet();
+// Wochenwaage: dasselbe Blatt im Belegt-Gesicht, dort steht die ganze Legende.
+$("#waage").onclick = () => { freizeitGesicht = "belegt"; freizeitSheet(); };
 $("#monthBtn").onclick = () => monatSheet();
 $("#todayBtn").onclick = () => {
   anchor = new Date();
