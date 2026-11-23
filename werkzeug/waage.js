@@ -112,7 +112,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
 
   console.log('=== e) Wochen-Blatt ===');
   await basis(p, WOCHE);
-  await p.click('#waage');
+  await p.click('#waageAuf');
   await p.waitForSelector('#freizeitWaage .waage__sum');
   const e1 = await p.evaluate(() => ({ items: document.querySelectorAll('#freizeitWaage .waage__item').length, text: document.querySelector('#freizeitWaage .waage__sum').textContent, anker: iso(mondayOf(anchor)) }));
   ok(e1.items === 3 && e1.text.startsWith('7,5 h verplant'), 'e) Blatt zeigt die volle Legende (3 Bereiche) und die Summe');
@@ -121,6 +121,41 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const e2 = await p.evaluate(() => ({ text: document.querySelector('#freizeitWaage .waage__sum').textContent, anker: iso(mondayOf(anchor)), kopf: document.querySelector('#waage .waage__sum').textContent }));
   ok(e2.text.startsWith('4 h verplant') && e2.anker === e1.anker && e2.kopf.startsWith('7,5 h'), 'e) Blaettern im Blatt: Blatt zeigt 4 h, anchor und Rasterkopf bleiben');
   await p.evaluate(() => closeModal());
+
+  console.log('=== h) Filter mit Stunden ===');
+  await basis(p, WOCHE);
+  const BILD = process.env.WP_BILD;
+  const lage = () => p.evaluate(() => ({
+    filter: waageFilter,
+    gedrueckt: [...document.querySelectorAll('#waage .waage__item')].map(x => x.getAttribute('aria-pressed')).join(),
+    bloecke: [...document.querySelectorAll('.block:not(.is-sug)')].map(x => x.classList.contains('is-gedimmt')),
+    lose: [...document.querySelectorAll('.loosechip')].map(x => x.classList.contains('is-gedimmt')),
+    kopfH: document.querySelector('.planhead').getBoundingClientRect().height,
+    blatt: !!document.querySelector('.sheet'), gespeichert: JSON.stringify(state).includes('waageFilter')
+  }));
+  let h = await lage();
+  ok(h.filter === null && h.gedrueckt === 'false,false,false' && !h.bloecke.some(Boolean), 'h) ohne Filter ist nichts zurueckgeblendet');
+  await p.click('#waage .waage__item:nth-child(1)');
+  await p.waitForTimeout(150);
+  h = await lage();
+  ok(h.gedrueckt === 'true,false,false' && !h.blatt, 'h) Tipp auf den ersten Bereich: gedrueckt, kein Blatt');
+  ok(h.bloecke.filter(x => !x).length === 2 && h.bloecke.filter(Boolean).length === 1 && h.lose.every(Boolean), 'h) 2 Bloecke des Bereichs bleiben, der Rest (auch der grobe) tritt zurueck: ' + JSON.stringify(h.bloecke) + JSON.stringify(h.lose));
+  ok(Math.abs(h.kopfH - 56) < 1 && !h.gespeichert, 'h) Rasterkopf bleibt 56 px, nichts im Zustand');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.matches('#waage .waage__item[aria-pressed="true"]')), 'h) Fokus bleibt auf dem gewaehlten Bereich');
+  if (BILD) await p.screenshot({ path: path.join(BILD, 'filter-desktop.png') });
+  // Bereich 2 gibt es nur in dieser Woche (der Bereich 0 laeuft als Serie weiter).
+  await p.click('#waage .waage__item:nth-child(3)');
+  await p.waitForTimeout(100);
+  ok((await lage()).filter !== null, 'h) Wechsel auf den dritten Bereich');
+  await p.evaluate(() => { anchor = addDays(anchor, 7); renderAll(); });
+  h = await lage();
+  ok(h.filter === null, 'h) Woche ohne diesen Bereich: Filter endet von selbst');
+  await p.evaluate(() => { anchor = new Date(); renderAll(); });
+  await p.click('#waage .waage__item:nth-child(2)');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  h = await lage();
+  ok(h.filter === null && !h.bloecke.some(Boolean), 'h) derselbe Bereich noch einmal (Tastatur): alles wieder da');
 
   console.log('=== f) Telefon ===');
   const t = await seite({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
