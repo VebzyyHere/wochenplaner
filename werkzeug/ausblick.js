@@ -18,6 +18,8 @@
    f) Ausblick: ganztaegiger Eintrag mit Zaehler, Feiertage, Tipps; ein
       Tipp oeffnet nur den vorausgefuellten Eintrag und speichert nichts.
    g) Tagestitel nennt den Feiertag.
+   i) Tab-Wechsel am Telefon: die neue Ansicht kommt von der Seite ihres
+      Reiters, ohne seitliches Scrollen.
    h) keine Konsolenfehler.
 
    Feste Uhr: Mittwoch 2026-11-18, 09:30 Europe/Berlin.
@@ -180,6 +182,21 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const g = await p.evaluate(() => ({ offen: !!document.querySelector('.sheet'), titel: document.querySelector('.planhead h1').textContent, sicht: document.body.dataset.mview }));
   ok(!g.offen && g.sicht === 'plan', 'g) Zeile springt in den Tag, alle Blaetter sind zu');
   ok(g.titel.includes('25. Dezember') && g.titel.includes('1. Weihnachtstag'), 'g) Tagestitel nennt den Feiertag: ' + JSON.stringify(g.titel));
+
+  console.log('=== i) Tab-Wechsel mit Richtung ===');
+  await p.evaluate(() => setView('heute'));
+  const tab = async v => {
+    await p.locator('#tabbar button[data-view="' + v + '"]').tap();
+    const r = await p.evaluate(() => ({ x: $('#main').style.getPropertyValue('--wechsel-x'), an: $('#main').classList.contains('is-wechsel'),
+      quer: document.documentElement.scrollWidth <= window.innerWidth }));
+    await p.waitForTimeout(450);
+    return r;
+  };
+  const i1 = await tab('aufgaben'), i2 = await tab('plan'), i3 = await tab('plan');
+  ok(i1.an && i1.x === '18px', 'i) nach rechts getippt: die Ansicht kommt von rechts (' + i1.x + ')');
+  ok(i2.an && i2.x === '-18px', 'i) nach links getippt: die Ansicht kommt von links (' + i2.x + ')');
+  ok(i1.quer && i2.quer, 'i) kein seitliches Scrollen waehrend des Uebergangs');
+  ok(!i3.an, 'i) derselbe Reiter noch einmal: kein Uebergang');
 
   console.log('=== h) Konsole ===');
   ok(konsolenfehler.length === 0, 'h) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));

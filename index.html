@@ -3117,7 +3117,7 @@ html[data-theme="dark"] .scrim { background: oklch(0.1 0.01 170 / .62); }
    Ansicht blendet auf und wächst aus 98,5 % um ihre sichtbare Mitte
    (transform-origin setzt das Skript). Bewegt wird nur, was wechselt —
    Kopf, Reiter und Tabbar stehen; am Desktop bleibt das Raster ruhig. */
-@keyframes einblenden { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes einblenden { from { opacity: 0; transform: translateX(var(--wechsel-x, 0px)) scale(.985); } to { opacity: 1; transform: none; } }
 .main.is-wechsel > .panel, .main.is-wechsel > .planwrap { animation: none; }
 .main.is-wechsel[data-wechsel="panel"] > .panel > .card,
 .main.is-wechsel[data-wechsel="plan"] > .planwrap > :is(.planhead, .gridwrap, .loose) {
@@ -13438,8 +13438,15 @@ function wechselEnde() {
 }
 function ansichtWechseln(v) {
   const wechsel = v !== mview;
+  // v1.48: am Telefon kommt die neue Ansicht von der Seite, auf der ihr
+  // Reiter liegt (nach rechts getippt = von rechts herein) — die Tabbar
+  // wird so zur Landkarte. Nur ein kurzer Weg (18 px), kein ganzer Schub;
+  // am Desktop bleibt es beim Aufblenden.
+  const REIHE = ["heute", "plan", "ziele", "aufgaben"];
+  const richtung = Math.sign(REIHE.indexOf(v) - REIHE.indexOf(mview));
   setView(v);
   if (!wechsel) return;
+  $("#main").style.setProperty("--wechsel-x", isMobile ? (richtung * 18) + "px" : "0px");
   if (v === "ziele") steineFallen();   // v1.42: einmal je Öffnen, gestaffelt
   const main = $("#main");
   main.classList.remove("is-wechsel");

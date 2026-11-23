@@ -65,7 +65,7 @@ sonst „<Wochentag> zählt"/„Geplant". `renderTasks()` gliedert in „Ohne Pl
 Woche. `setView()` setzt nur Ansichtsstatus: am Handy `plan`/`ziele`/`aufgaben`/`heute` (Tab „Woche"
 ist `data-view="plan"`), am Desktop den Arbeitsbereich neben dem Raster (`body.dataset.panel`).
 `ansichtWechseln(v)` ist `setView(v)` plus Überblendung, nur für Nutzerwege; Tests und Code rufen
-`setView()`. Tagesband `renderDaySwitch()`: natives Scrollen; Ziehen bewegt `anchor` nie.
+`setView()`. Am Telefon kommt die Ansicht 18 px von der Seite ihres Reiters (`--wechsel-x`, v1.48). Tagesband `renderDaySwitch()`: natives Scrollen; Ziehen bewegt `anchor` nie.
 Scrim-Schließwege verschlucken den Folge-Klick (`schluckeNaechstenClick()`); diese Fehlerklasse
 reproduziert nur unter echten Touch-Events (`blattzu.js`).
 `blockZeilenEinpassen()` (nach `renderGrid()`): was in einem Rasterblock nicht ganz passt, fällt
