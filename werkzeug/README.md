@@ -12,6 +12,7 @@ Wer an der Oberfläche etwas ändert, lässt danach `check.js`, `audit.js` und
 
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.
+`frist.js`: Feiertage im Verteiler frei (Schalter), Frist an Aufgaben, Platz vor der Frist. Feste Uhr Mo 21.12.2026.
 
 Version 1.46 ergänzt `pruefung.js` (Nutzerprüfung 2026-11): Tagesband-Pille heute+gewählt
 ohne Überlappung und ohne Höhenzuwachs, Umbruch langer Wörter in der Laufend-Karte,

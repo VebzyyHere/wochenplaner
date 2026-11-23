@@ -109,11 +109,17 @@ anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`r
 
 **Feiertage & Ausblick** (v1.47). `feiertageBW(jahr)`/`feiertagAm(iso)` rechnen die zwölf gesetzlichen
 Feiertage Baden-Württembergs (Feiertagsgesetz BW § 1; bewegliche über `osterSonntag()`) — nichts in
-`state`, reine Anzeige (Honigpunkt im Monat, Zeile darunter, Tagestitel); der Verteiler kennt sie
-nicht. Keine Tage dazuerfinden (Heiligabend/Silvester sind keine). `brueckenTipps()` nimmt eine
+`state`, Anzeige als Honigpunkt im Monat, Zeile darunter, Tagestitel. Der Verteiler hält sie frei
+(`vorschlagGesperrt()` = `istFrei()` oder Feiertag; abschaltbar: `settings.feiertageFrei === false`,
+sonst fehlt das Feld). Keine Tage dazuerfinden (Heiligabend/Silvester sind keine). `brueckenTipps()` nimmt eine
 Mo–Fr-Woche an; `ausblickSheet()` (Knopf im Monatsblatt, per `modalPush()`) ist rein lesend, ein Tipp
 öffnet nur `blockSheet()` vorausgefüllt. Wischen im Monat blättert lokal und bewegt `anchor` nie
 (`ausblick.js`).
+
+**Fristen** (v1.47). `task.frist` (ISO-Datum, bis einschließlich; wertbasiert in `migrate()`, keine neue
+`s.version`). `placeTask()` sucht zuerst bis zum Fristtag, sonst in der ganzen Woche; Reihenfolge:
+Wichtigstes, dann frühere Frist. `fristText()` bleibt sachlich — bewusst kein Rot, kein
+Überfällig-Zähler (`frist.js`).
 
 **Rest des Tages** (`restDesTagesBauen()`, derselbe Verteiler nur für heute) — zwei rote Linien: auf
 einem freigehaltenen Tag (`istFrei()`) kein Vorschlag; ein vergangener eigener Vorschlag von heute

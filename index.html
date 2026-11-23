@@ -3397,6 +3397,13 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   font-family: var(--font); font-size: var(--t-xs); font-weight: 700; letter-spacing: 0;
   background: var(--honig); color: var(--auf-honig); box-shadow: 0 0 0 1.5px var(--ol);
 }
+.task__frist {
+  display: inline-block; margin-top: 4px; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
+}
+.task__frist.is-nah {
+  padding: 1px 8px; border-radius: 99px; background: var(--honig); color: var(--auf-honig);
+  box-shadow: 0 0 0 1.5px var(--ol); transform: rotate(-1deg);
+}
 .ausblick { padding: 0 4px 6px 0; }
 .ausblick__h {
   margin: var(--s-5) 0 var(--s-3); font-size: var(--t-sm); font-weight: 700; color: var(--text-muted);
@@ -3969,6 +3976,8 @@ function migrate(s) {
   s.tasks.forEach(t => {
     if (typeof t.schritt === "string" && t.schritt.trim()) t.schritt = t.schritt.trim().slice(0, 240);
     else delete t.schritt;
+    // v1.47 Frist: ein ISO-Datum oder nichts (wertbasiert, keine neue s.version).
+    if (!(typeof t.frist === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.frist) && !isNaN(new Date(t.frist + "T12:00:00")))) delete t.frist;
   });
   if (!s.days) s.days = {};
   // v2: Wochenziele + bevorzugte Zeitfenster pro Bereich
@@ -4010,6 +4019,8 @@ function migrate(s) {
   // v3: Vorbereitung für den Abgleich zwischen Geräten
   if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
   if (typeof s.settingsAt !== "number") s.settingsAt = 0;
+  // v1.47: nur „false" ist ein Wert (Feiertage nicht freihalten), alles andere fehlt.
+  if (s.settings.feiertageFrei !== false) delete s.settings.feiertageFrei;
   if (typeof s.backupAt !== "number") s.backupAt = 0;
 
   // Tagfenster absichern. Geclampt wurde bisher nur im Einstellungsdialog —
@@ -4372,6 +4383,17 @@ function feiertageBW(jahr) {
 function feiertagAm(dateIso) {
   return feiertageBW(+dateIso.slice(0, 4)).get(dateIso) || null;
 }
+/* Sunny, 2026-11-23: an Feiertagen schlägt der Verteiler nichts vor —
+   abschaltbar in den Einstellungen (settings.feiertageFrei === false heißt
+   aus; das Feld fehlt sonst ganz, damit kein Gerät ohne Anlass einen neuen
+   Einstellungsstand hochschiebt). Wie beim freigehaltenen Tag gilt: frei
+   heißt „nichts Neues", von Hand eintragen geht weiter. Nur die
+   Verteiler-Stellen fragen vorschlagGesperrt(); istFrei() bleibt die
+   Auskunft über den vom Nutzer gesetzten Schalter am Tag. */
+function feiertagFrei(dateIso) {
+  return state.settings.feiertageFrei !== false && !!feiertagAm(dateIso);
+}
+function vorschlagGesperrt(dateIso) { return istFrei(dateIso) || feiertagFrei(dateIso); }
 const kurzDatum = d => DAY_SHORT[(d.getDay() + 6) % 7] + " " + d.getDate() + "." + (d.getMonth() + 1) + ".";
 
 /* Brückentage: wo wenige Urlaubstage viele freie Tage am Stück ergeben.
@@ -4835,6 +4857,7 @@ function freizeitZeile(day, todayKey) {
   // Lücken — er ist trotzdem der freieste Tag der Woche und muss darum
   // genauso fett auftreten wie "ganzer Tag frei", nicht wie "nichts frei".
   if (gruende.includes("Tag freigehalten")) return { text: "<b>freigehalten</b>" + hinweis, art: "frei" };
+  if (gruende.includes("Feiertag")) return { text: "<b>Feiertag</b> · " + escapeHtml(feiertagAm(day.key)) + hinweis, art: "frei" };
 
   const echte = gaps.filter(g => g.end - g.start >= FREIZEIT_MIN);
   if (!echte.length) return { text: "nichts frei" + hinweis, art: "voll" };
@@ -5126,12 +5149,16 @@ function ausblickEintraege(heute) {
     if (bis < todayIso) return;
     liste.push({ von: b.date, bis, titel: b.title || "Ohne Titel", areaId: b.areaId });
   });
+  state.tasks.forEach(t => {
+    if (t.done || !t.frist || t.frist < todayIso) return;
+    liste.push({ von: t.frist, bis: t.frist, titel: t.title || "Ohne Titel", areaId: t.areaId, frist: true });
+  });
   let anzahl = 0;
   for (let d = heute, i = 0; i < AUSBLICK_TAGE && anzahl < 3; i++, d = addDays(d, 1)) {
     const name = feiertagAm(iso(d));
     if (name) { liste.push({ von: iso(d), bis: iso(d), titel: name, feiertag: true }); anzahl++; }
   }
-  return liste.sort((a, b) => a.von < b.von ? -1 : a.von > b.von ? 1 : 0).slice(0, 6);
+  return liste.sort((a, b) => a.von < b.von ? -1 : a.von > b.von ? 1 : 0).slice(0, 8);
 }
 function ausblickSheet() {
   const oeffnen = openModal ? modalPush : modal;
@@ -5175,12 +5202,12 @@ function ausblickSheet() {
         + "<span class='kommt__wann'>" + wann(e) + "</span>"
         + "<span class='kommt__text'><b>" + escapeHtml(e.titel) + "</b>"
         + "<span>" + spanne(e.von, e.bis) + (tage > 1 ? " · " + tage + " Tage" : "")
-        + (e.feiertag ? " · Feiertag" : "") + "</span></span></button>";
+        + (e.feiertag ? " · Feiertag" : "") + (e.frist ? " · Frist" : "") + "</span></span></button>";
     });
     html += "</div>";
     if (!eigene) {
       html += "<div class='ausblick__leer' style='--i:" + (i++) + "'><p>Urlaub, Festival, Prüfung? " +
-        "Trag es ganztägig ein, dann zählt hier die Vorfreude mit.</p>" +
+        "Trag es ganztägig ein, dann zählt hier die Vorfreude mit. Aufgaben mit Frist stehen auch hier.</p>" +
         "<button type='button' class='btn btn--sm' id='ausblickNeu'>Eintragen</button></div>";
     }
 
@@ -6391,6 +6418,7 @@ function freeGaps(day, plan, area, opts) {
   const gruende = [];
   const leer = () => { const g = []; g.gruende = gruende; return g; };
   if (!opts.ignoreFrei && istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
+  if (!opts.ignoreFrei && feiertagFrei(day.key)) { gruende.push("Feiertag"); return leer(); }
 
   const regeln = area && area.regeln;
   if (!opts.ignoreFenster && !fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
@@ -6612,7 +6640,7 @@ function placeGrob(area, open, tage) {
   const moeglich = [];
   tage.forEach(day => {
     if (day.key < heuteKey) return;
-    if (istFrei(day.key)) return;
+    if (vorschlagGesperrt(day.key)) return;
     if (!fensterErlaubtTag(area.regeln, day.i)) return;
     reihenfolge.forEach((teil, rang) => {
       const a = abschnittVon(teil);
@@ -6736,6 +6764,18 @@ function grundAbzug(area, cand, best) {
    areaId der Aufgabe; die Zugehörigkeit zur Aufgabe steckt separat in
    .taskId (nie als areaId benutzt) — und als Nebeneffekt zählt verplante
    Aufgabenzeit dadurch ganz von selbst richtig aufs Wochenziel des Bereichs. */
+/* Frist einer Aufgabe (v1.47, task.frist = ISO-Datum, „bis einschließlich").
+   Bewusst ohne Alarmfarbe und ohne Überfällig-Zähler (Nutzerprüfung
+   2026-11: Schuldgefühle sind ein Hauptgrund, Planer zu meiden) — eine
+   verstrichene Frist wird nur sachlich genannt. */
+function fristText(t) {
+  if (!t.frist) return null;
+  const heute = new Date();
+  const d = new Date(t.frist + "T00:00:00");
+  const n = Math.round((d - new Date(heute.getFullYear(), heute.getMonth(), heute.getDate())) / 864e5);
+  if (n < 0) return { text: "Frist war " + kurzDatum(d), nah: false, vorbei: true };
+  return { text: "bis " + kurzDatum(d) + " · " + (n === 0 ? "heute" : n === 1 ? "morgen" : "in " + n + " Tagen"), nah: n <= 2, vorbei: false };
+}
 function taskVorhaben(t) {
   const a = areaById(t.areaId);
   return {
@@ -6766,11 +6806,21 @@ function unlinkTask(b) {
    Darum keine placeArea()-Wiederverwendung, sondern derselbe Bauplan wie
    dort (freeGaps + slotScore, dieselben Begründungsfunktionen), nur ohne
    dessen Aufteil-Schleife. */
-function placeTask(t) {
+function placeTask(t, opts = {}) {
   const v = taskVorhaben(t);
-  const tage = weekDays().filter(day => v.plan.days.includes(day.i));
+  const alleTage = weekDays().filter(day => v.plan.days.includes(day.i));
   const len = t.dauer;
-  if (!tage.length || !len) return false;
+  if (!alleTage.length || !len) return false;
+  // Frist: zuerst nur Tage bis einschließlich Fristtag. Gibt es davor
+  // keinen Platz, gilt die ganze Woche — lieber spät als gar nicht. Eine
+  // verstrichene Frist oder eine nach dieser Woche ändert nichts.
+  if (!opts.fertig && t.frist && t.frist >= iso(new Date())) {
+    const davor = alleTage.filter(day => day.key <= t.frist);
+    if (davor.length && davor.length < alleTage.length) {
+      return placeTask(t, { fertig: true, tage: davor }) || placeTask(t, { fertig: true });
+    }
+  }
+  const tage = opts.tage || alleTage;
 
   let best = null;
   const alt = [];
@@ -7029,7 +7079,8 @@ function buildSuggestions() {
   state.tasks
     .filter(t => !t.done && !t.geplant && t.dauer)
     .filter(t => { const ar = areaById(t.areaId); return !ar || !ar.plan.keinVorschlag; })
-    .sort((x, y) => y.frog - x.frog)
+    // Das Wichtigste zuerst, danach die frühere Frist (ohne Frist zuletzt).
+    .sort((x, y) => y.frog - x.frog || (x.frist || "9999").localeCompare(y.frist || "9999"))
     .forEach(t => {
       const got = placeTask(t);
       placed += got ? t.dauer : 0;
@@ -7082,7 +7133,7 @@ function vorschlagGueltig(b) {
   const day = weekDays().find(d => d.key === b.date);
   if (!day) return false;
   if (!area.plan.days.includes(day.i)) return false;
-  if (b.grob) return !istFrei(day.key) && fensterErlaubtTag(area.regeln, day.i);
+  if (b.grob) return !vorschlagGesperrt(day.key) && fensterErlaubtTag(area.regeln, day.i);
   const gaps = freeGaps(day, area.plan, area, { excludeId: b.id });
   return gaps.some(g => g.start <= b.start && g.end >= b.end);
 }
@@ -7172,7 +7223,7 @@ function restDesTagesBauen() {
   if (!day) return { placed: 0, missing: 0, hinweise: [] };
   // Derselbe Vertrag wie ueberall sonst im Verteiler (istFrei, s. 2997/3217/
   // 3649): auf einem freigehaltenen Tag schlaegt dieser Weg nichts vor.
-  if (istFrei(heuteKey)) return { placed: 0, missing: 0, hinweise: [] };
+  if (vorschlagGesperrt(heuteKey)) return { placed: 0, missing: 0, hinweise: [] };
   const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
 
   state.blocks = state.blocks.filter(b => {
@@ -10260,6 +10311,7 @@ function renderTasks() {
   // Punkt C: mit Dauer vor ohne Dauer (die kann der Planer einplanen),
   // alphabetisch nur als letzter Schlüssel — Scannbarkeit vor Anlegereihenfolge.
   const ohnePlatz = open.filter(t => !aufgabenBlock(t)).sort((a, b) =>
+    (a.frist || "9999").localeCompare(b.frist || "9999") ||
     (a.dauer ? 0 : 1) - (b.dauer ? 0 : 1) || a.title.localeCompare(b.title, "de"));
 
   // Chronologisch nach Tag+Uhrzeit des Blocks, alphabetisch nur als letzter
@@ -10422,6 +10474,12 @@ function taskEl(t) {
         : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "<span>· Dauer offen</span>"));
 
   body.append(ti, meta);
+  const frist = t.done ? null : fristText(t);
+  if (frist) {
+    const f = document.createElement("div");
+    f.className = "task__frist" + (frist.nah ? " is-nah" : "") + (frist.vorbei ? " is-vorbei" : "");
+    f.textContent = frist.text; body.appendChild(f);
+  }
   if (t.schritt && !t.done) {
     const schritt = document.createElement("div"); schritt.className = "task__step";
     schritt.innerHTML = "<b>Start:</b> " + escapeHtml(t.schritt); body.appendChild(schritt);
@@ -10519,6 +10577,10 @@ function taskSheet(t) {
       "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
       "<div class='chipset' id='tkDauer'></div>" +
       "<div id='tkDauerHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
+      "<div class='sheet__row'><label class='label' for='tkFrist'>Fällig bis <span style='font-weight:400'>(optional)</span></label>" +
+      "<input class='field' id='tkFrist' type='date' style='max-width:200px'>" +
+      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>" +
+      "Der Planer sucht dann zuerst einen Platz bis zu diesem Tag.</div></div>" +
       "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
       "Das Wichtigste — zuerst dran</label></div>" +
       "<div class='sheet__row' id='tkRegeln' hidden></div>";
@@ -10528,6 +10590,8 @@ function taskSheet(t) {
     titel.required = true;
     titel.oninput = () => titel.setCustomValidity("");
     const schritt = s.querySelector("#tkSchritt");
+    const fristFeld = s.querySelector("#tkFrist");
+    fristFeld.value = t.frist || "";
     schritt.value = t.schritt || "";
     const notiz = s.querySelector("#tkNotiz");
     notiz.value = t.notiz || "";
@@ -10617,6 +10681,7 @@ function taskSheet(t) {
       if (!titel.reportValidity()) return false;
       t.title = neu;
       if (schritt.value.trim()) t.schritt = schritt.value.trim().slice(0, 240); else delete t.schritt;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fristFeld.value)) t.frist = fristFeld.value; else delete t.frist;
       if (notiz.value.trim()) t.notiz = notiz.value.trim().slice(0, 2000); else delete t.notiz;
       t.areaId = areaId;
       if (dauer) t.dauer = dauer; else delete t.dauer;
@@ -11912,6 +11977,11 @@ $("#settingsBtn").onclick = () => {
           "<div id='sSleepHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
         "</div>" +
       "</div>" +
+      "<div class='sheet__row' data-page='zeit'><span class='label'>Feiertage</span>" +
+        "<label class='switch'><input type='checkbox' id='sFeiertage'> Feiertage freihalten</label>" +
+        "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>" +
+        "An gesetzlichen Feiertagen in Baden-Württemberg schlägt der Planer nichts vor. Von Hand eintragen kannst du dort trotzdem.</div>" +
+      "</div>" +
       "<div class='sheet__row' id='sAcctRow' data-page='konto'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
       "<div class='sheet__row' data-page='bereiche'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
       "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
@@ -11977,6 +12047,8 @@ $("#settingsBtn").onclick = () => {
     const slBody = s.querySelector("#sSleepBody");
     const slHint = s.querySelector("#sSleepHint");
 
+    const feiertageBox = s.querySelector("#sFeiertage");
+    feiertageBox.checked = state.settings.feiertageFrei !== false;
     slOn.checked = sl.on;
     slFrom.value = fmtTime(sl.from);
     slTo.value = fmtTime(sl.to);
@@ -12221,6 +12293,7 @@ $("#settingsBtn").onclick = () => {
         to: parseTime(slTo.value),
         wind: clamp(parseInt(slWind.value, 10) || 0, 0, 180)
       };
+      if (feiertageBox.checked) delete state.settings.feiertageFrei; else state.settings.feiertageFrei = false;
       save();
     };
 
