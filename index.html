@@ -3399,9 +3399,17 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     margin: 0 var(--s-5); padding: 2px 10px; border: 0; border-radius: 12px;
     background: transparent; color: inherit; font: inherit; font-size: var(--t-sm); text-align: left; cursor: pointer;
   }
-  .planhead .waage:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .planhead .waage :is(.waage__item, .waage__sum):focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 }
-@media (hover: hover) { .planhead .waage:hover { background: var(--surface-2); } }
+/* Legende als Filter: flache Knöpfe in der einen Legendenzeile; gewählt = Mulde. */
+.waage button.waage__item, .waage button.waage__sum {
+  border: 0; background: none; font: inherit; cursor: pointer; padding: 0 8px; margin: 0 -8px 0 0; border-radius: 999px;
+}
+.waage button.waage__sum { color: var(--text-muted); margin: 0; }
+.waage button.waage__item[aria-pressed="true"] { background: var(--tray); color: var(--text); }
+@media (hover: hover) { .waage button:is(.waage__item, .waage__sum):hover { background: var(--surface-2); } }
+.block.is-gedimmt, .loosechip.is-gedimmt { opacity: .22; }
+.block.is-gedimmt:hover, .block.is-gedimmt:focus-visible { opacity: .6; }
 
 /* ============================================================
    v1.49 „Ruhe" — der Aufkleber-Effekt nur noch dort, wo man drückt
@@ -3707,7 +3715,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     <div class="planwrap">
       <div class="planhead">
         <div><h1>Deine Woche</h1></div>
-        <button type="button" class="waage" id="waage"></button>
+        <div class="waage" id="waage" role="group"></div>
         <div class="planhead__actions">
           <button type="button" class="btn btn--ghost wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span>Idee würfeln</span></button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
@@ -6564,13 +6572,27 @@ function waageText(w) {
   return (w.verplant ? fmtDur(w.verplant) + " verplant" : "Noch nichts verplant") + ", " + fmtDur(w.frei) + " frei"
     + (w.teile.length ? ". " + w.teile.map(t => t.area.name + " " + fmtDur(t.min)).join(", ") : "");
 }
+/* Filter mit Stunden (Studio-Entwurf 2026-11): ein Tipp auf einen Bereich der
+   Legende im Rasterkopf blendet im Raster alles andere zurück — Übersicht und
+   Filter in einem. Reiner Bildschirmzustand (wie freizeitGesicht), nie in
+   state; verschwindet der Bereich aus der gezeigten Woche, endet der Filter. */
+let waageFilter = null;
 function renderWaage() {
   const el = $("#waage");
   if (!el) return;
   const w = wochenWaage();
+  if (waageFilter && !w.teile.some(t => t.area.id === waageFilter)) waageFilter = null;
   const t = waageTeile(w);
-  el.innerHTML = "<span class='waage__kopf'>" + t.leg + t.sum + "</span>" + t.bar;
-  el.setAttribute("aria-label", "Wochenwaage: " + waageText(w) + ". Wochenübersicht öffnen");
+  const leg = "<span class='waage__leg'>" + w.teile.map(x => {
+    const an = waageFilter === x.area.id;
+    return "<button type='button' class='waage__item' data-filter='" + x.area.id + "' aria-pressed='" + an + "'"
+      + " title='" + (an ? "Wieder alles zeigen" : "Nur " + escapeHtml(x.area.name) + " hervorheben") + "' style='--h:" + x.area.hue + "'>"
+      + "<i class='waage__dot'></i>" + escapeHtml(x.area.name) + " <b>" + fmtDur(x.min) + "</b></button>";
+  }).join("") + "</span>";
+  el.innerHTML = "<span class='waage__kopf'>" + leg
+    + "<button type='button' class='waage__sum' id='waageAuf' title='Wochenübersicht öffnen'>" + t.sum.replace(/^<span class='waage__sum'>|<\/span>$/g, "") + "</button></span>" + t.bar;
+  el.setAttribute("aria-label", "Wochenwaage: " + waageText(w));
+  document.body.classList.toggle("hat-waagefilter", !!waageFilter);
 }
 function ampelZeichnen(el) {
   if (!el) return;
@@ -9012,7 +9034,7 @@ function renderLoose() {
         const area = areaById(b.areaId);
         const chip = document.createElement("button");
         chip.type = "button";
-        chip.className = "loosechip" + (b.sug ? " is-sug" : "");
+        chip.className = "loosechip" + (b.sug ? " is-sug" : "") + (waageFilter && b.areaId !== waageFilter ? " is-gedimmt" : "");
         chip.style.setProperty("--h", area.hue);
         const fertig = !b.sug && istErledigt(b, daten[n].key);
         if (fertig) chip.classList.add("is-done");
@@ -9366,7 +9388,8 @@ function blockEl({ b, col, of }, hourH, dayKey) {
   const h = (b.end - b.start) / 60 * hourH;
   const fertig = !b.sug && istErledigt(b, dayKey || b.date);
   el.className = "block" + (h < 34 ? " is-short" : h < 52 ? " is-knapp" : "") + (b.frog ? " is-frog" : "")
-    + (b.sug ? " is-sug" : "") + (fertig ? " is-done" : "");
+    + (b.sug ? " is-sug" : "") + (fertig ? " is-done" : "")
+    + (waageFilter && b.areaId !== waageFilter ? " is-gedimmt" : "");
   el.style.setProperty("--h", area.hue);
   el.style.top = ((b.start - dayStart * 60) / 60 * hourH) + "px";
   el.style.height = Math.max(18, h - 2) + "px";
@@ -13977,7 +14000,17 @@ $("#nextWeek").onclick = () => { anchor = addDays(mondayOf(anchor), 7); renderAl
 // damit beide auf ihre eigene Vorgabe (anchor) zurückfallen.
 $("#weekLabel").onclick = () => freizeitSheet();
 // Wochenwaage: dasselbe Blatt im Belegt-Gesicht, dort steht die ganze Legende.
-$("#waage").onclick = () => { freizeitGesicht = "belegt"; freizeitSheet(); };
+$("#waage").onclick = e => {
+  const item = e.target.closest(".waage__item[data-filter]");
+  if (item) {
+    waageFilter = waageFilter === item.dataset.filter ? null : item.dataset.filter;
+    renderGrid(); renderLoose();   // renderGrid() ruft renderWaage() selbst
+    const wieder = document.querySelector('#waage .waage__item[data-filter="' + item.dataset.filter + '"]');
+    if (wieder) wieder.focus({ preventScroll: true });
+    return;
+  }
+  freizeitGesicht = "belegt"; freizeitSheet();
+};
 $("#monthBtn").onclick = () => monatSheet();
 $("#todayBtn").onclick = () => {
   anchor = new Date();
