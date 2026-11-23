@@ -101,6 +101,12 @@ selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — k
 Die Zeile steht nur im frischen, leeren `blockSheet()`; ein Tipp öffnet den Editor neu vorausgefüllt
 (Muster „Kopieren"), gespeichert wird erst mit „Eintragen" (`lieblinge.js`).
 
+**Ideen würfeln.** `ideeSheet()` (`#wuerfelBtn` im Rasterkopf, am Telefon nur das Symbol in der Wochen-Ansicht,
+quer verborgen) würfelt aus `IDEEN` eine Idee, die in eine echte Lücke der gezeigten Woche passt
+(`ideeFenster()` = `freeGaps()` ohne Bereich; nicht vor 9 Uhr, Abend-Ideen ab 18 Uhr). Rechnet nur und öffnet
+höchstens `blockSheet()` vorausgefüllt — nie still speichern, keine `sug`-Blöcke. `IDEEN` ist sichtbarer Text:
+Änderungen mit Sunny abstimmen (`wuerfel.js`).
+
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
 anderen Bereich) wird *vor* der Platzierung geprüft, most-constrained-first (`regeln.js`).

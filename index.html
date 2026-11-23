@@ -3424,6 +3424,25 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .loosechip { box-shadow: none; }
 .card__title, .goal__name { font-family: var(--font-display); font-variation-settings: normal; letter-spacing: -.015em; font-weight: 750; }
 
+/* ---- v1.48 „Ideen würfeln": Knopf im Rasterkopf, Blatt mit einer Idee ---- */
+.wuerfel { gap: 6px; flex: none; }
+.wuerfel .ui-icon { width: 20px; height: 20px; }
+@media (max-width: 1100px) {
+  .wuerfel { min-width: 44px; min-height: 44px; padding: 0 10px; }
+  .wuerfel span { display: none; }
+}
+@media (max-height: 500px) and (max-width: 1000px) { .wuerfel { display: none; } }
+.idee { margin: 4px 0 var(--s-4); padding: 18px 16px; border-radius: 20px; background: var(--area-bg, var(--surface-2)); text-align: center; }
+.idee__titel { font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-size: 1.5rem; line-height: 1.2; font-weight: 660; color: var(--text); overflow-wrap: anywhere; }
+.idee__wann { margin-top: 8px; font-size: var(--t-body); color: var(--text-muted); }
+.idee__wann b { color: var(--text); font-weight: 650; }
+.idee__leer { margin: 0 0 var(--s-4); color: var(--text-muted); line-height: 1.5; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ideeRollt { from { opacity: 0; transform: translateY(8px) rotate(-3deg) scale(.96); } }
+  .idee.is-neu { animation: ideeRollt .32s var(--feder) both; }
+}
+
 /* ============================================================
    v1.47 „Ausblick": Feiertage im Monat, Vorfreude-Zähler und
    Brückentag-Tipps — im Aufkleber-Stil von v1.43 (Kontur und Versatz nur
@@ -3643,6 +3662,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
         <div><h1>Deine Woche</h1></div>
         <button type="button" class="waage" id="waage"></button>
         <div class="planhead__actions">
+          <button type="button" class="btn btn--ghost wuerfel" id="wuerfelBtn" aria-label="Idee würfeln" title="Idee für freie Zeit würfeln"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg><span>Idee würfeln</span></button>
           <button type="button" class="btn btn--primary" id="desktopAdd">+ Eintrag</button>
           <button class="fab" id="fabAdd" type="button" aria-label="Neuer Eintrag">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Eintrag</span>
@@ -9835,6 +9855,104 @@ function nachtPaar(b) {
 }
 
 /* ============================================================
+   Ideen würfeln (v1.48)
+   Eine Idee für freie Zeit, passend zu einer ECHTEN Lücke der gezeigten
+   Woche (freeGaps() ohne Bereich — dieselbe Rechnung wie das Frei-Gesicht;
+   Vergangenes, freigehaltene Tage und Feiertage liefern dort keine Lücke).
+   Das Blatt rechnet nur und öffnet höchstens blockSheet() vorausgefüllt —
+   nie still speichern (wie „Passt das noch?"). Die Ideenliste ist sichtbarer
+   Text: Änderungen daran vorher mit Sunny abstimmen.
+   ============================================================ */
+const IDEEN = [
+  { t: "Spaziergang um den Block", min: 30, art: "koerper" },
+  { t: "Ins Lieblingscafé setzen", min: 60 },
+  { t: "Ein neues Rezept ausprobieren", min: 90 },
+  { t: "Eine Stunde lesen", min: 60 },
+  { t: "Dehnen und durchatmen", min: 30, art: "koerper" },
+  { t: "Jemanden anrufen, der dir fehlt", min: 30 },
+  { t: "Filmabend mit Decke", min: 120, ab: 1080 },
+  { t: "Spieleabend", min: 120, ab: 1080 },
+  { t: "Musik an, Handy weg", min: 30 },
+  { t: "Etwas basteln oder zeichnen", min: 60 },
+  { t: "Lange baden oder heiß duschen", min: 30 },
+  { t: "Etwas Neues lernen, nur zum Spaß", min: 60 }
+];
+const IDEE_MIN = 30;
+const IDEE_FRUEH = 9 * 60;
+function ideeFenster() {
+  const liste = [];
+  weekDays().forEach(day => {
+    freeGaps(day, {}, null, {}).forEach(g => {
+      const start = Math.ceil(g.start / 15) * 15;
+      if (g.end - start >= IDEE_MIN) liste.push({ day, start, end: g.end });
+    });
+  });
+  return liste;
+}
+function ideeBereich(idee) {
+  const art = idee.art || "erholung";
+  return state.areas.find(a => a.plan && a.plan.art === art)
+    || state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0];
+}
+/* Würfelt eine Idee, die in eine der Lücken passt; "nicht" ist die zuletzt
+   gezeigte Idee und kommt nicht direkt wieder (solange es eine andere gibt). */
+function ideeWuerfeln(nicht) {
+  const fenster = ideeFenster();
+  if (!fenster.length) return null;
+  // Frühester Beginn: Abend-Ideen ("ab") nicht mittags, alle anderen nicht
+  // vor 9 Uhr — ein Café-Besuch um 7 ist eine Lücke, aber keine gute Idee.
+  const frueh = i => i.ab || IDEE_FRUEH;
+  const platz = (i, f) => f.end - Math.max(f.start, frueh(i)) >= i.min;
+  let pool = IDEEN.filter(i => fenster.some(f => platz(i, f)));
+  if (pool.length > 1 && nicht) pool = pool.filter(i => i !== nicht);
+  if (!pool.length) return null;
+  const idee = pool[Math.floor(Math.random() * pool.length)];
+  const passend = fenster.filter(f => platz(idee, f));
+  const f = passend[Math.floor(Math.random() * passend.length)];
+  const start = Math.max(f.start, frueh(idee));
+  return { idee, day: f.day, start, end: start + idee.min, area: ideeBereich(idee) };
+}
+function ideeSheet() {
+  let wurf = ideeWuerfeln(null);
+  modal((s, close) => {
+    s.innerHTML = "<h2 class='sheet__title'>Idee für freie Zeit</h2><div id='ideeFeld' aria-live='polite'></div>";
+    const feld = s.querySelector("#ideeFeld");
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const nochmal = document.createElement("button");
+    nochmal.type = "button"; nochmal.className = "btn"; nochmal.id = "ideeNochmal"; nochmal.textContent = "Nochmal würfeln";
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const zu = document.createElement("button");
+    zu.type = "button"; zu.className = "btn"; zu.textContent = "Schließen";
+    const planen = document.createElement("button");
+    planen.type = "button"; planen.className = "btn btn--primary"; planen.id = "ideePlanen"; planen.textContent = "Einplanen";
+    const zeichnen = neu => {
+      if (!wurf) {
+        feld.innerHTML = "<p class='idee__leer'>In dieser Woche ist kein freies Fenster mehr offen. Blättere eine Woche weiter und würfle dort.</p>";
+        nochmal.hidden = true; planen.hidden = true;
+        return;
+      }
+      const d = wurf.day.d;
+      feld.innerHTML = "<div class='idee" + (neu ? " is-neu" : "") + "' style='--h:" + wurf.area.hue + "'>"
+        + "<div class='idee__titel'>" + escapeHtml(wurf.idee.t) + "</div>"
+        + "<div class='idee__wann'><b>" + DAY_LONG[wurf.day.i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".</b> · "
+        + fmtTime(wurf.start) + "–" + fmtTime(wurf.end) + " · " + fmtDur(wurf.idee.min) + "</div></div>";
+    };
+    nochmal.onclick = () => { wurf = ideeWuerfeln(wurf && wurf.idee); zeichnen(true); };
+    zu.onclick = close;
+    planen.onclick = () => {
+      const w = wurf;
+      close();
+      blockSheet({ id: null, title: w.idee.t, areaId: w.area.id, day: w.day.i, date: w.day.key,
+        repeat: "none", start: w.start, end: w.end, frog: false });
+    };
+    foot.append(nochmal, sp, zu, planen);
+    s.appendChild(foot);
+    zeichnen(true);
+  });
+}
+
+/* ============================================================
    Lieblingssteine (v1.48) — „Oft geplant" im neuen Eintrag
    Kein Baukasten zum Pflegen: die Steine entstehen aus dem, was wirklich
    mehrfach im Plan steht (gleicher Titel im selben Bereich, mindestens
@@ -13654,6 +13772,7 @@ document.querySelectorAll("#panelNav button").forEach(b => {
   };
 });
 $("#desktopAdd").onclick = () => $("#fabAdd").onclick();
+$("#wuerfelBtn").onclick = () => ideeSheet();
 
 /* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
    ab der nächsten vollen Stunde, aber nicht in der Vergangenheit. */
