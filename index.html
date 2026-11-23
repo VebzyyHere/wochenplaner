@@ -3404,6 +3404,27 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 @media (hover: hover) { .planhead .waage:hover { background: var(--surface-2); } }
 
 /* ============================================================
+   v1.48 „Ruhe" — der Aufkleber-Effekt nur noch dort, wo man drückt
+   (Sunny, 2026-11-23: „ruhig, ausgewogen, clean" und trotzdem verspielt).
+   Vorher trug fast jede Fläche Kontur + Versatz; wenn alles ein Aufkleber
+   ist, fällt keiner mehr auf. Jetzt: Behälter (Listen, Karten, Ziele,
+   Termine im Raster) sind flach mit feiner Kante; Kontur und Versatz
+   bleiben den Dingen, die man drückt (Hauptknopf, gewählter Chip, „+",
+   Planen-Knopf, Haken, Eingabezeile). Weiterhin nur box-shadow, nie border
+   — kein Maß ändert sich, die Falz-Verträge bleiben unberührt.
+   Fraunces sparsamer: Blatt- und Ansichtstitel, Schwerpunkt, laufender
+   Termin und Tageszahlen; Kartentitel und Bereichsnamen stehen in Gabarito.
+   ============================================================ */
+:root { --fein: 0 0 0 1px var(--border); }
+.agenda__list, .energy, .goal, .task { box-shadow: var(--fein); }
+.freischalter { box-shadow: none; background: transparent; }
+/* Termine: die Farbe des Bereichs trägt die Kante, kein dunkler Rahmen. */
+.block, .block:hover { box-shadow: inset 0 0 0 1.5px var(--area-line); }
+.block.is-sug { box-shadow: none; }
+.loosechip { box-shadow: none; }
+.card__title, .goal__name { font-family: var(--font-display); font-variation-settings: normal; letter-spacing: -.015em; font-weight: 750; }
+
+/* ============================================================
    v1.47 „Ausblick": Feiertage im Monat, Vorfreude-Zähler und
    Brückentag-Tipps — im Aufkleber-Stil von v1.43 (Kontur und Versatz nur
    über box-shadow). Honig bleibt bei „heute" und Aufklebern: der

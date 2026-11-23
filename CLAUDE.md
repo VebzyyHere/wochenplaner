@@ -268,6 +268,11 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   `--ol` = `--rand` (3:1, `kontrastlauf.js`). Überschriften/große Zahlen in eingebetteter Fraunces
   (SOFT 100), Text bleibt Gabarito (`freude.js` prüft beides). Ganz abgehakte Ziele: `.goal.is-geschafft`
   mit Honigstern. Keine Dauer-Animationen (`doppeltipp.js` d misst knapp unter 100 ms).
+- „Ruhe" (v1.48, Sunny 2026-11-23: „ruhig, ausgewogen, clean", verspielt bleiben): Stilschicht nach v1.46.
+  Kontur + Versatz (`--hart`) nur noch auf dem, was man drückt (Hauptknopf, gewählter Chip, „+", Planen,
+  Haken, Eingabezeile, „Passt das noch?"); Behälter (`.agenda__list`, `.energy`, `.goal`, `.task`) flach mit
+  `--fein`, Termine im Raster mit Kante in Bereichsfarbe (`--area-line`). Fraunces nur für Blatt- und
+  Ansichtstitel, Schwerpunkt, laufenden Termin und Tageszahlen. Neue Flächen: erst fragen „drückt man das?".
 - Tage einkreisen (Review 2026-10-25): heute = Honigring `--honig-ring` (3:1) auf allen Flächen
   (Tagesband, Desktop-Tageskopf, Monat); gewählt = gefüllte Pille bzw. Mint-Spalte; beides = Pille mit
   Honigring und `--raised`-Rand dazwischen. Frei = Mulde `--tray` mit kleinem Ring statt Strich (wie im
