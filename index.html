@@ -8260,8 +8260,8 @@ function renderGoals() {
 
   if (!withGoal.length) {
     list.innerHTML =
-      "<div class='empty'><b>Noch keine Wochenziele</b>Für alles ohne feste Uhrzeit: sag, wie viele Stunden " +
-      "pro Woche du willst — z.B. 10 h Lernen. Wann genau, entscheidest du später.</div>";
+      "<div class='empty'><b>Noch keine Wochenziele</b>Für alles ohne feste Uhrzeit: " +
+      "wie viele Stunden pro Woche? Zum Beispiel 10 h Lernen.</div>";
     const b = document.createElement("button");
     b.className = "btn btn--primary btn--sm";
     b.textContent = "Wochenziel festlegen";
@@ -10732,7 +10732,7 @@ function renderTasks() {
   foot.hidden = true; foot.innerHTML = "";
 
   if (!state.tasks.length) {
-    list.innerHTML = "<div class='empty'><b>Was möchtest du angehen?</b>Notiere die nächste konkrete Handlung. Über „Planen“ bekommt sie einen Platz im Wochenplan.</div>";
+    list.innerHTML = "<div class='empty'><b>Was möchtest du angehen?</b>Notiere den nächsten Schritt. „Planen“ gibt ihm einen Platz in der Woche.</div>";
     return;
   }
 
@@ -11278,10 +11278,10 @@ $("#wochenkarteBtn").onclick = () => wochenkarteSheet();
 
 /* ============================================================ Tagesform */
 const ENERGY = {
-  low:  { text: "<b>Wenig Energie.</b> Dann muss nicht alles heute sein. Der Planer zeigt dir unten, was an diesem Tag optional ist — streichen oder verschieben ist auch eine Entscheidung." },
-  mid:  { text: "<b>Normal.</b> Das Wichtigste zuerst, der Rest ergibt sich. Pausen nimmst du, wenn du sie brauchst — nicht, wenn ein Timer klingelt." },
-  high: { text: "<b>Viel Energie.</b> Guter Tag für das, was sonst liegen bleibt. Nimm es dir jetzt, bevor der Tag es frisst." },
-  none: { text: "Wie fühlst du dich heute? An einem schwachen Tag zeigt der Planer, was heute nicht sein muss — an einem starken bleibt er still." }
+  low:  { text: "<b>Wenig Energie.</b> Nicht alles muss heute sein. Unten steht, was warten kann." },
+  mid:  { text: "<b>Normal.</b> Das Wichtigste zuerst, der Rest ergibt sich." },
+  high: { text: "<b>Viel Energie.</b> Guter Tag für das, was sonst liegen bleibt." },
+  none: { text: "Wie fühlst du dich heute? An einem schwachen Tag zeigt der Planer, was warten kann." }
 };
 
 function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
