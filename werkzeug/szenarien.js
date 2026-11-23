@@ -377,10 +377,10 @@ async function boot(br, devName) {
       'P5b) Wuerfel-Knopf getoent (' + desk.wuerfelBg + '), moderne Button-Radien (' + desk.btnRadius + ')');
 
     await p.screenshot({ path: path.join(__dirname, 'sz-desktop-hell.png') });
-    await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+    await p.evaluate(() => { state.settings.theme = 'dark'; applyTheme(); });
     await p.waitForTimeout(150);
     await p.screenshot({ path: path.join(__dirname, 'sz-desktop-dunkel.png') });
-    await p.evaluate(() => document.documentElement.removeAttribute('data-theme'));
+    await p.evaluate(() => { state.settings.theme = 'light'; applyTheme(); });
 
     await p.click('#wuerfelBtn');
     await p.waitForSelector('.idee__meta');
@@ -388,6 +388,108 @@ async function boot(br, devName) {
     await p.screenshot({ path: path.join(__dirname, 'sz-idee-blatt.png') });
 
     ok(errs.length === 0, 'P5c) Keine Konsolenfehler');
+    alleErrs.push(...errs);
+    await ctx.close();
+  }
+
+  /* ---- 6. Persona: iPhone 16 Pro (Dynamic Island, Footer-Spalt, Bereichs-Loeschung) ---- */
+  console.log('\n=== Persona 6: iPhone 16 Pro Safe-Area, Sticky-Footer & Bereich-Loesch-Fix ===');
+  {
+    const ctx = await br.newContext({
+      viewport: { width: 393, height: 852 },
+      hasTouch: true, isMobile: true, deviceScaleFactor: 3,
+      timezoneId: 'Europe/Berlin', locale: 'de-DE'
+    });
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+    p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+    await p.clock.setFixedTime(new Date('2026-11-25T10:20:00+01:00'));
+    await p.goto(F + '?beispiel');
+    await p.waitForFunction(() => typeof syncSettled !== 'undefined' && syncSettled);
+    await p.evaluate(() => {
+      if (typeof closeModal === 'function') closeModal();
+      document.documentElement.style.setProperty('--safe-top', '59px');
+      document.documentElement.style.setProperty('--safe-bottom', '34px');
+      setView('plan');
+    });
+    await p.waitForTimeout(250);
+
+    const ios = await p.evaluate(() => {
+      const htmlCs = getComputedStyle(document.documentElement);
+      const kopfCs = getComputedStyle(document.getElementById('kopf'));
+      const topbar = document.querySelector('.topbar').getBoundingClientRect();
+      state.settings.theme = 'dark'; applyTheme();
+      const darkCs = getComputedStyle(document.documentElement).colorScheme;
+      state.settings.theme = 'light'; applyTheme();
+      const lightCs = getComputedStyle(document.documentElement).colorScheme;
+      return {
+        gleich: htmlCs.backgroundColor === kopfCs.backgroundColor,
+        blur: kopfCs.backdropFilter,
+        topbarTop: Math.round(topbar.top),
+        darkCs, lightCs
+      };
+    });
+    ok(ios.gleich && ios.blur === 'none', 'P6a) Browser-Modus hat deckenden --kopf-flach auf html und #kopf');
+    ok(ios.darkCs.includes('dark') && ios.lightCs.includes('light'), 'P6b) color-scheme folgt Hell/Dunkel (' + ios.lightCs + ' / ' + ios.darkCs + ')');
+    await p.screenshot({ path: path.join(__dirname, 'sz-iphone16-plan.png') });
+
+    await p.click('#tabAdd');
+    await p.waitForSelector('#bTitle');
+    await p.waitForTimeout(250);
+    await p.evaluate(() => document.getAnimations().forEach(a => a.finish()));
+    await p.waitForTimeout(50);
+    const modalCheck = await p.evaluate(() => {
+      const s = document.querySelector('.sheet');
+      const f = document.querySelector('.sheet__foot');
+      const sr0 = s.getBoundingClientRect();
+      const fr0 = f.getBoundingClientRect();
+      s.scrollTop = 64;
+      const sr = s.getBoundingClientRect();
+      const fr = f.getBoundingClientRect();
+      const hitLeft = document.elementFromPoint(sr.left + 28, fr.bottom - 8);
+      const hitRight = document.elementFromPoint(sr.right - 28, fr.bottom - 8);
+      const keinDurchblitzer = hitLeft && hitLeft.closest('.sheet__foot') && hitRight && hitRight.closest('.sheet__foot');
+      s.scrollTop = 0;
+      const fromR = document.getElementById('bFrom').getBoundingClientRect();
+      const toR = document.getElementById('bTo').getBoundingClientRect();
+      const datR = document.getElementById('bDatum').getBoundingClientRect();
+      return {
+        footBuendig: Math.abs(fr0.bottom - sr0.bottom) <= 1.5 && Math.abs(fr.bottom - sr.bottom) <= 1.5,
+        keinDurchblitzer: Boolean(keinDurchblitzer),
+        zeitOk: fromR.right <= toR.left + 1 && toR.right <= sr.right + 1 && datR.right <= sr.right + 1,
+        quer: s.scrollWidth > s.clientWidth + 1,
+        hasSwitch: getComputedStyle(document.getElementById('bSperrt')).appearance
+      };
+    });
+    ok(modalCheck.footBuendig && modalCheck.keinDurchblitzer, 'P6c) Sticky-Footer buendig ohne 34px-Spalt / durchblitzende Chips');
+    ok(modalCheck.zeitOk && !modalCheck.quer, 'P6d) iOS Date/Time-Felder sauber innerhalb der Box');
+    await p.screenshot({ path: path.join(__dirname, 'sz-iphone16-neu.png') });
+
+    // Klick auf „Oft geplant“ darf kein zweites Fenster (.blatt-abgang) erzeugen
+    await p.click('#bLieblinge .chip >> nth=0');
+    await p.waitForTimeout(80);
+    const keinGhost = await p.evaluate(() => document.querySelectorAll('.blatt-abgang').length === 0 && !!document.querySelector('#bTitle').value);
+    ok(keinGhost, 'P6e) Tippen auf „Oft geplant" uebernimmt ohne doppeltes Ueberlapp-Fenster');
+    await p.evaluate(() => closeModal());
+    await p.waitForTimeout(100);
+
+    // Bereich-Loesch-Bug-Probe im zweiten Plan
+    const hauptBefore = await p.evaluate(() => state.areas.filter(a => !a.kalender).map(a => a.id).join());
+    await p.click('#planBtn');
+    await p.waitForSelector('.planzeile__wahl >> nth=1');
+    await p.click('.planzeile__wahl >> nth=1');
+    await p.waitForTimeout(200);
+    await p.click('#settingsBtn');
+    await p.waitForSelector('.setmenu__item');
+    await p.click('.setmenu__item:has-text("Bereiche")');
+    await p.waitForSelector('#sAreas .arearow button.btn--danger');
+    await p.click('#sAreas .arearow button.btn--danger >> nth=0');
+    await p.waitForTimeout(150);
+    const hauptAfter = await p.evaluate(() => state.areas.filter(a => !a.kalender).map(a => a.id).join());
+    ok(hauptBefore === hauptAfter, 'P6f) Bereich-Loeschen im zweiten Plan laesst „Meine Woche"-Bereiche unberuehrt');
+
+    ok(errs.length === 0, 'P6g) Keine Konsolenfehler');
     alleErrs.push(...errs);
     await ctx.close();
   }

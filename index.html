@@ -7,11 +7,11 @@
 <meta name="description" content="Deine Woche in Stunden statt nur in Terminen. Feste Termine, Wochenziele und Erholung in einem Plan.">
 <!-- Farbe der Statusleiste; wird beim Umschalten des Erscheinungsbilds
      aus dem Code nachgezogen. -->
-<meta name="theme-color" id="themeColor" content="#ffffff">
+<meta name="theme-color" id="themeColor" content="#f0f6ee">
 <!-- Vom Homescreen starten: ohne Browserleiste, mit eigenem Namen. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Wochenplan">
 <!-- Manifest und Symbole liegen als eigene Dateien daneben. Wer die
      Einzeldatei heruntergeladen hat, hat sie nicht — dort wuerden drei
@@ -20,6 +20,20 @@
      genug, dass der Browser die App als installierbar erkennt. -->
 <script>
 (function () {
+  try {
+    var key = location.search.indexOf("beispiel") !== -1 ? "wochenplaner.beispiel" : "wochenplaner.local";
+    var raw = localStorage.getItem(key);
+    var saved = raw ? JSON.parse(raw) : null;
+    var mode = (saved && saved.settings && saved.settings.theme) || "auto";
+    var dark = mode === "auto"
+      ? (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      : mode === "dark";
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    var app = (window.matchMedia && (window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: minimal-ui)").matches)) || navigator.standalone === true;
+    document.documentElement.dataset.app = app ? "1" : "0";
+    var mc = document.getElementById("themeColor");
+    if (mc) mc.setAttribute("content", dark ? "#121c15" : "#f0f6ee");
+  } catch (e) {}
   if (location.protocol.indexOf("http") !== 0) return;
   var v = [["manifest", "manifest.json"], ["apple-touch-icon", "apple-touch-icon.png"], ["icon", "icon-192.png"]];
   for (var i = 0; i < v.length; i++) {
@@ -332,30 +346,23 @@ textarea.field { min-height: 72px; padding: 10px var(--s-3); line-height: 1.45; 
    (s. Responsive). */
 .kopf {
   flex: none; position: relative; z-index: 30;
-  background: var(--surface);
+  background: var(--kopf-flach);
   border-bottom: 1px solid var(--border);
 }
 .tabbar, .sugbar { background: var(--surface); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .kopf, .tabbar, .sugbar {
+  .tabbar, .sugbar {
     background: var(--glas);
     -webkit-backdrop-filter: blur(24px) saturate(1.8);
     backdrop-filter: blur(24px) saturate(1.8);
   }
-  .kopf { border-bottom: 0; box-shadow: var(--glas-schatten), inset 0 -1px 0 var(--glas-kante); }
 }
-/* v1.33: vom Home-Bildschirm gestartet (html[data-app="1"]) legt iOS ab 26
-   seinen Liquid-Glass-„Scroll-Edge-Effekt" über den oberen Rand — überall
-   dort, wo es keine flache Farbe abtasten kann. Über unserem durchscheinenden
-   Kopf wusch das die KW-Zeile aus (iOS 27, Screenshot vom 2026-09-26). Hier
-   ist der Kopf deshalb flach und deckend, in genau der theme-color. Das Glas
-   bleibt unten (Tab- und Vorschlagsleiste) und im Browser. */
-/* Auch die Leinwand darunter trägt dieselbe Farbe — nichts Andersfarbiges
-   am oberen Rand, das iOS abtasten könnte. */
-html[data-app="1"] { background: var(--kopf-flach); }
-html[data-app="1"] .kopf {
-  background: var(--kopf-flach) !important;
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+/* Auch die Leinwand darunter trägt überall die flache Kopffarbe (Browser & PWA),
+   damit iOS 26 / Safari keinen Liquid-Glass-Scroll-Edge-Blur über den Kopf zieht. */
+html { background: var(--kopf-flach); }
+.kopf {
+  background: var(--kopf-flach);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
   box-shadow: 0 1px 0 var(--glas-linie);
 }
 /* Wer „Transparenz reduzieren" eingeschaltet hat, bekommt volle Flächen. */
@@ -1670,7 +1677,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   color: var(--text);
 }
 .banner b { font-weight: 700; }
-.banner--beispiel { flex-wrap: nowrap; padding-top: max(6px, var(--safe-top)); padding-bottom: 6px; background: var(--tray); border-bottom: 1px solid var(--fein, var(--rand)); }
+.banner--beispiel { flex-wrap: nowrap; padding-top: max(6px, calc(var(--safe-top) + min(var(--safe-top), 6px))); padding-bottom: 6px; background: var(--tray); border-bottom: 1px solid var(--border); }
 .banner--beispiel > span { flex: 1 1 auto; min-width: 0; }
 .banner--beispiel .btn { flex: none; }
 .app:has(.banner) .topbar { padding-top: 4px; }
@@ -1817,8 +1824,8 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
      nur feste/klebende Elemente — ein absolut gesetzter Kopf galt nicht als
      Rand, und iOS 26/27 legte trotz deckender Farbe sein Glas darüber. */
   .kopf { position: fixed; top: 0; left: 0; right: 0; }
-  .panel { padding-top: calc(var(--kopf-h, 0px) + var(--s-3)); scroll-padding-top: var(--kopf-h, 0px); }
-  .planwrap { padding-top: var(--kopf-h, 0px); }
+  .panel { padding-top: calc(var(--kopf-h, calc(var(--safe-top) + 52px)) + var(--s-3)); scroll-padding-top: var(--kopf-h, calc(var(--safe-top) + 52px)); }
+  .planwrap { padding-top: var(--kopf-h, calc(var(--safe-top) + 52px)); }
   body[data-mview="plan"] .panel { display: none; }
   body:not([data-mview="plan"]) .planwrap { display: none; }
   body[data-mview="ziele"]    .card:not([data-card="ziele"]):not(.ritual),
@@ -1956,7 +1963,7 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
       overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
     }
   }
-  .topbar { padding: 4px max(var(--s-2), var(--safe-right)) 4px max(var(--s-2), var(--safe-left)); gap: 0; }  .topbar { padding-top: max(4px, var(--safe-top)); }
+  .topbar { padding: 4px max(var(--s-2), var(--safe-right)) 4px max(var(--s-2), var(--safe-left)); padding-top: max(4px, calc(var(--safe-top) + min(var(--safe-top), 6px))); gap: 0; }
   .sheet { max-width: 100%; max-height: min(88dvh, calc(var(--sicht-hoehe) - var(--safe-top) - 8px));
     border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: auto; }
   .scrim { padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); align-items: flex-end; }
@@ -3124,7 +3131,7 @@ html[data-theme="dark"] .scrim { background: oklch(0.1 0.01 170 / .62); }
   /* Die Feder schießt ein Stück über das Ziel hinaus — der zweite, flache
      Schatten in Blattfarbe füllt die Lücke darunter (in Ruhe liegt er
      unterhalb des Bildschirms). */
-  .sheet { animation: blattFeder .46s var(--feder); box-shadow: var(--shadow-3), 0 48px 0 var(--surface); }
+  .sheet { animation: blattFeder .46s var(--feder); box-shadow: 0 48px 0 var(--surface), var(--shadow-3); }
 }
 .blatt-abgang { pointer-events: none; }
 
@@ -3207,16 +3214,12 @@ html[data-theme="dark"] .scrim { background: oklch(0.1 0.01 170 / .62); }
   --honig:       oklch(0.780 0.150 82);
   --honig-ring:  oklch(0.620 0.130 72);   /* Ringe brauchen 3:1 gegen den Grund */
   --lippe:       oklch(0.200 0.050 150 / .35);
-  --wald-tasse:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='%23ffffff' stroke-width='9' fill='%23ffffff'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26'/%3E%3C/g%3E%3Cg stroke='%232a4a35' stroke-width='2.6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z' fill='%23f0bf3c'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52' fill='none'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28' fill='none'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26' fill='none'/%3E%3C/g%3E%3C/svg%3E");
   --ol:          var(--gruen-6);       /* Aufkleberkontur */
   --ring:        var(--ol);            /* Kontur an Haken und Schaltern */
   --kontur:      0 0 0 2px var(--ol);
   --schlag:      var(--ol);            /* Farbe des harten Versatzschattens */
   --hart:        0 0 0 2px var(--ol), 3px 3px 0 2px var(--schlag);
   --hart-klein:  inset 0 0 0 2px var(--ol), 2px 2px 0 0 var(--schlag);
-  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23ffffff'%20stroke-width%3D'9'%20fill%3D'%23ffffff'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%232a4a35'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%20fill%3D'%238fcf9c'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%20fill%3D'%235fae74'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%20fill%3D'%23c5e6a5'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%20fill%3D'%23f0bf3c'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
-  --wald-stern:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23ffffff'%20stroke-width%3D'9'%20fill%3D'%23ffffff'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%232a4a35'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%20fill%3D'%23f0bf3c'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
-  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%23dcecd8'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%23c2e0c4'%2F%3E%3C%2Fsvg%3E");
   --glas:        var(--gruen-1);
   --glas-linie:  oklch(0.880 0.022 140);
   --glas-schatten: 0 1px 0 oklch(0.880 0.022 140);
@@ -3230,6 +3233,16 @@ html[data-theme="dark"] {
   --gruen-4: oklch(0.760 0.130 145);
   --gruen-5: oklch(0.810 0.120 142);
   --gruen-6: oklch(0.945 0.014 140);
+  --bg:          var(--gruen-1);
+  --text:        var(--gruen-6);
+  --ink:         var(--gruen-5);
+  --focus:       var(--gruen-5);
+  --selected:    var(--gruen-2);
+  --lime:        var(--gruen-5);
+  --tief:        var(--gruen-5);
+  --jade:        var(--gruen-4);
+  --success:     var(--gruen-4);
+  --bar-btn:     var(--gruen-3);
   --surface:     oklch(0.255 0.024 150);
   --surface-2:   oklch(0.290 0.026 150);
   --surface-3:   oklch(0.320 0.026 150);
@@ -3253,15 +3266,11 @@ html[data-theme="dark"] {
   --honig:       oklch(0.830 0.140 84);
   --honig-ring:  oklch(0.830 0.140 84);
   --lippe:       oklch(0 0 0 / .30);
-  --wald-tasse:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='%23e9f2e6' stroke-width='9' fill='%23e9f2e6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26'/%3E%3C/g%3E%3Cg stroke='%2316261c' stroke-width='2.6'%3E%3Cpath d='M18 34 H54 V50 C54 60 46 66 36 66 C26 66 18 60 18 50Z' fill='%23e7b93a'/%3E%3Cpath d='M54 38 C64 38 66 50 54 52' fill='none'/%3E%3Cpath d='M28 14 C24 20 32 22 28 28' fill='none'/%3E%3Cpath d='M38 12 C34 18 42 20 38 26' fill='none'/%3E%3C/g%3E%3C/svg%3E");
   /* Dunkel: Kontur im hellen Randton (3:1 gegen die Fläche), der Versatz
      als tiefer Waldschatten. */
   --ol:          var(--rand);
   --schlag:      oklch(0.120 0.020 150);
   --ring:        var(--rand);
-  --wald-zweig:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23e9f2e6'%20stroke-width%3D'9'%20fill%3D'%23e9f2e6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%2316261c'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M20%2072%20C30%2056%2042%2042%2062%2024'%20fill%3D'none'%2F%3E%3Cpath%20d%3D'M31%2058%20C22%2055%2016%2046%2017%2037%20C26%2040%2032%2047%2031%2058Z'%20fill%3D'%236fb682'%2F%3E%3Cpath%20d%3D'M41%2047%20C40%2036%2046%2028%2056%2025%20C56%2035%2050%2043%2041%2047Z'%20fill%3D'%234c9562'%2F%3E%3Cpath%20d%3D'M50%2037%20C44%2033%2041%2025%2043%2017%20C51%2020%2054%2028%2050%2037Z'%20fill%3D'%23a9d38e'%2F%3E%3Ccircle%20cx%3D'64'%20cy%3D'20'%20r%3D'5'%20fill%3D'%23e7b93a'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
-  --wald-stern:  url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2080%2080'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%20%3Cg%20stroke%3D'%23e9f2e6'%20stroke-width%3D'9'%20fill%3D'%23e9f2e6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%2F%3E%3C%2Fg%3E%20%3Cg%20stroke%3D'%2316261c'%20stroke-width%3D'2.6'%3E%3Cpath%20d%3D'M40%2010%20C42%2028%2052%2038%2070%2040%20C52%2042%2042%2052%2040%2070%20C38%2052%2028%2042%2010%2040%20C28%2038%2038%2028%2040%2010Z'%20fill%3D'%23e7b93a'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
-  --wald-huegel: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20400%20120'%20preserveAspectRatio%3D'none'%3E%20%3Cpath%20d%3D'M0%2090%20C60%2060%20110%2064%20160%2080%20C220%2098%20260%2050%20320%2056%20C360%2060%20385%2074%20400%2080%20V120%20H0Z'%20fill%3D'%2322382c'%2F%3E%20%3Cpath%20d%3D'M0%20104%20C70%2084%20140%2092%20200%20100%20C270%20110%20330%2086%20400%2096%20V120%20H0Z'%20fill%3D'%231b3024'%2F%3E%3C%2Fsvg%3E");
   --glas:        oklch(0.215 0.022 150);
   --glas-linie:  oklch(0.345 0.024 150);
   --glas-schatten: 0 1px 0 oklch(0.345 0.024 150);
@@ -3310,21 +3319,7 @@ html[data-theme="dark"] .dayswitch__btn[aria-pressed="true"]:not(.is-today) { bo
 }
 .monatcell.is-today b { width: 26px; height: 26px; }
 
-/* ---- Heute: Aufkleber-Zweig, Liste als Karte mit Kontur ---------------- */
-/* Der Zweig klebt am Schwerpunkt, rechts in eigener Spalte: die Zeile hält
-   ihm Platz frei, so läuft kein Text darunter (auch nicht an freien Tagen,
-   an denen Gruß und Ring fehlen). */
-.agenda__frog { position: relative; padding-right: 50px; }
-.agenda__frog::after {
-  content: ""; position: absolute; right: -2px; bottom: 2px; width: 46px; height: 46px;
-  background: var(--wald-zweig) no-repeat center / contain; pointer-events: none;
-  transform: rotate(8deg);
-}
-/* Bewusst frei: eine Tasse Tee als Aufkleber über dem Satz. */
-.empty--frei::before {
-  content: ""; display: block; width: 56px; height: 56px; margin: 0 auto 6px;
-  background: var(--wald-tasse) no-repeat center / contain; transform: rotate(-6deg);
-}
+.agenda__frog { position: relative; padding-right: 0; }
 .agenda__list, .freischalter, .task, .energy, .taskadd, .zusage__einstieg { box-shadow: var(--hart); }
 .agenda__list:has(> .is-vorschlag) { box-shadow: none; }
 .agenda__row.is-vorschlag { border-color: var(--ol); background: var(--surface); }
@@ -3336,13 +3331,9 @@ html[data-theme="dark"] .dayswitch__btn[aria-pressed="true"]:not(.is-today) { bo
 .switch.freischalter input::after { box-shadow: 0 0 0 2px var(--ring); }
 .switch.freischalter input:checked { background: var(--ink); box-shadow: inset 0 0 0 2px var(--ring); }
 
-/* ---- Ziele: jeder Bereich ein Aufkleber, der Stern klebt am Ziel ------- */
-.goal { position: relative; padding: 12px 14px 14px; margin: 0 0 14px; border-radius: 20px;
+/* ---- Ziele: jeder Bereich ---------------------------------------------- */
+.goal { position: relative; padding: 12px 14px 14px; margin: 0 0 14px; border-radius: 14px;
   background: var(--surface); box-shadow: var(--hart); }
-.goal.is-geschafft::after {
-  content: ""; position: absolute; right: -10px; top: -12px; width: 40px; height: 40px;
-  background: var(--wald-stern) no-repeat center / contain; transform: rotate(14deg); pointer-events: none;
-}
 .mulden { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--ring); }
 .stein:not(.stein--plan):not(.stein--grob):not(.stein--sug) { box-shadow: inset 0 0 0 2px var(--ring), inset 0 3px 0 var(--hi); }
 
@@ -3369,17 +3360,6 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
     transform: translate(3px, 3px); box-shadow: var(--kontur) !important; transition-duration: .07s;
   }
   .btn:not(.btn--primary):active, .energy__opt:active { transform: scale(.96); transition-duration: .07s; }
-  /* Der gewählte Reiter hebt sein Symbol ein Stück an und kippt es leicht. */
-  .tabbar button .ui-icon { transition: transform .34s var(--feder); }
-  .tabbar button[aria-current="true"] .ui-icon { transform: translateY(-2px) rotate(-6deg) scale(1.08); }
-}
-
-/* Hügel am Fuß des Arbeitsbereichs (Desktop) — dort ist unten Luft. */
-@media (min-width: 1101px) {
-  .main > .panel {
-    background-image: var(--wald-huegel); background-repeat: no-repeat;
-    background-position: bottom; background-size: 100% 72px;
-  }
 }
 /* ============================================================
    v1.46 Prüfung (2026-11) — kleine Korrekturen aus der Nutzerprüfung
@@ -3711,7 +3691,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .planliste { display: flex; flex-direction: column; gap: var(--s-2); }
 .planzeile { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .planzeile__wahl { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px;
-  text-align: left; border-radius: 16px; border: 1.5px solid var(--fein, var(--rand)); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+  text-align: left; border-radius: 14px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
 .planzeile__wahl[aria-pressed="true"] { border-color: var(--ink); background: var(--tray); box-shadow: var(--hart-klein, none); }
 .planzeile__emoji { font-size: 1.4em; line-height: 1; flex: none; }
 .planzeile__text { display: flex; flex-direction: column; min-width: 0; }
@@ -4029,6 +4009,180 @@ html[data-theme="dark"] .btn.wuerfel {
   border-top: 1px solid var(--border);
   padding-top: var(--s-3);
 }
+
+/* ============================================================
+   v1.61 „Ein Guss & iPhone-14–17-Politur" (Pakete A + B + C)
+   - Einheitliche 4-Stufen-Radien-Skala (6 / 10 / 14 / 20 px + Kreise 50 %)
+   - Deckender iOS-26-Kopf (Browser & PWA), dynamisches color-scheme
+   - Sauberer Sticky-Footer, normalisierte Date/Time-Felder, Toasts unter Scrim
+   - Konsistente Icons, Segmente (Hell/Dunkel) und einheitliche Toggle-Switches
+   ============================================================ */
+:root {
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-ctl: var(--r-sm);
+  --r-chip: 8px;
+  --r-seg: var(--r-sm);
+  --r-toast: var(--r-md);
+  --radius: var(--r-md);
+  --radius-sm: var(--r-sm);
+  --radius-lg: var(--r-lg);
+}
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+html, .kopf, html[data-app="1"] .kopf {
+  background: var(--kopf-flach);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Radien überall konsequent auf 4 Stufen (6 / 10 / 14 / 20 px) */
+.tag, .dayhead__frei, .planhead__feiertag, .task__frist.is-nah, .kuerzel kbd,
+.waage button.waage__item, .waage button.waage__sum { border-radius: var(--r-xs); }
+.field, .planbtn, .syncbadge, .dayswitch__btn, .dayswitch__heute,
+.kommt__wann, .fremd, .monatcell, .monatweek, .hakenrow, .arearow__swatch { border-radius: var(--r-sm); }
+:focus-visible { border-radius: var(--r-sm); }
+.field:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.agenda__hero, .agenda__list, .agenda__row, .agenda__row.is-vorschlag,
+.card, .task, .goal, .idee, .tipp, .kommt__row, .ausblick__leer,
+.planzeile__wahl, .planvorlage, .planneu, .zusage__einstieg, .zusage__var,
+.zsteinzeile, .setmenu, .acct, .goalrow, .reliefrow, .abschlussrow, .toast {
+  border-radius: var(--r-md);
+}
+.agenda__row.is-wisch, .agenda__row.is-wisch-links { border-radius: var(--r-md); }
+.agenda__row.is-wisch::before { border-radius: var(--r-md); }
+.sheet, .wochenkarte { border-radius: var(--r-lg); }
+@media (max-width: 640px) {
+  .sheet { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+}
+@media (max-height: 500px) and (max-width: 1000px) {
+  body[data-sugoben="1"][data-sugbar="1"] .sugbar { border-radius: var(--r-md); }
+}
+
+/* Segment-Steuerungen in Hell & Dunkel einheitlich (--raised im aktiven Zustand) */
+.panelnav, .tagesform .energy, .planmode {
+  background: var(--tray);
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+@media (min-width: 1101px) {
+  .panelnav { box-shadow: 0 -12px 0 12px var(--bg); }
+}
+.panelnav button, .tagesform .energy__opt, .planmode button {
+  border-radius: 7px;
+  border: 0;
+}
+.panelnav button[aria-current="true"],
+.tagesform .energy__opt[aria-pressed="true"],
+.planmode button[aria-pressed="true"] {
+  background: var(--raised);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--rand);
+}
+
+/* Einheitlicher Toggle-Switch für alle booleschen Schalter (ohne runde Haken-Box) */
+.switch { min-height: 44px; }
+.switch > input[type="checkbox"]:not(.task__check),
+.switch.freischalter > input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--tray);
+  border: 1.5px solid var(--rand);
+  box-shadow: none;
+  cursor: pointer;
+  transition: background .18s, border-color .18s;
+}
+.switch > input[type="checkbox"]:not(.task__check)::after,
+.switch.freischalter > input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px oklch(0 0 0 / .24);
+  transition: transform .2s var(--feder), background .18s;
+}
+html[data-theme="dark"] .switch > input[type="checkbox"]:not(.task__check)::after,
+html[data-theme="dark"] .switch.freischalter > input[type="checkbox"]::after {
+  background: var(--text);
+}
+.switch > input[type="checkbox"]:not(.task__check):checked,
+.switch.freischalter > input[type="checkbox"]:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow: none;
+}
+.switch > input[type="checkbox"]:not(.task__check):checked::after,
+.switch.freischalter > input[type="checkbox"]:checked::after {
+  transform: translateX(20px);
+  background: var(--on-ink);
+  box-shadow: none;
+}
+
+/* Einheitliche Icons */
+.syncbadge__ico { width: 20px; height: 20px; }
+.tabbar svg { stroke-width: 1.8; }
+.fab svg { stroke-width: 2; stroke-linejoin: round; }
+
+/* iPhone Modal- & Eingabe-Politur (kein Versatz, kein Durchscheinen, kein Toast über Dialog) */
+.scrim, .sheet { overscroll-behavior: contain; }
+.sheet { -webkit-overflow-scrolling: touch; }
+.sheet:has(> .sheet__foot) { padding-bottom: 0 !important; }
+.sheet__foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin: var(--s-5) calc(var(--s-5) * -1) 0;
+  padding: var(--s-3) var(--s-5) var(--s-4);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -10px 14px -10px oklch(0.2 0.02 var(--h-ink) / 0.14);
+}
+html[data-theme="dark"] .sheet__foot {
+  box-shadow: 0 -10px 14px -10px oklch(0 0 0 / 0.45);
+}
+@media (max-width: 640px) and (pointer: coarse) {
+  .sheet {
+    max-height: calc(var(--sicht-hoehe) - max(64px, calc(var(--safe-top) + 12px))) !important;
+  }
+  .sheet__foot {
+    padding-bottom: calc(var(--s-4) + var(--safe-bottom));
+  }
+  html[data-kb="1"] .sheet {
+    max-height: calc(var(--sicht-hoehe) - max(12px, var(--safe-top))) !important;
+  }
+  html[data-kb="1"] .sheet__foot {
+    padding-bottom: var(--s-3);
+  }
+}
+@media (max-width: 1100px) {
+  .sheet__foot--eintrag .spacer { display: none; }
+  .sheet__foot--eintrag:has(> .btn--leise) .spacer {
+    display: block; order: 1; flex: 1 0 100%; height: 0;
+  }
+}
+input.field[type="date"],
+input.field[type="time"] {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  line-height: normal;
+}
+body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
 </style>
 </head>
 <body>
@@ -4059,7 +4213,7 @@ html[data-theme="dark"] .btn.wuerfel {
     </button>
     <button class="syncbadge" id="syncBadge" hidden></button>
     <button class="btn btn--sm" id="todayBtn">Heute</button>
-    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-.6 2.2-2 .9-2-.6-2 3.5 1.6 1.6v2.8L2.4 15l2 3.5 2-.6 2 .9L9 21h4l.6-2.2 2-.9 2 .6 2-3.5-1.6-1.6v-2.8L19.6 9l-2-3.5-2 .6-2-.9L13 3Z"/><circle cx="11" cy="12" r="3"/></svg></button>
+    <button class="btn btn--icon btn--ghost" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.2-2 .9-2-.6-2 3.5 1.6 1.6v2.8L3.4 15l2 3.5 2-.6 2 .9L10 21h4l.6-2.2 2-.9 2 .6 2-3.5-1.6-1.6v-2.8L20.6 9l-2-3.5-2 .6-2-.9L14 3Z"/><circle cx="12" cy="12" r="3"/></svg></button>
   </header>
 
   <nav class="dayswitch" id="daySwitch" aria-label="Tag wählen"></nav>
@@ -4182,7 +4336,7 @@ html[data-theme="dark"] .btn.wuerfel {
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
     </button>
     <button type="button" data-view="ziele">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19V9M12 19V5M18 19v-7M21 19H3"/></svg>
       Ziele
     </button>
     <button type="button" data-view="aufgaben">
@@ -5216,11 +5370,12 @@ function schluckeNaechstenClick() {
   setTimeout(() => document.removeEventListener("click", schlucker, { capture: true }), 400);
 }
 function modal(builder, opts = {}) {
-  closeModal();
+  document.querySelectorAll(".blatt-abgang").forEach(el => el.remove());
+  closeModal({ sofort: true });
   modalOpener = document.activeElement && document.activeElement !== document.body
     ? document.activeElement : null;
   const scrim = document.createElement("div");
-  scrim.className = "scrim";
+  scrim.className = "scrim" + (opts.sofort ? " is-zurueck" : "");
   const sheet = document.createElement("div");
   sheet.className = "sheet" + (opts.wide ? " sheet--wide" : "");
   sheet.setAttribute("role", "dialog");
@@ -5246,26 +5401,30 @@ function modal(builder, opts = {}) {
 }
 /* v1.36: Blatt nach unten ziehen schließt es — wie überall auf iOS. Nur
    Touch, nur wenn das Blatt ganz oben steht und nicht in einem Eingabefeld
-   begonnen wurde. Unter der Schwelle federt es zurück. */
+   oder horizontalen Chip-Leisten begonnen wurde. Unter der Schwelle federt es zurück. */
 function blattZiehenEinrichten(sheet) {
   const griff = document.createElement("div");
   griff.className = "sheet__griff"; griff.setAttribute("aria-hidden", "true");
   sheet.prepend(griff);
-  let y0 = null, dy = 0;
+  let y0 = null, x0 = null, dy = 0;
   sheet.addEventListener("touchstart", e => {
-    if (e.touches.length !== 1 || sheet.scrollTop > 0 || e.target.closest("input, textarea, select, .zsteine")) { y0 = null; return; }
-    y0 = e.touches[0].clientY; dy = 0;
+    if (e.touches.length !== 1 || sheet.scrollTop > 0 || e.target.closest("input, textarea, select, .zsteine, .chipset--leiste")) { y0 = null; x0 = null; return; }
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0;
   }, { passive: true });
   sheet.addEventListener("touchmove", e => {
     if (y0 === null) return;
-    dy = Math.max(0, e.touches[0].clientY - y0);
+    const rawDy = e.touches[0].clientY - y0;
+    const rawDx = x0 === null ? 0 : e.touches[0].clientX - x0;
+    if (!dy && Math.abs(rawDx) > Math.abs(rawDy) && Math.abs(rawDx) > 8) { y0 = null; x0 = null; return; }
+    dy = Math.max(0, rawDy);
     if (sheet.scrollTop > 0) dy = 0;
+    if (dy <= 8 && !sheet.style.transform) return;
     sheet.style.transition = "none";
     sheet.style.transform = dy ? "translateY(" + dy + "px)" : "";
   }, { passive: true });
   sheet.addEventListener("touchend", () => {
     if (y0 === null) return;
-    y0 = null; sheet.style.transition = "";
+    y0 = null; x0 = null; sheet.style.transition = "";
     if (dy > 110) { closeModal(); schluckeNaechstenClick(); }
     else sheet.style.transform = "";
     dy = 0;
@@ -5316,6 +5475,7 @@ function blattAbgang(scrim) {
     // Regeln mit html[data-theme] greifen im Shadow-Root nicht — die
     // gemessenen Flächen kommen deshalb direkt an die Kopie.
     kopie.style.background = sc.backgroundColor; kopie.style.pointerEvents = "none";
+    kopie.style.backdropFilter = "none"; kopie.style.webkitBackdropFilter = "none";
     kopie.style.animation = "none"; kblatt.style.animation = "none";
     kblatt.style.background = ss.backgroundColor; kblatt.style.color = ss.color;
     kblatt.style.boxShadow = ss.boxShadow; kblatt.style.pointerEvents = "none";
@@ -5352,17 +5512,17 @@ function blattAbgang(scrim) {
 // die Fußknöpfe eines Bottom Sheets stehen; ein hastiger Doppeltipp auf
 // „Speichern"/„Woche anlegen" soll nicht sofort das nächste Blatt öffnen.
 let zuletztGeschlossen = -1e9;
-function closeModal() {
+function closeModal(opts = {}) {
   if (stashedModal) { stashedModal.remove(); stashedModal = null; }
   if (openModal) {
     // Vor "Speichern" räumt das Blatt modalOnCancel selbst ab (siehe
     // goalsSheet()) — hier lösen deshalb nur die übrigen Schließwege aus.
     if (modalOnCancel) { modalOnCancel(); modalOnCancel = null; }
-    blattAbgang(openModal);
+    if (!opts.sofort) blattAbgang(openModal);
     openModal.remove(); openModal = null;
     zuletztGeschlossen = performance.now();
     setAppInert(false);
-    if (modalOpener && modalOpener.isConnected) modalOpener.focus();
+    if (!opts.sofort && modalOpener && modalOpener.isConnected) modalOpener.focus();
     modalOpener = null;
   }
 }
@@ -5374,7 +5534,9 @@ if (window.visualViewport) {
     const v = window.visualViewport;
     if (Math.abs(v.scale - 1) > .02) return;
     document.documentElement.style.setProperty("--sicht-hoehe", v.height + "px");
-    document.documentElement.style.setProperty("--sicht-oben", v.offsetTop + "px");
+    document.documentElement.style.setProperty("--sicht-oben", Math.max(0, v.offsetTop) + "px");
+    document.documentElement.dataset.kb = (window.innerHeight - v.height > 120) ? "1" : "0";
+    if (typeof isMobile !== "undefined" && isMobile && typeof kopfhoeheMessen === "function") kopfhoeheMessen();
   };
   window.visualViewport.addEventListener("resize", sichtbarerBereich);
   window.visualViewport.addEventListener("scroll", sichtbarerBereich);
@@ -5419,10 +5581,11 @@ function modalPush(builder, opts = {}) {
     sheet.setAttribute("aria-labelledby", titleEl.id);
   }
   scrim.addEventListener("pointerdown", e => { if (e.target === scrim) { closeThis(); schluckeNaechstenClick(); } });
+  blattZiehenEinrichten(sheet);
   $("#modalRoot").appendChild(scrim);
   openModal = scrim;
   const focusable = sheet.querySelector("input, select, textarea, button");
-  if (focusable) setTimeout(() => focusable.focus(), 40);
+  if (focusable && window.matchMedia("(pointer: fine)").matches) setTimeout(() => focusable.focus(), 40);
   return sheet;
 }
 
@@ -5821,7 +5984,7 @@ function freizeitSheet(startMontag) {
 
     s.innerHTML =
       "<div class='weeknav' style='margin-bottom:var(--s-3)'>" +
-        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitPrev' aria-label='Vorherige Woche'>‹</button>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitPrev' aria-label='Vorherige Woche'><svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true'><path d='m14 7-5 5 5 5'/></svg></button>" +
         // Stufe M3.1: echter <button> -- Zoom-Ausstieg zum Monatsblatt. Das
         // Blatt braucht trotzdem einen eigenen, vom aria-label dieses Knopfs
         // unabhängigen Namen (sonst würde "Monatsübersicht öffnen" zur
@@ -5829,7 +5992,7 @@ function freizeitSheet(startMontag) {
         // per aria-label direkt auf dem Sheet; modal() findet hier kein
         // h2.sheet__title mehr und rührt aria-labelledby also gar nicht an.
         "<button type='button' class='sheet__title freizeittitel' id='freizeitTitel' aria-label='Monatsübersicht öffnen' style='margin:0;flex:1;text-align:center'></button>" +
-        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'>›</button>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='freizeitNext' aria-label='Nächste Woche'><svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true'><path d='m10 7 5 5-5 5'/></svg></button>" +
       "</div>" +
       "<div class='gesichtumschalter' id='gesichtUmschalter'></div>" +
       "<div class='waage waage--blatt' id='freizeitWaage'></div>" +
@@ -6095,7 +6258,7 @@ function ausblickSheet() {
       return n === 1 ? "morgen" : "in " + n + " Tagen";
     };
     const spanne = (von, bis) => von === bis ? kurzDatum(tag(von)) : kurzDatum(tag(von)) + " – " + kurzDatum(tag(bis));
-    const alleSchliessen = () => { close(); if (openModal) closeModal(); };
+    const alleSchliessen = () => { close(); if (openModal) closeModal({ sofort: true }); };
     const urlaubsBereich = () =>
       (state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0]).id;
     const eintragen = (titel, von, bis) => {
@@ -6105,7 +6268,7 @@ function ausblickSheet() {
         day: (von.getDay() + 6) % 7, date: iso(von), repeat: "none",
         start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0,
         bis: iso(bis) > iso(von) ? iso(bis) : undefined, frog: false
-      });
+      }, undefined, { sofort: true });
     };
 
     // v1.50: Ist ein Tipp schon umgesetzt? Dann liegt an jedem Tag, den man
@@ -6422,9 +6585,9 @@ function monatSheet(startDatum) {
 
     s.innerHTML =
       "<div class='weeknav' style='margin-bottom:var(--s-3)'>" +
-        "<button type='button' class='btn btn--icon btn--ghost' id='monatPrev' aria-label='Vorheriger Monat'>‹</button>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='monatPrev' aria-label='Vorheriger Monat'><svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true'><path d='m14 7-5 5 5 5'/></svg></button>" +
         "<h2 class='sheet__title' id='monatTitel' style='margin:0;flex:1;text-align:center'></h2>" +
-        "<button type='button' class='btn btn--icon btn--ghost' id='monatNext' aria-label='Nächster Monat'>›</button>" +
+        "<button type='button' class='btn btn--icon btn--ghost' id='monatNext' aria-label='Nächster Monat'><svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true'><path d='m10 7 5 5-5 5'/></svg></button>" +
         "<button type='button' class='btn btn--sm' id='monatHeute' hidden>Heute</button>" +
       "</div>" +
       "<div class='monatgrid' id='monatGrid'></div>" +
@@ -6856,14 +7019,7 @@ function setzeErledigt(b, dayKey, on) {
    als einmal je Tag bzw. Ziel und Sitzung. Rein darstellend: nichts davon
    landet in state.
    ============================================================ */
-/* Handgezogene Welle unter dem Tagesschwerpunkt, im Farbton seines Bereichs.
-   Die Farbe steht im SVG selbst — ein data:-Bild kennt keine CSS-Variablen. */
-function kringel(hue) {
-  const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='7' viewBox='0 0 18 7'>"
-    + "<path d='M0 4.5 Q4.5 0.5 9 4.5 T18 4.5' fill='none' stroke-width='2' stroke-linecap='round' style='stroke:oklch(0.68 0.15 " + (+hue || 150) + ")'/></svg>";
-  return "url(&quot;data:image/svg+xml," + encodeURIComponent(svg) + "&quot;)";
-}
-
+/* ---- Feier- & Dankes-Stempel ---- */
 function gruss() {
   const jetzt = new Date();
   const min = jetzt.getHours() * 60 + jetzt.getMinutes();
@@ -8369,7 +8525,7 @@ function renderSugBar() {
   const aktiv = hasSuggestions() && state.blocks.some(b => b.sug && imPlan(b)) && (mview === "plan" || mview === "heute");
   document.body.dataset.sugbar = aktiv ? "1" : "0";
   bar.innerHTML = "";
-  if (!aktiv) return;
+  if (!aktiv) { if (typeof fussbereichMessen === "function") fussbereichMessen(); return; }
 
   const keys = new Set(weekDays().map(d => d.key));
   const n = state.blocks.filter(b => b.sug && imPlan(b) && keys.has(b.date)).length;
@@ -8403,6 +8559,7 @@ function renderSugBar() {
   close.onclick = () => { clearSuggestions(); save(); renderAll(); toast("Vorschläge verworfen"); };
 
   bar.append(text, ok, close);
+  if (typeof fussbereichMessen === "function") fussbereichMessen();
 }
 
 // Die CSS-Werte sind der Startwert ohne JavaScript-Messung. Tatsächliche
@@ -8672,12 +8829,12 @@ function zusageSheet() {
     const slotText = l => DAY_SHORT[l.day.i] + " " + l.day.d.getDate() + "." + (l.day.d.getMonth() + 1) + ". " +
       fmtTime(l.start) + "–" + fmtTime(Math.min(l.end, l.start + minuten));
     const eintragen = (tagIdx, datum, start, laenge) => {
-      close();
+      close({ sofort: true });
       anchor = new Date(datum + "T12:00:00");
       selectedDayIdx = tagIdx;
       renderAll();
       blockSheet({ id: null, title: titel, areaId, day: tagIdx, date: datum, repeat: "none",
-        start, end: Math.min(state.settings.dayEnd * 60, start + laenge), frog: false });
+        start, end: Math.min(state.settings.dayEnd * 60, start + laenge), frog: false }, undefined, { sofort: true });
     };
     const variante = (kopf, text, knopf, aktion) => {
       const v = document.createElement("div");
@@ -9755,6 +9912,16 @@ function goalsSheet() {
       wrap.appendChild(row);
     });
 
+    const brRow = document.createElement("div");
+    brRow.className = "sheet__row";
+    brRow.style.marginTop = "var(--s-3)";
+    const brBtn = document.createElement("button");
+    brBtn.type = "button"; brBtn.className = "btn btn--ghost btn--sm";
+    brBtn.textContent = "Bereiche & Farben verwalten →";
+    brBtn.onclick = () => { close({ sofort: true }); settingsSheet("bereiche"); };
+    brRow.appendChild(brBtn);
+    s.appendChild(brRow);
+
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
     foot.innerHTML = "<span class='spacer'></span>";
@@ -10800,7 +10967,7 @@ function sugSheet(b) {
     const sp = document.createElement("span"); sp.className = "spacer";
     const edit = document.createElement("button");
     edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
-    edit.onclick = () => { close(); blockSheet({ ...b }); };
+    edit.onclick = () => { close({ sofort: true }); blockSheet({ ...b }, undefined, { sofort: true }); };
     const ok = document.createElement("button");
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Übernehmen";
     ok.onclick = () => {
@@ -10896,7 +11063,7 @@ function fokusSheet(id, dayKey) {
     zu.onclick = close;
     const edit = document.createElement("button");
     edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
-    edit.onclick = () => { close(); blockSheet({ ...b }, dayKey); };
+    edit.onclick = () => { close({ sofort: true }); blockSheet({ ...b }, dayKey, { sofort: true }); };
     const sp = document.createElement("span"); sp.className = "spacer";
     foot.append(zu, edit, sp);
     if (!istErledigt(b, dayKey)) {
@@ -11213,9 +11380,9 @@ function ideeSheet() {
     zu.onclick = close;
     planen.onclick = () => {
       const w = wurf;
-      close();
+      close({ sofort: true });
       blockSheet({ id: null, title: w.idee.t, areaId: w.area.id, day: w.day.i, date: w.day.key,
-        repeat: "none", start: w.start, end: w.end, frog: false });
+        repeat: "none", start: w.start, end: w.end, frog: false }, undefined, { sofort: true });
     };
     foot.append(nochmal, sp, zu, planen);
     s.appendChild(foot);
@@ -11267,7 +11434,7 @@ function planBausteine() {
   return l;
 }
 
-function blockSheet(draft, dayKey) {
+function blockSheet(draft, dayKey, opts = {}) {
   const isNew = !draft.id;
   let hakenTag = dayKey || draft.date;
   // Die Woche, in der der Eintrag liegt — über das Datumsfeld frei wählbar
@@ -11305,9 +11472,9 @@ function blockSheet(draft, dayKey) {
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
         "<div class='chipset chipset--tage' id='bDays'></div>" +
         "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px' hidden></div>" +
-        "<div style='display:flex;align-items:center;gap:10px;margin-top:8px'>" +
-          "<label class='label' for='bDatum' style='margin:0'>Datum</label>" +
-          "<input class='field' id='bDatum' type='date' style='max-width:190px'></div>" +
+        "<div style='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:8px'>" +
+          "<label class='label' for='bDatum' style='margin:0;flex:none'>Datum</label>" +
+          "<input class='field' id='bDatum' type='date' style='min-width:0;flex:1 1 160px;max-width:190px'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
@@ -11328,7 +11495,7 @@ function blockSheet(draft, dayKey) {
         "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px;line-height:1.45'></div>" +
         "<p class='field-error' id='bBisError' role='status' hidden></p></div>" +
       "<div class='sheet__row' id='bSperrtRow' hidden>" +
-        "<label class='switch'><input type='checkbox' class='task__check' id='bSperrt'><span>Keine Vorschläge an diesen Tagen</span></label>" +
+        "<label class='switch'><input type='checkbox' id='bSperrt'><span>Keine Vorschläge an diesen Tagen</span></label>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset chipset--raster' id='bAreas'></div></div>" +
       "<details class='sheet__mehr' id='bMehr'" + (hatDetails ? " open" : "") + ">" +
@@ -11381,7 +11548,7 @@ function blockSheet(draft, dayKey) {
           delete neu.grob; delete neu.ganztag; delete neu.teil; delete neu.dauer;
           neu.start = ein.start; neu.end = ein.end;
         }
-        close(); blockSheet(neu, dayKey);
+        close({ sofort: true }); blockSheet(neu, dayKey, { sofort: true });
       };
       const lesen = () => terminAusEingabe(title.value, { start: parseTime(s.querySelector("#bFrom").value || "09:00"),
         end: parseTime(s.querySelector("#bTo").value || "10:00") || 1440 });
@@ -11420,7 +11587,7 @@ function blockSheet(draft, dayKey) {
         const neu = { ...draft, title: l.title, areaId: l.areaId, ortId: l.ortId, ort: l.ort };
         if (l.grob) { neu.grob = true; neu.teil = l.teil; neu.dauer = l.dauer; }
         else { delete neu.grob; neu.end = Math.min(1440, neu.start + l.dauer); }
-        close(); blockSheet(neu, dayKey);
+        close({ sofort: true }); blockSheet(neu, dayKey, { sofort: true });
       };
       s.querySelector("#bLieblinge").appendChild(c);
     });
@@ -11544,7 +11711,11 @@ function blockSheet(draft, dayKey) {
       }
       from.setAttribute("aria-invalid", String(exakt && fehltVon));
       to.setAttribute("aria-invalid", String(falsch && !fehltVon));
-      if (falsch && fokus) (fehltVon ? from : to).focus();
+      if (falsch && fokus) {
+        const z = fehltVon ? from : to;
+        z.focus();
+        if (z.scrollIntoView) z.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
       return !falsch;
     };
     from.addEventListener("input", () => pruefeZeit());
@@ -11832,7 +12003,7 @@ function blockSheet(draft, dayKey) {
           ortId: draft.ortId, ort: draft.ort, notiz: draft.notiz, bis: draft.bis, frog: false,
           schritte: draft.schritte ? draft.schritte.map(x => ({ t: x.t })) : undefined
         };
-        close(); blockSheet(vorlage);
+        close({ sofort: true }); blockSheet(vorlage, undefined, { sofort: true });
       };
     }
     const sp = document.createElement("span"); sp.className = "spacer"; foot.appendChild(sp);
@@ -11844,7 +12015,11 @@ function blockSheet(draft, dayKey) {
 
     const commit = () => {
       if (!pruefeZeit(true)) return;
-      if (!pruefeBis()) { bisFeld.focus(); return; }
+      if (!pruefeBis()) {
+        bisFeld.focus();
+        if (bisFeld.scrollIntoView) bisFeld.scrollIntoView({ block: "center", behavior: "smooth" });
+        return;
+      }
       const bis = !bisRow.hidden && bisFeld.value && bisFeld.value > datumFeld.value ? bisFeld.value : undefined;
       const st = parseTime(from.value);
       // „Bis 00:00" heißt bis Mitternacht desselben Tages.
@@ -11974,7 +12149,7 @@ function blockSheet(draft, dayKey) {
     title.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
     foot.append(cancel, ok);
     s.appendChild(foot);
-  });
+  }, opts);
 }
 
 /* ============================================================ Aufgaben */
@@ -12692,7 +12867,7 @@ function renderAgenda() {
   let html = "<div class='agenda__kopfzeile" + (grussText.length > 22 ? " is-lang" : "") + "'><div class='agenda__label'>" + (heute ? "Heute" : DAY_LONG[dayIdx]) + " zählt</div>"
     + (heute ? "<span class='agenda__gruss'>" + escapeHtml(grussText) + "</span>" : "") + fortHtml + "</div>"
     + "<button type='button' class='agenda__frog' id='agendaFrog'>"
-    + (wichtig ? "<span class='agenda__frogtext' style=\"background-image:" + kringel((areaById(wichtig.areaId) || { hue: 150 }).hue) + "\">" + escapeHtml(wichtig.title) + "</span>" : "Schwerpunkt wählen") + "</button>"
+    + (wichtig ? "<span class='agenda__frogtext'>" + escapeHtml(wichtig.title) + "</span>" : "Schwerpunkt wählen") + "</button>"
     + (wichtig && wichtig.schritt ? "<div class='agenda__step'><b>Erster Schritt:</b> " + escapeHtml(wichtig.schritt) + "</div>" : "");
 
   const laufend = heute
@@ -13960,11 +14135,13 @@ $("#settingsBtn").onclick = () => {
         del.setAttribute("aria-label", "Bereich " + a.name + " löschen");
         del.disabled = planBereiche().length <= 1;
         del.onclick = () => {
-          const fallback = state.areas.find(x => x.id !== a.id).id;
+          const pool = planBereiche();
+          const fallback = (pool.find(x => x.id !== a.id) || state.areas.find(x => x.id !== a.id)).id;
           state.blocks.forEach(b => { if (b.areaId === a.id) b.areaId = fallback; });
           state.tasks.forEach(x => { if (x.areaId === a.id) x.areaId = fallback; });
           const gone = a.name;
-          state.areas.splice(i, 1);
+          const idx = state.areas.indexOf(a);
+          if (idx !== -1) state.areas.splice(idx, 1);
           save(); paint(); renderAll();
           toastUndo("Bereich „" + gone + "“ gelöscht");
         };
@@ -14194,8 +14371,9 @@ const SETTINGS_SEITEN = [
         + (sl.on ? " · Schlaf ab " + fmtTime(sl.from) : " · keine Schlafenszeit");
     } },
   { id: "bereiche", name: "Bereiche",            kurz: () => {
-      const mitZiel = state.areas.filter(a => a.plan.goal > 0).length;
-      return state.areas.length + " Bereiche" + (mitZiel ? ", " + mitZiel + " mit Wochenziel" : "");
+      const bereiche = planBereiche();
+      const mitZiel = bereiche.filter(a => a.plan.goal > 0).length;
+      return bereiche.length + " Bereiche" + (mitZiel ? ", " + mitZiel + " mit Wochenziel" : "");
     } },
   { id: "orte",     name: "Orte und Fahrzeiten", kurz: () => {
       const n = (state.orte || []).length;
@@ -15246,6 +15424,8 @@ function setView(v) {
   }
   if (v === "plan") renderGrid();
   renderSugBar();
+  kopfhoeheMessen();
+  fussbereichMessen();
   bandAusrichten(null);
 }
 
@@ -15295,10 +15475,20 @@ $("#main").addEventListener("animationend", e => {
 document.querySelectorAll("#tabbar button[data-view]").forEach(b => {
   b.onclick = () => ansichtWechseln(b.dataset.view);
 });
-// v1.36: das „+" mitten in der Tabbar — derselbe Weg wie #fabAdd.
+/* Neuer Eintrag ab nächster freier halber Stunde (nicht in der Vergangenheit). */
+function neuerEintragOeffnen() {
+  const d = addDays(mondayOf(anchor), selectedDayIdx);
+  const { dayStart, dayEnd } = state.settings;
+  const heute = iso(d) === iso(new Date());
+  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+  let s = heute ? Math.ceil((jetzt + 5) / 30) * 30 : 9 * 60;
+  s = clamp(s, dayStart * 60, dayEnd * 60 - 60);
+  newBlock(selectedDayIdx, iso(d), s, s + 60);
+}
+// v1.36: das „+" mitten in der Tabbar — derselbe Einstieg.
 $("#tabAdd").onclick = () => {
-  if (performance.now() - zuletztGeschlossen < 450) return;
-  $("#fabAdd").onclick();
+  if (performance.now() - zuletztGeschlossen < 300) return;
+  neuerEintragOeffnen();
 };
 document.querySelectorAll("#panelNav button").forEach(b => {
   b.onclick = () => {
@@ -15307,20 +15497,9 @@ document.querySelectorAll("#panelNav button").forEach(b => {
     if (ziel) { ziel.tabIndex = -1; ziel.focus({ preventScroll: true }); }
   };
 });
-$("#desktopAdd").onclick = () => $("#fabAdd").onclick();
+$("#desktopAdd").onclick = neuerEintragOeffnen;
 $("#wuerfelBtn").onclick = () => ideeSheet();
-
-/* Der schwebende Knopf legt den Eintrag dort an, wo gerade Platz ist:
-   ab der nächsten vollen Stunde, aber nicht in der Vergangenheit. */
-$("#fabAdd").onclick = () => {
-  const d = addDays(mondayOf(anchor), selectedDayIdx);
-  const { dayStart, dayEnd } = state.settings;
-  const heute = iso(d) === iso(new Date());
-  const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
-  let s = heute ? Math.ceil((jetzt + 5) / 30) * 30 : 9 * 60;
-  s = clamp(s, dayStart * 60, dayEnd * 60 - 60);
-  newBlock(selectedDayIdx, iso(d), s, s + 60);
-};
+$("#fabAdd").onclick = neuerEintragOeffnen;
 
 /* ============================================================
    Erststart
@@ -15632,6 +15811,8 @@ function renderAll() {
   renderEnergy();
   renderRitual();
   renderSugBar();
+  kopfhoeheMessen();
+  fussbereichMessen();
 }
 
 if (!Store.available) {
@@ -15662,6 +15843,9 @@ sugbarPlatzieren();
 kopfhoeheMessen();
 window.matchMedia(SUG_OBEN_Q).addEventListener("change", sugbarPlatzieren);
 window.matchMedia(QUER_Q).addEventListener("change", fussbereichMessen);
+window.addEventListener("resize", () => { kopfhoeheMessen(); fussbereichMessen(); });
+window.addEventListener("orientationchange", () => setTimeout(() => { kopfhoeheMessen(); fussbereichMessen(); }, 120));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(kopfhoeheMessen);
 
 /* Beispielwoche füllen — nur mit ?beispiel (siehe BEISPIEL oben). Alles relativ
    zur laufenden Woche, damit „heute“ immer etwas zeigt: Serien, Einzeltermine mit
