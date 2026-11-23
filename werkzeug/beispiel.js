@@ -11,6 +11,9 @@
    d) Eintrags-Karte am Telefon: Bereiche als Raster (eine Zeile je Chip),
       „Dazu" bricht nicht um, „Erledigt" ist eine runde Mulde, im Fuss stehen
       Loeschen/Verschieben leise ueber Abbrechen/Speichern, nichts ueberlappt.
+   f) v1.57: Das Festival steht in der Wochenansicht (Desktop) als EIN Balken
+      ueber Fr–So in der Zeile „Ganztags"; die zwei Aufgaben mit der naechsten
+      Frist sind schon bestaetigt (kein Vorschlag mehr).
    e) keine Konsolenfehler.
 
    Feste Uhr: Mittwoch 2026-11-25, 10:20 Europe/Berlin.
@@ -111,6 +114,21 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   ok(!d.overlap && d.rechts <= 390 && d.scroll <= 390, 'd) nichts ueberlappt, nichts ragt aus dem Bild');
   if (process.env.WP_BILD) await t.screenshot({ path: path.join(process.env.WP_BILD, 'eintrag-handy.png') });
   await tctx.close();
+
+  console.log('=== f) Festival als ein Balken ===');
+  const fctx = await kontext({ viewport: { width: 1440, height: 900 } });
+  const fp = await seite(fctx, F + '?beispiel');
+  const f = await fp.evaluate(() => {
+    const t12 = state.blocks.filter(b => b.taskId === 'bsp-t1' || b.taskId === 'bsp-t2');
+    planWechseln(plaene().find(x => x.id !== HAUPTPLAN.id).id); setView('plan');
+    const chips = [...document.querySelectorAll('#looseBand .loosechip')].filter(c => c.textContent.includes('Festival'));
+    const spalte = document.querySelector('#looseBand .loose__spur').getBoundingClientRect().width / 7;
+    return { bestaetigt: t12.length === 2 && t12.every(b => !b.sug), anzahl: chips.length,
+      breite: chips[0] ? chips[0].getBoundingClientRect().width / spalte : 0, text: chips[0] ? chips[0].textContent : '' };
+  });
+  ok(f.bestaetigt, 'f) die zwei Aufgaben mit naechster Frist sind bestaetigt');
+  ok(f.anzahl === 1 && f.breite > 2.8 && f.breite <= 3, 'f) Festival ist ein Balken ueber drei Tage (' + f.anzahl + ' Chip, ' + f.breite.toFixed(2) + ' Spalten, „' + f.text + '")');
+  await fctx.close();
 
   console.log('=== e) Konsole ===');
   ok(konsolenfehler.length === 0, 'e) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));
