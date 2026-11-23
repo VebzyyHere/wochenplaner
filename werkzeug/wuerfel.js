@@ -1,7 +1,7 @@
 /* ============================================================
    Pruefskript Ideen wuerfeln (v1.48)
 
-   a) Fenster: ideeFenster() nennt nur Luecken ab jetzt, mindestens 30 min,
+   a) Fenster: ideeFenster() nennt nur Luecken ab jetzt, mindestens 15 min,
       Start auf Viertelstunden; vergangene Tage und ein freigehaltener Tag
       liefern keine.
    b) Wurf: jede gewuerfelte Idee liegt ganz in einer freien Luecke und
@@ -69,7 +69,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await basis(p, PLAN, '2026-08-08');
   const a = await p.evaluate(() => ideeFenster().map(f => ({ key: f.day.key, start: f.start, end: f.end })));
   ok(a.length > 0 && a.every(f => f.key >= '2026-08-05'), 'a) nur heute und spaeter (' + a.length + ' Fenster)');
-  ok(a.every(f => f.end - f.start >= 30 && f.start % 15 === 0), 'a) mindestens 30 min, Start auf Viertelstunden');
+  ok(a.every(f => f.end - f.start >= 15 && f.start % 15 === 0), 'a) mindestens 15 min, Start auf Viertelstunden');
   ok(!a.some(f => f.key === '2026-08-08'), 'a) der freigehaltene Samstag liefert kein Fenster');
   ok(a.filter(f => f.key === '2026-08-05').every(f => f.start >= 600), 'a) heute nichts vor jetzt');
 
@@ -154,7 +154,7 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   await p.click('#ideeNeuAuf');
   await p.click('#ideeNeuOk');
   ok(await p.evaluate(() => !document.querySelector('#ideeNeuFehler').hidden && !state.areas.some(a => a.ideen)), 'h) leerer Text wird abgelehnt, nichts gespeichert');
-  await p.fill('#ideeNeuText', 'spieleabend');
+  await p.fill('#ideeNeuText', 'serienabend');
   await p.click('#ideeNeuOk');
   ok(await p.evaluate(() => document.querySelector('#ideeNeuFehler').textContent.includes('schon im Glas') && !state.areas.some(a => a.ideen)), 'h) eine Idee, die es schon gibt, wird abgelehnt');
   await p.fill('#ideeNeuText', '<b>Schwimmen</b> gehen');
@@ -194,6 +194,14 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   });
   ok(h3.idem && h3.n === 3 && h3.lang === 60 && h3.min0 === 60 && h3.kino === 'Kino/240' && h3.tee === 15 && h3.kaputt, 'h) migrate() saeubert (Leeres weg, 60 Zeichen, 15–240 min) und ist idempotent');
   ok(h3.merge === h1.ideen, 'h) mergeStates() behaelt die Ideen des neueren Stands');
+  const h5 = await p.evaluate(() => {
+    const uni = () => alleIdeen().filter(i => i.nurMit);
+    const mit = uni().length, ziel = ideeBereich(uni()[0]).name, anruf = ideeBereich(IDEEN.find(i => i.t.startsWith('Jemanden anrufen'))).name;
+    const merk = state.areas[1].name; state.areas[1].name = 'Garten';
+    const ohne = uni().length; state.areas[1].name = merk;
+    return { mit, ohne, ziel, anruf };
+  });
+  ok(h5.mit === 1 && h5.ohne === 0 && h5.ziel === 'Uni & Lernen' && h5.anruf === 'Menschen', 'h) Uni-Idee nur mit Uni-Bereich und dort eingeplant; Anruf landet bei „' + h5.anruf + '"');
   await p.click('.ideenglas__chip');
   await p.waitForTimeout(100);
   ok(await p.evaluate(() => !state.areas.some(a => 'ideen' in a) && document.querySelector('#ideenglasRow').hidden && !Store.load().areas.some(a => a.ideen)), 'h) Herausnehmen loescht das Feld wieder');

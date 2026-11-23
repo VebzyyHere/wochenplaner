@@ -9880,25 +9880,39 @@ function nachtPaar(b) {
    Text: Änderungen daran vorher mit Sunny abstimmen.
    ============================================================ */
 const IDEEN = [
-  { t: "Spaziergang um den Block", min: 30, art: "koerper" },
-  { t: "Ins Lieblingscafé setzen", min: 60 },
-  { t: "Ein neues Rezept ausprobieren", min: 90 },
-  { t: "Eine Stunde lesen", min: 60 },
-  { t: "Dehnen und durchatmen", min: 30, art: "koerper" },
-  { t: "Jemanden anrufen, der dir fehlt", min: 30 },
-  { t: "Filmabend mit Decke", min: 120, ab: 1080 },
-  { t: "Spieleabend", min: 120, ab: 1080 },
+  // Kleinigkeiten für zwischendurch
+  { t: "Spontan spazieren gehen", min: 30, art: "koerper" },
+  { t: "Kaffeepause, ganz in Ruhe", min: 15 },
+  { t: "Ein neues Kaffeerezept ausprobieren", min: 30 },
+  { t: "Ein, zwei Kapitel lesen", min: 30 },
+  { t: "Kurz was für die Uni lesen", min: 15, bei: /uni|lern|studi/i, nurMit: true },
+  { t: "Dehnen und durchatmen", min: 15, art: "koerper" },
+  { t: "Jemanden anrufen, der dir fehlt", min: 30, bei: /mensch|freund/i },
   { t: "Musik an, Handy weg", min: 30 },
-  { t: "Etwas basteln oder zeichnen", min: 60 },
+  { t: "Eine Podcastfolge hören", min: 30 },
   { t: "Lange baden oder heiß duschen", min: 30 },
-  { t: "Etwas Neues lernen, nur zum Spaß", min: 60 }
+  // Wenn mehr Luft ist
+  { t: "Ins Lieblingscafé setzen", min: 60 },
+  { t: "Jemanden spontan zum Kaffee einladen", min: 60, bei: /mensch|freund/i },
+  { t: "Ein neues Rezept ausprobieren", min: 90 },
+  { t: "Etwas backen", min: 90 },
+  { t: "Etwas basteln oder zeichnen", min: 60 },
+  { t: "Etwas Neues lernen, nur zum Spaß", min: 60 },
+  // Abende (ab 18 Uhr)
+  { t: "Filmabend mit Decke", min: 120, ab: 1080 },
+  { t: "Serienabend", min: 90, ab: 1080 },
+  { t: "Podcastabend", min: 60, ab: 1080 },
+  { t: "Spieleabend mit Karten oder Brettspiel", min: 120, ab: 1080 }
 ];
-const IDEE_MIN = 30;
+const IDEE_MIN = 15;
 /* Eigene Ideen liegen am Bereich (area.ideen) und würfeln gleichberechtigt mit. */
 function alleIdeen() {
   const eigene = [];
   state.areas.forEach(a => (a.ideen || []).forEach(i => eigene.push({ t: i.t, min: i.min, areaId: a.id })));
-  return IDEEN.concat(eigene);
+  // "nurMit": die Idee gibt es nur, wenn ein Bereich mit passendem Namen da ist
+  // (ohne Uni-Bereich keine Uni-Idee).
+  const feste = IDEEN.filter(i => !i.nurMit || state.areas.some(x => i.bei.test(x.name)));
+  return feste.concat(eigene);
 }
 const IDEE_FRUEH = 9 * 60;
 function ideeFenster() {
@@ -9913,6 +9927,9 @@ function ideeFenster() {
 }
 function ideeBereich(idee) {
   if (idee.areaId && state.areas.some(a => a.id === idee.areaId)) return areaById(idee.areaId);
+  // "bei": bevorzugter Bereich nach Namen (Uni, Menschen), sonst nach Art.
+  const nachName = idee.bei && state.areas.find(x => idee.bei.test(x.name));
+  if (nachName) return nachName;
   const art = idee.art || "erholung";
   return state.areas.find(a => a.plan && a.plan.art === art)
     || state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0];

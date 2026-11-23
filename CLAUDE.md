@@ -109,6 +109,8 @@ höchstens `blockSheet()` vorausgefüllt — nie still speichern, keine `sug`-Bl
 Ideenglas: eigene Ideen liegen als `area.ideen` (`[{t, min}]`, höchstens `IDEENGLAS_MAX` je Bereich, leer = kein
 Feld; `migrate()` säubert wertbasiert, keine neue `s.version`) und würfeln über `alleIdeen()` mit. Dazulegen und
 Herausnehmen sind die einzigen Wege im Blatt, die speichern — nur auf Knopfdruck.
+Ideen dürfen klein sein (`IDEE_MIN` 15 min; Sunny 2026-11-23: spontane Kleinigkeiten, Kaffee, Abende). `bei` = bevorzugter
+Bereich nach Namen, `nurMit` = Idee nur, wenn so ein Bereich existiert (Uni-Idee).
 
 **Verteiler.** `buildSuggestions()` → `placeArea()`/`placeGrob()`/`growSuggestions()`; Vorschläge
 sind normale Blöcke mit `sug: true`. `area.regeln` (Fenster: Tage/Uhrzeit; Anker: Abstand zu einem
