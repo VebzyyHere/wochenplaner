@@ -3557,6 +3557,46 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   .monatgrid.is-zieh { transition: none; }
   .monatgrid { transition: transform .22s var(--feder), opacity .18s; }
 }
+/* Schnelleingabe im Eintrags-Editor: was im Titel erkannt wurde, plus ein
+   Knopf zum Übernehmen. Die Zeile selbst ist flach (man drückt nur den Knopf). */
+.schnell { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px;
+  font-size: var(--t-sm); color: var(--text-soft, var(--text-faint)); line-height: 1.4; }
+.schnell[hidden] { display: none; }
+.schnell span { flex: 1 1 160px; min-width: 0; }
+
+/* Checkliste am Eintrag und Fokus-Blatt (Studio-Entwurf 2026-11). Flach wie
+   alle Behälter seit „Ruhe"; gedrückt werden nur Haken und Knöpfe. */
+.schritte { display: grid; gap: 2px; margin-bottom: 8px; }
+.schritte[hidden] { display: none; }
+.schritt { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.schritt .switch, .switch.schritt { flex: 1 1 auto; min-width: 0; min-height: 44px; }
+.schritt .task__check { flex: none; margin: 0; }
+.schritt span { overflow-wrap: anywhere; }
+.schritt input:checked + span { color: var(--text-faint); text-decoration: line-through; }
+.schritt__weg { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none;
+  color: var(--text-muted); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.schritt__weg:hover { background: var(--tray); color: var(--text); }
+.schritt-neu { display: flex; gap: 8px; align-items: center; }
+.schritt-neu .field { flex: 1 1 auto; min-width: 0; }
+
+.agenda__hero[role="button"] { cursor: pointer; }
+.agenda__hero-sub { display: flex; justify-content: space-between; gap: 12px; }
+.agenda__hero-tuer { font-weight: 700; color: var(--text); white-space: nowrap; }
+
+.sheet.fokus { text-align: center; }
+.sheet.fokus .sheet__row, .sheet.fokus .fokus__notiz { text-align: left; }
+.fokus__wo { display: inline-flex; align-items: center; gap: 8px; margin: -6px 0 0; color: var(--text-muted); font-size: var(--t-sm); }
+.fokus__wo .goal__dot { background: oklch(var(--stone-L) var(--stone-C) var(--h)); }
+.fokus__ring { position: relative; width: min(220px, 60vw); aspect-ratio: 1; margin: 18px auto 20px; }
+.fokus__ring svg { width: 100%; height: 100%; display: block; }
+.fokus__spur, .fokus__bogen { fill: none; stroke-width: 14; }
+.fokus__spur { stroke: var(--tray); }
+.fokus__bogen { stroke: oklch(var(--stone-L) var(--stone-C) var(--h)); stroke-linecap: round; }
+.fokus__mitte { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.fokus__mitte b { font-family: var(--font-display); font-size: 1.6rem; font-weight: 640; line-height: 1.15; color: var(--text); }
+.fokus__mitte span { font-size: var(--t-sm); color: var(--text-muted); }
+.fokus__notiz { margin: 0 0 16px; color: var(--text-muted); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+
 </style>
 </head>
 <body>
@@ -3846,6 +3886,7 @@ const parseTime = s => { const p = String(s).split(":"); return (+p[0] || 0) * 6
 const iso = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
 const DAY_LONG = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 const DAY_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const SCHRITTE_MAX = 12;   // Checkliste je Eintrag; steht hier oben, weil migrate() sie beim Laden braucht
 const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 
 function mondayOf(date) {
@@ -4305,6 +4346,21 @@ function migrate(s) {
   [...s.blocks, ...s.tasks].forEach(r => {
     if (typeof r.notiz !== "string" || !r.notiz.trim()) delete r.notiz;
     if (r.ort !== undefined && (typeof r.ort !== "string" || !r.ort.trim())) delete r.ort;
+  });
+  // Checkliste am Eintrag (b.schritte, Studio-Entwurf 2026-11): wertbasiert,
+  // keine neue s.version. Nur {t, ok}; ok ist true oder — bei Serien — das
+  // Datum, für das abgehakt wurde (s. schrittOk()).
+  s.blocks.forEach(b => {
+    if (b.schritte === undefined) return;
+    const liste = (Array.isArray(b.schritte) ? b.schritte : [])
+      .filter(x => x && typeof x.t === "string" && x.t.trim())
+      .slice(0, SCHRITTE_MAX)
+      .map(x => {
+        const o = { t: x.t.trim().slice(0, 80) };
+        if (x.ok === true || (typeof x.ok === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x.ok))) o.ok = x.ok;
+        return o;
+      });
+    if (liste.length) b.schritte = liste; else delete b.schritte;
   });
   // Über Mitternacht: zwei Blöcke (bis 24:00 / ab 0:00), die sich über
   // b.nacht gegenseitig kennen. Fehlt der Partner (auf einem anderen Gerät
@@ -9869,6 +9925,102 @@ function sugSheet(b) {
   });
 }
 
+/* ============================================================
+   Checkliste und Fokus (Studio-Entwurf 2026-11)
+
+   Checkliste: kleine Schritte an einem Eintrag (b.schritte = [{t, ok}]),
+   z.B. eine Packliste. Wie beim Abhaken hängt der Haken an Eintrag + Datum:
+   bei einer Serie merkt sich ein Schritt das Datum, für das er abgehakt
+   wurde (ok = "2026-11-18"), in der nächsten Woche ist er wieder offen —
+   ohne dass etwas mitwächst. Einmalige Einträge tragen ok = true.
+
+   Fokus: der laufende Termin groß, mit einem Ring, der die restliche Zeit
+   zeigt. Tür ist die Laufend-Karte der Agenda (kostet dort keine Zeile —
+   Falz-Vertrag). Das Blatt rechnet aus der Uhr und dem Eintrag; es speichert
+   nur, was man darin drückt (Schritt abhaken, „Erledigt") — über dieselbe
+   abhaken()-Kette wie überall. Kein Klang, keine Dauer-Animation: der Ring
+   springt alle 20 s nach.
+   ============================================================ */
+function schrittOk(b, s, dayKey) { return istSerie(b) ? s.ok === dayKey : !!s.ok; }
+function schrittSetzen(b, s, dayKey, on) {
+  if (on) s.ok = istSerie(b) ? dayKey : true; else delete s.ok;
+}
+function fokusSheet(id, dayKey) {
+  const b = state.blocks.find(x => x.id === id);
+  if (!b || b.grob) return;
+  const a = areaById(b.areaId);
+  const ortText = b.ortId ? ortName(b.ortId) : (b.ort || "");
+  const R = 86, UMFANG = 2 * Math.PI * R;
+  modal((s, close) => {
+    s.classList.add("fokus");
+    s.style.setProperty("--h", a.hue);
+    s.innerHTML =
+      "<h2 class='sheet__title'>" + escapeHtml(b.title || a.name) + "</h2>" +
+      "<p class='fokus__wo'><span class='goal__dot'></span>" + escapeHtml(a.name) + (ortText ? " · " + escapeHtml(ortText) : "") + "</p>" +
+      "<div class='fokus__ring' id='fokusRing' role='img'>" +
+        "<svg viewBox='0 0 200 200' aria-hidden='true'><circle class='fokus__spur' cx='100' cy='100' r='" + R + "'/>" +
+        "<circle class='fokus__bogen' id='fokusBogen' cx='100' cy='100' r='" + R + "' transform='rotate(-90 100 100)'/></svg>" +
+        "<div class='fokus__mitte'><b class='num' id='fokusRest'></b><span id='fokusBis'></span></div>" +
+      "</div>" +
+      (b.notiz ? "<p class='fokus__notiz'>" + escapeHtml(b.notiz) + "</p>" : "") +
+      (b.schritte && b.schritte.length ? "<div class='sheet__row'><span class='label' id='fokusSchritteLab'></span><div class='schritte' id='fokusSchritte'></div></div>" : "");
+
+    const malen = () => {
+      const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+      const rest = Math.max(0, b.end - jetzt);
+      const anteil = clamp(rest / Math.max(1, b.end - b.start), 0, 1);
+      s.querySelector("#fokusBogen").setAttribute("stroke-dasharray", (UMFANG * anteil).toFixed(1) + " " + UMFANG.toFixed(1));
+      // Runde Enden zeichnen auch bei Länge 0 einen Punkt — dann ganz weg.
+      s.querySelector("#fokusBogen").style.visibility = anteil > 0 ? "" : "hidden";
+      const restText = rest > 0 ? "noch " + fmtDur(rest) : "Zeit ist um";
+      const bisText = (rest > 0 ? "bis " : "geplant bis ") + fmtTime(b.end % 1440);
+      s.querySelector("#fokusRest").textContent = restText;
+      s.querySelector("#fokusBis").textContent = bisText;
+      s.querySelector("#fokusRing").setAttribute("aria-label", restText + ", " + bisText);
+    };
+    malen();
+    // Der Takt endet von selbst, sobald das Blatt weg ist.
+    const takt = setInterval(() => { if (!s.isConnected) { clearInterval(takt); return; } malen(); }, 20000);
+
+    const liste = s.querySelector("#fokusSchritte");
+    const schritteMalen = () => {
+      if (!liste) return;
+      liste.innerHTML = "";
+      const fertig = b.schritte.filter(x => schrittOk(b, x, dayKey)).length;
+      s.querySelector("#fokusSchritteLab").textContent = "Checkliste · " + fertig + " von " + b.schritte.length;
+      b.schritte.forEach(x => {
+        const lab = document.createElement("label");
+        lab.className = "switch schritt";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.className = "task__check"; cb.checked = schrittOk(b, x, dayKey);
+        cb.onchange = () => { schrittSetzen(b, x, dayKey, cb.checked); save(); schritteMalen(); };
+        const t = document.createElement("span"); t.textContent = x.t;
+        lab.append(cb, t);
+        liste.appendChild(lab);
+      });
+    };
+    schritteMalen();
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const zu = document.createElement("button");
+    zu.className = "btn"; zu.type = "button"; zu.textContent = "Schließen";
+    zu.onclick = close;
+    const edit = document.createElement("button");
+    edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
+    edit.onclick = () => { close(); blockSheet({ ...b }, dayKey); };
+    const sp = document.createElement("span"); sp.className = "spacer";
+    foot.append(zu, edit, sp);
+    if (!istErledigt(b, dayKey)) {
+      const ok = document.createElement("button");
+      ok.className = "btn btn--primary"; ok.type = "button"; ok.id = "fokusOk"; ok.textContent = "Erledigt";
+      ok.onclick = () => { abhaken(b, dayKey, true, ok); save(); close(); renderAll(); };
+      foot.appendChild(ok);
+    }
+    s.appendChild(foot);
+  });
+}
+
 /* Über Mitternacht (Nutzer-Feedback 2026-11): ein Termin 22:00–02:00 liegt
    als zwei Blöcke im Plan — bis 24:00 am ersten Tag, ab 0:00 am nächsten —,
    die sich über b.nacht kennen. So rechnen Raster, Lücken, Auslastung und
@@ -10124,7 +10276,9 @@ function blockSheet(draft, dayKey) {
     if (paar.zweit.id === draft.id && hakenTag) hakenTag = iso(addDays(new Date(hakenTag + "T12:00:00"), -1));
     draft = { ...paar.erst, end: paar.zweit.end };
   }
-  let days = new Set([draft.day]);
+  // draft.tage: mehrere Tage aus der Schnelleingabe („Mo Do"); nur im Entwurf,
+  // gespeichert wird wie immer aus `days`.
+  let days = new Set(isNew && Array.isArray(draft.tage) && draft.tage.length ? draft.tage : [draft.day]);
 
   // Lieblingssteine nur im frischen, noch leeren Eintrag — wer schon einen
   // Titel hat (Kopie, Aufgabe, „Passt das noch?"), braucht keine Abkürzung.
@@ -10147,7 +10301,8 @@ function blockSheet(draft, dayKey) {
       (lieblinge.length ? "<div class='sheet__row' id='bLieblingeRow'><span class='label'>Oft geplant</span>" +
         "<div class='chipset' id='bLieblinge'></div></div>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
-      "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'></div>" +
+      "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'>" +
+        (isNew ? "<div id='bSchnell' class='schnell' role='status' hidden></div>" : "") + "</div>" +
       "<div class='sheet__row'><span class='label'>Wann?</span>" +
         "<div class='chipset' id='bDays'></div>" +
         "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
@@ -10182,6 +10337,10 @@ function blockSheet(draft, dayKey) {
         "<div id='bOrtHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
       "<div class='sheet__row'><label class='label' for='bNotiz'>Notiz <span style='font-weight:400'>(optional)</span></label>" +
         "<textarea class='field' id='bNotiz' rows='2' maxlength='2000' placeholder='z.B. Raum 2.14, Unterlagen mitnehmen'></textarea></div>" +
+      "<div class='sheet__row'><label class='label' for='bSchritt'>Checkliste <span style='font-weight:400'>(optional)</span></label>" +
+        "<div class='schritte' id='bSchritte'></div>" +
+        "<div class='schritt-neu'><input class='field' id='bSchritt' maxlength='80' placeholder='z.B. Sportschuhe, Wasserflasche' autocomplete='off' enterkeyhint='done'>" +
+        "<button type='button' class='btn btn--sm' id='bSchrittDazu'>Dazu</button></div></div>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
         "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
@@ -10190,6 +10349,47 @@ function blockSheet(draft, dayKey) {
 
     const title = s.querySelector("#bTitle");
     title.value = draft.title;
+    // Schnelleingabe: steht im Titel etwas Eindeutiges („Do 18:30 #Sport"),
+    // bietet ein Knopf an, es in die Felder zu übernehmen. Derselbe Weg wie
+    // „Oft geplant": der Editor öffnet neu vorausgefüllt, nichts wird gespeichert.
+    const schnell = s.querySelector("#bSchnell");
+    if (schnell) {
+      const uebernehmen = ein => {
+        const neu = { ...draft, title: ein.title };
+        if (ein.areaId) neu.areaId = ein.areaId;
+        if (ein.repeat) neu.repeat = ein.repeat;
+        if (ein.date) { neu.date = ein.date; neu.day = (new Date(ein.date + "T12:00:00").getDay() + 6) % 7; delete neu.tage; }
+        if (ein.tage) { neu.tage = ein.tage; neu.day = ein.tage[0]; neu.date = iso(addDays(mon, ein.tage[0])); }
+        if (ein.start !== undefined) {
+          delete neu.grob; delete neu.ganztag; delete neu.teil; delete neu.dauer;
+          neu.start = ein.start; neu.end = ein.end;
+        }
+        close(); blockSheet(neu, dayKey);
+      };
+      const lesen = () => terminAusEingabe(title.value, { start: parseTime(s.querySelector("#bFrom").value || "09:00"),
+        end: parseTime(s.querySelector("#bTo").value || "10:00") || 1440 });
+      const malen = () => {
+        const ein = lesen();
+        schnell.hidden = !ein.erkannt.length;
+        schnell.innerHTML = "";
+        if (!ein.erkannt.length) return;
+        const k = document.createElement("button");
+        k.type = "button"; k.className = "btn btn--sm"; k.id = "bSchnellOk";
+        k.textContent = "Übernehmen";
+        k.onclick = () => uebernehmen(ein);
+        const sp = document.createElement("span");
+        sp.textContent = "Erkannt: " + ein.erkannt.join(" · ");
+        schnell.append(sp, k);
+      };
+      title.addEventListener("input", malen);
+      title.addEventListener("keydown", e => {
+        if (e.key !== "Enter" || e.isComposing) return;
+        const ein = lesen();
+        // stopImmediate: der spätere Enter-Handler desselben Felds würde sonst speichern.
+        if (ein.erkannt.length) { e.preventDefault(); e.stopImmediatePropagation(); uebernehmen(ein); }
+      });
+      malen();
+    }
     // Ein Tipp auf einen Lieblingsstein öffnet denselben Editor vorausgefüllt
     // (Muster „Kopieren"): Titel, Bereich, übliche Dauer, Ort. Gespeichert
     // wird erst mit „Eintragen".
@@ -10212,6 +10412,50 @@ function blockSheet(draft, dayKey) {
     const to = s.querySelector("#bTo"); to.value = fmtTime(draft.end % 1440);
     const notizFeld = s.querySelector("#bNotiz");
     notizFeld.value = draft.notiz || "";
+    // ---- Checkliste: Arbeitskopie; gespeichert wird wie alles hier erst mit
+    // „Eintragen"/„Speichern". Haken gibt es nur am bestehenden Eintrag.
+    let schritte = (draft.schritte || []).map(x => ({ t: x.t, ok: !isNew && schrittOk(draft, x, hakenTag) }));
+    const schrittListe = s.querySelector("#bSchritte");
+    const schrittFeld = s.querySelector("#bSchritt");
+    const schritteMalen = () => {
+      schrittListe.innerHTML = "";
+      schrittListe.hidden = !schritte.length;
+      schritte.forEach((x, i) => {
+        const zeile = document.createElement("div");
+        zeile.className = "schritt";
+        const lab = document.createElement("label");
+        lab.className = "switch";
+        if (!isNew) {
+          const cb = document.createElement("input");
+          cb.type = "checkbox"; cb.className = "task__check"; cb.checked = !!x.ok;
+          cb.onchange = () => { x.ok = cb.checked; };
+          lab.appendChild(cb);
+        }
+        const t = document.createElement("span"); t.textContent = x.t;
+        lab.appendChild(t);
+        const weg = document.createElement("button");
+        weg.type = "button"; weg.className = "schritt__weg"; weg.textContent = "×";
+        weg.setAttribute("aria-label", "Entfernen: " + x.t);
+        weg.onclick = () => { schritte.splice(i, 1); schritteMalen(); };
+        zeile.append(lab, weg);
+        schrittListe.appendChild(zeile);
+      });
+      const voll = schritte.length >= SCHRITTE_MAX;
+      schrittFeld.disabled = voll; s.querySelector("#bSchrittDazu").disabled = voll;
+    };
+    const schrittDazu = () => {
+      const t = schrittFeld.value.trim().slice(0, 80);
+      if (!t || schritte.length >= SCHRITTE_MAX) return false;
+      schritte.push({ t, ok: false });
+      schrittFeld.value = "";
+      schritteMalen();
+      return true;
+    };
+    s.querySelector("#bSchrittDazu").onclick = () => { schrittDazu(); schrittFeld.focus(); };
+    schrittFeld.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); schrittDazu(); }
+    });
+    schritteMalen();
     // ---- Wiederholung: drei Zustände statt eines Hakens (Chips statt
     // Dropdown — bei drei überschaubaren Werten sofort anklickbar, der
     // gewählte Rhythmus ist ohne weiteren Klick sichtbar).
@@ -10552,7 +10796,8 @@ function blockSheet(draft, dayKey) {
           day: draft.day, date: istSerie(draft) ? (hakenTag || draft.date) : draft.date,
           repeat: draft.repeat, start: draft.start, end: draft.end,
           grob: draft.grob, teil: draft.teil, dauer: draft.dauer, ganztag: draft.ganztag,
-          ortId: draft.ortId, ort: draft.ort, notiz: draft.notiz, bis: draft.bis, frog: false
+          ortId: draft.ortId, ort: draft.ort, notiz: draft.notiz, bis: draft.bis, frog: false,
+          schritte: draft.schritte ? draft.schritte.map(x => ({ t: x.t })) : undefined
         };
         close(); blockSheet(vorlage);
       };
@@ -10585,7 +10830,14 @@ function blockSheet(draft, dayKey) {
       const g = gemerkt();
       const ortText = ortInp.value.trim().slice(0, 120);
       const notizText = notizFeld.value.trim().slice(0, 2000);
+      // Ein getippter, noch nicht hinzugefügter Schritt zählt mit.
+      schrittDazu();
       const textFelder = () => ({
+        schritte: schritte.length ? schritte.map(x => {
+          const o = { t: x.t };
+          if (x.ok) o.ok = repeatMode !== "none" ? (hakenTag || true) : true;
+          return o;
+        }) : undefined,
         bis,
         ortId: g ? g.id : null,
         ort: !g && ortText ? ortText : undefined,
@@ -11268,6 +11520,78 @@ function aufgabeAusEingabe(text) {
   if (!title) return { title: text, areaId: null, dauer: 0, erkannt: [] };
   return { title, areaId, dauer, erkannt };
 }
+/* Schnelleingabe Termine (Studio-Entwurf 2026-11): „Gym Do 18:30–20 #Sport"
+   im Feld „Was?" eines neuen Eintrags. Rechnet nur — terminAusEingabe() liest
+   state, schreibt nichts; der Editor zeigt das Erkannte als Knopf, und erst
+   ein Tipp darauf füllt die Felder (Muster „Oft geplant"). Erkannt wird nur
+   Eindeutiges: Wochentag (Kürzel groß geschrieben oder ausgeschrieben, auch
+   „Mo–Fr"), heute/morgen, Uhrzeit mit Doppelpunkt oder „Uhr", Spanne mit
+   Bindestrich oder „bis", Dauer und #Bereich wie bei den Aufgaben, „jede
+   Woche"/„alle 2 Wochen". Was nicht passt, bleibt im Titel. Ohne Ende und
+   ohne Dauer bleibt die Länge des Entwurfs stehen. */
+function terminAusEingabe(text, basis) {
+  const roh = aufgabeAusEingabe(text);
+  let t = " " + (roh.erkannt.length ? roh.title : text) + " ";
+  const aus = { title: "", erkannt: [] };
+  if (roh.areaId) aus.areaId = roh.areaId;
+  // Wiederholung
+  const rep = t.match(/\s(alle\s(?:2|zwei)\sWochen|zweiwöchentlich|jede\sWoche|wöchentlich)(?=\s)/i);
+  if (rep) {
+    aus.repeat = /2|zwei/i.test(rep[1]) ? "2wochen" : "weekly";
+    t = t.replace(rep[0], " ");
+  }
+  // Tage: Spanne „Mo–Fr", einzelne Kürzel/Namen, heute/morgen
+  const kurz = DAY_SHORT.join("|"), lang = DAY_LONG.join("|");
+  const idx = w => { const k = w.slice(0, 2); return DAY_SHORT.indexOf(k.charAt(0).toUpperCase() + k.charAt(1).toLowerCase()); };
+  const tage = new Set();
+  const spanne = t.match(new RegExp("\\s(" + kurz + ")\\s?[-–]\\s?(" + kurz + ")(?=\\s)"));
+  if (spanne) {
+    const a = idx(spanne[1]), b = idx(spanne[2]);
+    if (a < b) { for (let i = a; i <= b; i++) tage.add(i); t = t.replace(spanne[0], " "); }
+  }
+  const einzel = new RegExp("\\s(?:(" + kurz + ")\\.?|(" + lang + ")s?)(?=[\\s,])(,)?", "g");
+  // Ein Kürzel als allererstes Wort bleibt Titel („So ein Tag", „Do it").
+  t = t.replace(einzel, (m, k, l, komma, pos) => { if (k && pos === 0) return m; tage.add(idx(k || l)); return " "; });
+  const rel = t.match(/\s(heute|morgen)(?=\s)/i);
+  if (rel && !tage.size) {
+    aus.date = iso(addDays(new Date(), /morgen/i.test(rel[1]) ? 1 : 0));
+    t = t.replace(rel[0], " ");
+  }
+  if (tage.size) aus.tage = [...tage].sort();
+  // Uhrzeit: „18:30", „18 Uhr", „18:30–20", „18–20 Uhr", „18 bis 20 Uhr"
+  // Minuten nur mit Doppelpunkt — „3.10" ist eher ein Datum.
+  const uhr = "(\\d{1,2})(?::(\\d{2}))?";
+  const min = (h, m) => { const v = +h * 60 + (+m || 0); return +h <= 24 && (+m || 0) < 60 && v <= 1440 ? v : null; };
+  const von_bis = t.match(new RegExp("\\s(?:um\\s|von\\s)?" + uhr + "\\s?(?:[-–]|bis)\\s?" + uhr + "(\\sUhr)?(?=\\s)", "i"));
+  const eine = t.match(new RegExp("\\s(?:um\\s|ab\\s)?(?:(\\d{1,2}):(\\d{2})(?:\\sUhr)?|(\\d{1,2})\\sUhr)(?=\\s)", "i"));
+  if (von_bis && (von_bis[2] || von_bis[4] || von_bis[5])) {
+    const a = min(von_bis[1], von_bis[2]), b = min(von_bis[3], von_bis[4]);
+    if (a !== null && b !== null && a !== b && a < 1440) {
+      aus.start = a; aus.end = b; t = t.replace(von_bis[0], " ");
+    }
+  }
+  if (aus.start === undefined && eine) {
+    const a = min(eine[1] || eine[3], eine[2]);
+    if (a !== null && a < 1440) {
+      aus.start = a;
+      const d = roh.dauer || (basis ? Math.max(15, basis.end - basis.start) : 60);
+      aus.end = (a + d) % 1440 || 1440;
+      t = t.replace(eine[0], " ");
+    }
+  }
+  if (aus.start === undefined && roh.dauer && basis) {
+    aus.start = basis.start; aus.end = Math.min(1440, basis.start + roh.dauer);
+  }
+  aus.title = t.replace(/\s+/g, " ").trim();
+  if (!aus.title) return { title: text, erkannt: [] };
+  // Lesbare Zusammenfassung, in der Reihenfolge Wann – Wie lange – Wo hinein
+  if (aus.tage) aus.erkannt.push(aus.tage.map(i => DAY_SHORT[i]).join(", "));
+  if (aus.date) aus.erkannt.push(aus.date === iso(new Date()) ? "heute" : "morgen");
+  if (aus.start !== undefined) aus.erkannt.push(fmtTime(aus.start) + "–" + fmtTime(aus.end % 1440));
+  if (aus.repeat) aus.erkannt.push(aus.repeat === "weekly" ? "wöchentlich" : "alle 2 Wochen");
+  if (aus.areaId) aus.erkannt.push(areaById(aus.areaId).name);
+  return aus;
+}
 $("#taskInput").addEventListener("input", () => {
   $("#taskError").hidden = true;
   $("#taskInput").removeAttribute("aria-invalid");
@@ -11402,10 +11726,13 @@ function renderAgenda() {
     if (laufend) {
       const a = areaById(laufend.block.areaId);
       const rest = laufend.block.end - jetzt;
-      html += "<div class='agenda__hero' style='--h:" + a.hue + "'>"
+      // Die Karte ist die Tür zum Fokus-Blatt; „Fokus ›" steht in der Zeile
+      // „noch …" und kostet keine Höhe (Falz-Vertrag).
+      html += "<div class='agenda__hero' id='agendaHero' role='button' tabindex='0' data-id='" + laufend.block.id + "'"
+        + " aria-label='Fokus öffnen: " + escapeHtml(laufend.block.title || a.name) + ", noch " + fmtDur(rest) + "' style='--h:" + a.hue + "'>"
         + "<div class='agenda__hero-status'><span>" + escapeHtml(a.name) + "</span><span class='tag'>läuft</span></div>"
         + "<div class='agenda__hero-title'>" + escapeHtml(laufend.block.title || a.name) + "</div>"
-        + "<div class='agenda__hero-sub'>noch " + fmtDur(rest) + "</div>"
+        + "<div class='agenda__hero-sub'><span>noch " + fmtDur(rest) + "</span><span class='agenda__hero-tuer' aria-hidden='true'>Fokus ›</span></div>"
         + "</div>";
     }
 
@@ -11527,6 +11854,11 @@ function renderAgenda() {
   box.innerHTML = html;
 
   $("#agendaFrog").onclick = () => { if (wichtig) taskSheet(wichtig); else setView("aufgaben"); };
+  const hero = $("#agendaHero");
+  if (hero) {
+    hero.onclick = () => fokusSheet(hero.dataset.id, dayKey);
+    hero.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fokusSheet(hero.dataset.id, dayKey); } };
+  }
   const vorschlagBtn = $("#agendaVorschlag");
   if (vorschlagBtn) vorschlagBtn.onclick = () => verteilenMitGate(() => {
     const r = buildSuggestions();

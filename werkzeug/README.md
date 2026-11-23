@@ -14,6 +14,8 @@ Version 1.48 ergänzt `waage.js`: Wochenwaage (Rechnung je Bereich über die gan
 Legende im Wochen-Blatt nur im Belegt-Gesicht, Telefon ohne Balken im Rasterkopf). Feste Uhr Mi 5.8.2026.
 `lieblinge.js`: „Oft geplant" im neuen Eintrag (Ableitung aus mehrfach Geplantem, Tipp füllt vor, nichts gespeichert
 vor dem Fußknopf, nicht in Bearbeiten/Kopie, iPhone SE). Feste Uhr Mi 5.8.2026.
+`schnell.js`: Schnelleingabe Termine im neuen Eintrag (Leser `terminAusEingabe()`, „Übernehmen" füllt die Felder, Enter übernimmt statt zu speichern, nichts gespeichert vor „Eintragen").
+`fokus.js`: Checkliste am Eintrag (`b.schritte`, migrate, Serie je Tag) und Fokus-Blatt (Laufend-Karte als Tür ohne Mehrhöhe, Ring folgt der Uhr, „Erledigt" über `abhaken()`).
 `wuerfel.js`: Ideen würfeln (nur echte Lücken ab jetzt, 200 Würfe ohne Kollision, nichts gespeichert vor dem
 Fußknopf, volle Woche, iPhone SE; Ideenglas: `area.ideen` speichern, säubern in `migrate()`, Abgleich,
 Herausnehmen). Feste Uhr Mi 5.8.2026.
