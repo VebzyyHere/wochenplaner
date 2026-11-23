@@ -3543,6 +3543,9 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 }
 .tipp__text { flex: 1; }
 .tipp__pfeil { flex: none; font-size: 1.25rem; color: var(--text-muted); }
+/* v1.50: schon eingetragen — die Zahl tritt zurück, statt Pfeil ein Haken. */
+.tipp__opt.is-da .tipp__zahl { opacity: .62; }
+.tipp__opt.is-da .tipp__pfeil { font-size: 1rem; color: var(--text); }
 @media (hover: hover) { .tipp__opt:hover .tipp__pfeil { color: var(--text); } .kommt__row:hover { background: var(--surface-2); } }
 @media (prefers-reduced-motion: no-preference) {
   @keyframes ausblickRein { from { opacity: 0; transform: translateY(14px) rotate(-1.2deg); } }
@@ -4458,8 +4461,8 @@ function istFrei(dateIso) {
    Osterformel nach Meeus/Jones/Butcher, gilt für jedes Jahr ab 1583):
    Karfreitag −2, Ostermontag +1, Himmelfahrt +39, Pfingstmontag +50,
    Fronleichnam +60. Alles wird gerechnet, nichts gespeichert: kein Feld
-   in state, nichts für migrate() oder den Abgleich. Feiertage sind reine
-   Anzeige — der Verteiler behandelt sie (noch) wie jeden anderen Tag.
+   in state, nichts für migrate() oder den Abgleich. Der Verteiler hält
+   Feiertage frei (vorschlagGesperrt(), abschaltbar).
    ============================================================ */
 function osterSonntag(jahr) {
   const a = jahr % 19, b = Math.floor(jahr / 100), c = jahr % 100;
@@ -5300,6 +5303,17 @@ function ausblickSheet() {
       });
     };
 
+    // v1.50: Ist ein Tipp schon umgesetzt? Dann liegt an jedem Tag, den man
+    // frei nehmen müsste, ein ganztägiger Eintrag (Urlaub, Reise, Festival …).
+    // Reine Anzeige aus state.blocks, nichts gespeichert. Welcher Eintrag es
+    // ist, wird nicht bewertet — ganztägig heißt hier: an dem Tag bin ich weg.
+    const ganzeTage = state.blocks.filter(b => b.ganztag && !b.sug && !istSerie(b) && b.date);
+    const ganztagAm = k => ganzeTage.some(b => b.date <= k && k <= (b.bis && b.bis > b.date ? b.bis : b.date));
+    const schonDa = o => o.nehmen.every(l => {
+      for (let d = l.von; d <= l.bis; d = addDays(d, 1)) if (!ganztagAm(iso(d))) return false;
+      return true;
+    });
+
     const eintraege = ausblickEintraege(heute);
     const eigene = eintraege.some(e => !e.feiertag);
     const tipps = brueckenTipps(heute, AUSBLICK_TAGE);
@@ -5330,14 +5344,15 @@ function ausblickSheet() {
         + "<div class='tipp__name'>" + escapeHtml(t.namen.join(" · ")) + "</div>";
       t.optionen.forEach((o, oi) => {
         const nehmen = o.nehmen.map(l => l.n === 1 ? kurzDatum(l.von) : kurzDatum(l.von) + " – " + kurzDatum(l.bis)).join(", ");
-        html += "<button type='button' class='tipp__opt' data-tipp='" + ti + "' data-opt='" + oi + "'"
+        const da = schonDa(o);
+        html += "<button type='button' class='tipp__opt" + (da ? " is-da" : "") + "' data-tipp='" + ti + "' data-opt='" + oi + "'"
           + " aria-label='" + o.urlaub + (o.urlaub === 1 ? " Urlaubstag" : " Urlaubstage") + " ergeben " + o.frei
-          + " freie Tage, " + spanne(iso(o.von), iso(o.bis)) + ". Als Eintrag vorbereiten.'>"
+          + " freie Tage, " + spanne(iso(o.von), iso(o.bis)) + (da ? ". Schon eingetragen. Zum Tag springen.'>" : ". Als Eintrag vorbereiten.'>")
           + "<span class='tipp__zahl'><b>" + o.frei + "</b> Tage frei</span>"
           + "<span class='tipp__text'><b>" + o.urlaub + (o.urlaub === 1 ? " Urlaubstag" : " Urlaubstage") + "</b>"
           + "<span>" + spanne(iso(o.von), iso(o.bis)) + "</span>"
-          + "<span>Frei nehmen: " + nehmen + "</span></span>"
-          + "<span class='tipp__pfeil' aria-hidden='true'>&rsaquo;</span></button>";
+          + "<span>" + (da ? "Schon eingetragen: " : "Frei nehmen: ") + nehmen + "</span></span>"
+          + "<span class='tipp__pfeil' aria-hidden='true'>" + (da ? "&#10003;" : "&rsaquo;") + "</span></button>";
       });
       html += "</div>";
     });
@@ -5347,21 +5362,22 @@ function ausblickSheet() {
       "Ein Tipp trägt nichts ein, er bereitet nur den Eintrag vor.</p>";
     s.innerHTML = "<div class='ausblick'>" + html + "</div>";
 
+    const zumTag = d => {
+      alleSchliessen();
+      anchor = mondayOf(d);
+      selectedDayIdx = (d.getDay() + 6) % 7;
+      setView("plan");
+      renderAll();
+    };
     s.querySelector(".ausblick").addEventListener("click", e => {
       const zeile = e.target.closest(".kommt__row[data-date]");
-      if (zeile) {
-        const d = new Date(zeile.dataset.date + "T12:00:00");
-        alleSchliessen();
-        anchor = mondayOf(d);
-        selectedDayIdx = (d.getDay() + 6) % 7;
-        setView("plan");
-        renderAll();
-        return;
-      }
+      if (zeile) { zumTag(new Date(zeile.dataset.date + "T12:00:00")); return; }
       const opt = e.target.closest(".tipp__opt");
       if (opt) {
         const o = tipps[+opt.dataset.tipp].optionen[+opt.dataset.opt];
-        eintragen("Urlaub", o.von, o.bis);
+        // Schon eingetragen: kein zweiter Urlaub, nur hinspringen.
+        if (opt.classList.contains("is-da")) zumTag(new Date(iso(o.nehmen[0].von) + "T12:00:00"));
+        else eintragen("Urlaub", o.von, o.bis);
         return;
       }
       if (e.target.closest("#ausblickNeu")) eintragen("", heute, heute);

@@ -168,7 +168,9 @@ async function fixtureAufbauen(p) {
       titel: (document.querySelector('.sheet__title') || {}).textContent || null,
       chipTexte: chips.map(c => c.textContent),
       chipPressed: chips.map(c => c.getAttribute('aria-pressed')),
-      chipRects: chips.map(c => { const r = c.getBoundingClientRect(); return { w: r.width, h: r.height }; }),
+      // offsetWidth/-Height statt getBoundingClientRect(): 300 ms nach dem Oeffnen federt das Blatt
+      // noch und die Rechtecke sind um Bruchteile skaliert (gleiche Wackel-Ursache wie in h).
+      chipRects: chips.map(c => ({ w: c.offsetWidth, h: c.offsetHeight })),
       freizeitrows: document.querySelectorAll('.freizeitrow').length,
       wochenzeilenVersteckt: (document.getElementById('wochenzeilenListe') || {}).hidden
     };
