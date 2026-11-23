@@ -98,7 +98,10 @@ der Balance ohne Regel von Sunny (`waage.js`).
 Filter mit Stunden (v1.53): die Legende im Rasterkopf besteht aus Knöpfen (`.waage__item[data-filter]`), ein Klick
 setzt `waageFilter` (Modulvariable, nie in `state`) und `blockEl()`/`renderLoose()` geben fremden Bereichen
 `.is-gedimmt`; `#waage` ist seitdem ein `div role=group`, das Wochen-Blatt öffnet `#waageAuf` (die Summe). Fehlt der
-Bereich in der gezeigten Woche, endet der Filter in `renderWaage()` von selbst. Am Telefon gibt es ihn (noch) nicht.
+Bereich in der gezeigten Woche, endet der Filter in `renderWaage()` von selbst. Am Telefon gibt es ihn nur im
+Wochen-Blatt (v1.54): `blattFilter` lebt in `freizeitSheet()` und endet mit dem Blatt, `.wochenzeile__seg.is-gedimmt`.
+`wochenMehr(montag)` (v1.54, nur lesend) liefert dem Belegt-Gesicht „x von y Einträgen abgehakt“ und die offenen
+Checklisten-Punkte (`#freizeitMehr`); dort speichert nur ein Schritt-Haken. Keine Quote, keine Wertung (`waage.js` i).
 
 **Lieblingssteine.** `lieblingsSteine()` leitet „Oft geplant" rein aus `state.blocks` ab (gleicher Titel im
 selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — kein Feld, nichts gespeichert.

@@ -114,7 +114,9 @@ const aufbau = () => {
   ok(klack.stein === 1 && klack.splitter >= 3 && klack.splitter <= 5, 'ein Haken: ein Stein klackt in die Mulde, 3–5 Splitter (' + JSON.stringify(klack) + ')');
   ok(klack.schwebt.length === 1 && klack.schwebt[0] === '+30 min Uni & Lernen', 'darüber schwebt die Dauer mit Bereich („' + klack.schwebt.join(' | ') + '")');
   ok(await p.evaluate(() => [...document.querySelectorAll('.jubel')].every(s => getComputedStyle(s).pointerEvents === 'none')), 'Stein, Splitter und Schwebetext sind nie anklickbar');
-  await p.waitForTimeout(1400);   // v1.42: das Schweben dauert 1,2 s (vorher 900 ms für Konfetti)
+  // v1.42: das Schweben dauert 1,2 s. Auf langsamen Maschinen endet die Animation später als
+  // eine feste Wartezeit (v1.54: wackelte in der Cloud) — deshalb auf das Verschwinden warten.
+  await p.waitForFunction(() => document.querySelectorAll('.jubel').length === 0, null, { timeout: 6000 }).catch(() => {});
   ok(await p.evaluate(() => document.querySelectorAll('.jubel').length === 0), 'und verschwinden wieder');
   ok(await p.evaluate(() => { abhaken(state.blocks.find(b => b.id === 'lesen'), iso(new Date()), true, document.querySelector('#agenda .agenda__check[data-id="lesen"]'));
     return document.querySelectorAll('.jubel').length === 0; }), 'ein schon gesetzter Haken (z.B. Speichern im Editor) feiert nicht noch einmal');

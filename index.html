@@ -3605,6 +3605,19 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .fokus__mitte span { font-size: var(--t-sm); color: var(--text-muted); }
 .fokus__notiz { margin: 0 0 16px; color: var(--text-muted); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
 
+.wochenmehr { margin-top: var(--s-4); }
+.wochenmehr[hidden] { display: none; }
+.wochenmehr__zahl { margin: 0 0 var(--s-3); color: var(--text-muted); font-size: var(--t-sm); }
+.wochenmehr__zahl b { color: var(--text); font-weight: 650; }
+.wochenmehr__wo { flex: none; margin-left: auto; padding-left: 12px; color: var(--text-muted); font-size: var(--t-sm); white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+.schritt input:checked ~ .wochenmehr__wo { text-decoration: none; }
+
+/* Legende im Wochen-Blatt als Filter: am Telefon fingergroß (44 px). */
+.waage--blatt .waage__leg { gap: 0 var(--s-2); }
+.waage--blatt button.waage__item { min-height: 44px; padding: 0 12px; margin: 0 0 0 -12px; }
+.waage--blatt button.waage__item + button.waage__item { margin-left: 0; }
+.wochenzeile__seg.is-gedimmt { opacity: .2; }
+
 </style>
 </head>
 <body>
@@ -5189,6 +5202,10 @@ function freizeitSheet(startMontag) {
     // läuft sonst aus der Leiste heraus statt nur abgeschnitten zu
     // wirken). Die Mindestbreite von 3px kommt aus der CSS-Regel
     // (.wochenzeile__seg min-width), nicht von hier.
+    // Filter mit Stunden im Blatt (v1.54): ein Tipp auf einen Bereich der Legende
+    // blendet in den Tageszeilen alles andere zurück. Gilt nur, solange das
+    // Blatt offen ist — am Telefon gäbe es im Raster keinen Ort, ihn zu lösen.
+    let blattFilter = null;
     const zeichnenBelegt = () => {
       hintEl.hidden = true;
       listeEl.hidden = true; listeEl.innerHTML = "";
@@ -5203,8 +5220,9 @@ function freizeitSheet(startMontag) {
         const ende = e.grob ? a.von + (e.block.dauer || 0) : e.block.end;
         const links = clamp((start - vonMin) / spanMin * 100, 0, 100);
         const breite = Math.max(0, clamp((ende - vonMin) / spanMin * 100, 0, 100) - links);
-        const klasse = e.sug ? " wochenzeile__seg--sug" : (e.grob ? " wochenzeile__seg--grob" : "");
         const ar = areaById(e.block.areaId);
+        const klasse = (e.sug ? " wochenzeile__seg--sug" : (e.grob ? " wochenzeile__seg--grob" : ""))
+          + (blattFilter && ar.id !== blattFilter ? " is-gedimmt" : "");
         return "<i class='wochenzeile__seg" + klasse + "' style='left:" + links.toFixed(2)
           + "%;width:" + breite.toFixed(2) + "%;--h:" + ar.hue + "'></i>";
       };
@@ -5263,9 +5281,56 @@ function freizeitSheet(startMontag) {
       // gefüllt" ist ohnehin die Belegt-Frage.
       const waageEl = s.querySelector("#freizeitWaage");
       waageEl.hidden = freizeitGesicht === "frei";
-      const wt = waageTeile(wochenWaage(mon));
-      waageEl.innerHTML = waageEl.hidden ? "" : wt.sum + wt.bar + wt.leg;
+      const ww = wochenWaage(mon);
+      const wt = waageTeile(ww);
+      if (blattFilter && !ww.teile.some(t => t.area.id === blattFilter)) blattFilter = null;
+      const leg = "<span class='waage__leg'>" + ww.teile.map(x =>
+        "<button type='button' class='waage__item' data-filter='" + x.area.id + "' aria-pressed='" + (blattFilter === x.area.id) + "'"
+        + " style='--h:" + x.area.hue + "'><i class='waage__dot'></i>" + escapeHtml(x.area.name) + " <b>" + fmtDur(x.min) + "</b></button>").join("") + "</span>";
+      waageEl.innerHTML = waageEl.hidden ? "" : wt.sum + wt.bar + leg;
+      waageEl.onclick = e => {
+        const item = e.target.closest(".waage__item[data-filter]");
+        if (!item) return;
+        blattFilter = blattFilter === item.dataset.filter ? null : item.dataset.filter;
+        zeichnen();
+        const wieder = waageEl.querySelector('.waage__item[data-filter="' + item.dataset.filter + '"]');
+        if (wieder) wieder.focus({ preventScroll: true });
+      };
       if (freizeitGesicht === "frei") zeichnenFrei(); else zeichnenBelegt();
+      // Abgehakt-Zahl und offene Checklisten-Punkte der Woche (nur Belegt-Gesicht).
+      let mehr = s.querySelector("#freizeitMehr");
+      if (!mehr) { mehr = document.createElement("div"); mehr.id = "freizeitMehr"; mehr.className = "wochenmehr"; wochenEl.after(mehr); }
+      mehr.hidden = freizeitGesicht === "frei";
+      mehr.innerHTML = "";
+      if (!mehr.hidden) {
+        const m = wochenMehr(mon);
+        if (m.zahl) {
+          const z = document.createElement("p");
+          z.className = "wochenmehr__zahl";
+          z.innerHTML = "<b class='num'>" + m.fertig + " von " + m.zahl + "</b> Einträgen abgehakt";
+          mehr.appendChild(z);
+        }
+        if (m.offen.length) {
+          const lab = document.createElement("span");
+          lab.className = "label"; lab.textContent = "Offene Checklisten-Punkte";
+          const liste = document.createElement("div");
+          liste.className = "schritte";
+          m.offen.forEach(o => {
+            const l = document.createElement("label");
+            l.className = "switch schritt";
+            const cb = document.createElement("input");
+            cb.type = "checkbox"; cb.className = "task__check";
+            cb.onchange = () => { schrittSetzen(o.b, o.s, o.key, cb.checked); save(); };
+            const t = document.createElement("span"); t.textContent = o.s.t;
+            const wo = document.createElement("small");
+            wo.className = "wochenmehr__wo";
+            wo.textContent = (o.b.title || areaById(o.b.areaId).name) + " · " + DAY_SHORT[o.i];
+            l.append(cb, t, wo);
+            liste.appendChild(l);
+          });
+          mehr.append(lab, liste);
+        }
+      }
     };
     paintUmschalter();
     zeichnen();
@@ -6555,6 +6620,25 @@ function wochenWaage(montag) {
     .map(a => ({ area: a, min: jeBereich.get(a.id) }));
   const verplant = teile.reduce((sum, t) => sum + t.min, 0);
   return { wach, verplant, frei: Math.max(0, wach - verplant), teile };
+}
+/* Zwei Auskünfte fürs Wochen-Blatt (Studio-Entwurf „Cockpit"): wie viele feste
+   Einträge der gezeigten Woche abgehakt sind, und welche Checklisten-Punkte
+   noch offen sind. Nur lesen; keine Quote, keine Wertung. */
+function wochenMehr(montag) {
+  const mon = mondayOf(montag || anchor);
+  let zahl = 0, fertig = 0;
+  const offen = [];
+  for (let i = 0; i < 7; i++) {
+    const key = iso(addDays(mon, i));
+    state.blocks.forEach(b => {
+      if (b.sug || !onDay(b, key, i)) return;
+      if (b.nacht && b.start === 0 && nachtPaar(b)) return;   // zweiter Teil über Mitternacht zählt nicht doppelt
+      zahl++;
+      if (istErledigt(b, key)) fertig++;
+      (b.schritte || []).forEach(s => { if (!schrittOk(b, s, key)) offen.push({ b, s, key, i }); });
+    });
+  }
+  return { zahl, fertig, offen };
 }
 function waageTeile(w) {
   const leg = "<span class='waage__leg'>" + w.teile.map(t =>
