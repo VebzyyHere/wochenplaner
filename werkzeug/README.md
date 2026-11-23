@@ -19,6 +19,8 @@ vor dem Fußknopf, nicht in Bearbeiten/Kopie, iPhone SE). Feste Uhr Mi 5.8.2026.
 `wuerfel.js`: Ideen würfeln (nur echte Lücken ab jetzt, 200 Würfe ohne Kollision, nichts gespeichert vor dem
 Fußknopf, volle Woche, iPhone SE; Ideenglas: `area.ideen` speichern, säubern in `migrate()`, Abgleich,
 Herausnehmen). Feste Uhr Mi 5.8.2026.
+Version 1.54 ergänzt dort Abschnitt i: Filter mit Stunden im Wochen-Blatt am Telefon, „x von y Einträgen abgehakt“
+und offene Checklisten-Punkte im Belegt-Gesicht.
 
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.

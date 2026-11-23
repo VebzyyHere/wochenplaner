@@ -15,6 +15,11 @@
    f) Telefon: im Rasterkopf unsichtbar, im Wochen-Blatt nur im
       Belegt-Gesicht sichtbar, kein waagerechtes Scrollen.
    g) keine Konsolenfehler.
+   h) Filter mit Stunden im Rasterkopf (v1.53).
+   i) Wochen-Blatt am Telefon (v1.54): ein Tipp auf einen Bereich der
+      Legende blendet in den Tageszeilen alles andere zurueck (nichts in
+      state, endet mit dem Blatt); darunter „x von y Eintraegen abgehakt"
+      und die offenen Checklisten-Punkte, die sich dort abhaken lassen.
 
    Feste Uhr: Mittwoch 2026-08-05, 10:00 Europe/Berlin.
    ============================================================ */
@@ -174,6 +179,52 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
     return { breit: r.width, rechts: r.right, scroll: document.documentElement.scrollWidth, items: [...w.querySelectorAll('.waage__item')].every(i => i.getBoundingClientRect().right <= r.right + 1) };
   });
   ok(f2.breit > 200 && f2.rechts <= 390 && f2.scroll <= 390 && f2.items, 'f) im Wochen-Blatt sichtbar, alles innerhalb der Breite');
+
+  console.log('=== i) Wochen-Blatt: Filter und Abgehakt-Zahl ===');
+  await t.evaluate(() => closeModal());
+  await basis(t, WOCHE);
+  await t.evaluate(() => {
+    state.blocks[0].schritte = [{ t: 'Tasche <b>packen</b>', ok: false }, { t: 'Schon fertig', ok: true }];
+    state.blocks[1].schritte = [{ t: 'Jede Woche neu', ok: false }];
+    setzeErledigt(state.blocks[2], '2026-08-06', true);
+    migrate(state); save(); renderAll();
+    freizeitGesicht = 'belegt'; freizeitSheet();
+  });
+  await t.waitForSelector('#freizeitMehr .wochenmehr__zahl');
+  const blatt = () => t.evaluate(() => ({
+    gedrueckt: [...document.querySelectorAll('#freizeitWaage .waage__item')].map(x => x.getAttribute('aria-pressed')).join(),
+    seg: [...document.querySelectorAll('#wochenzeilenListe .wochenzeile__seg:not(.wochenzeile__seg--sug)')].map(x => x.classList.contains('is-gedimmt')),
+    zahl: document.querySelector('#freizeitMehr .wochenmehr__zahl').textContent,
+    punkte: [...document.querySelectorAll('#freizeitMehr .schritt')].map(x => x.querySelector('span').textContent + ' | ' + x.querySelector('small').textContent),
+    fett: document.querySelectorAll('#freizeitMehr .schritt b').length,
+    hoehe: Math.min(...[...document.querySelectorAll('#freizeitWaage .waage__item')].map(x => x.getBoundingClientRect().height)),
+    scroll: document.documentElement.scrollWidth, gespeichert: JSON.stringify(state).includes('blattFilter')
+  }));
+  let i1 = await blatt();
+  ok(i1.zahl === '1 von 4 Einträgen abgehakt', 'i) „' + i1.zahl + '" (Vorschlag zaehlt nicht)');
+  ok(i1.punkte.length === 2 && i1.punkte[0] === 'Tasche <b>packen</b> | Eintrag 0 · Mo' && i1.punkte[1] === 'Jede Woche neu | Eintrag 1 · Di' && i1.fett === 0,
+    'i) zwei offene Punkte mit Eintrag und Tag, Nutzertext als Text: ' + JSON.stringify(i1.punkte));
+  ok(i1.gedrueckt === 'false,false,false' && !i1.seg.some(Boolean) && i1.hoehe >= 44, 'i) Legende sind Knoepfe mit mindestens 44 px, nichts zurueckgeblendet');
+  await t.tap('#freizeitWaage .waage__item:nth-child(1)');
+  await t.waitForTimeout(150);
+  i1 = await blatt();
+  ok(i1.gedrueckt === 'true,false,false' && i1.seg.filter(x => !x).length === 2 && i1.seg.filter(Boolean).length === 2 && !i1.gespeichert && i1.scroll <= 390,
+    'i) Tipp auf den ersten Bereich: seine 2 Segmente bleiben, 2 treten zurueck, nichts im Zustand: ' + JSON.stringify(i1.seg));
+  if (BILD) await t.screenshot({ path: path.join(BILD, 'blattfilter-handy.png') });
+  await t.tap('#freizeitWaage .waage__item:nth-child(1)');
+  await t.waitForTimeout(150);
+  ok(!(await blatt()).seg.some(Boolean), 'i) noch ein Tipp: alles wieder da');
+  await t.tap('#freizeitMehr .schritt:nth-child(1) input');
+  await t.waitForTimeout(150);
+  const i2 = await t.evaluate(() => ({ ok0: state.blocks[0].schritte[0].ok, ok1: state.blocks[1].schritte[0].ok, offen: wochenMehr().offen.length }));
+  ok(i2.ok0 === true && !i2.ok1 && i2.offen === 1, 'i) Punkt im Blatt abgehakt: gespeichert, der andere bleibt offen ' + JSON.stringify(i2));
+  await t.evaluate(() => { freizeitGesicht = 'frei'; closeModal(); freizeitSheet(); });
+  await t.waitForSelector('#freizeitMehr', { state: 'attached' });
+  ok(await t.evaluate(() => document.querySelector('#freizeitMehr').hidden), 'i) im Frei-Gesicht steht davon nichts');
+  await t.evaluate(() => { freizeitGesicht = 'belegt'; closeModal(); freizeitSheet(); });
+  await t.waitForSelector('#freizeitWaage .waage__item');
+  ok((await blatt()).gedrueckt === 'false,false,false', 'i) neu geoeffnetes Blatt startet ohne Filter');
+  await t.evaluate(() => { freizeitGesicht = 'frei'; closeModal(); });
 
   console.log('=== g) Konsole ===');
   ok(konsolenfehler.length === 0, 'g) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));
