@@ -3404,6 +3404,20 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   padding: 1px 8px; border-radius: 99px; background: var(--honig); color: var(--auf-honig);
   box-shadow: 0 0 0 1.5px var(--ol); transform: rotate(-1deg);
 }
+/* Wischen an der Aufgabenzeile: die ganze Karte folgt dem Finger, der
+   Aufkleber bleibt an der Stelle stehen, die sie freigibt. */
+.task { touch-action: pan-y; position: relative; }
+.task.is-wisch { transform: translateX(var(--wisch, 0px)); transition: none; }
+.task.is-wisch::after {
+  content: attr(data-wisch-text); position: absolute; top: 50%; left: 4px;
+  transform: translate(calc(var(--wisch, 0px) * -1), -50%) rotate(-3deg);
+  padding: 4px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+  font-size: var(--t-sm); font-weight: 700; background: var(--honig); color: var(--auf-honig);
+  box-shadow: var(--hart-klein); opacity: 0; transition: opacity .12s;
+}
+.task.is-wisch.is-wisch-links::after { left: auto; right: 4px; transform: translate(calc(var(--wisch, 0px) * -1), -50%) rotate(3deg); }
+.task.is-wisch-voll::after { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .task { transition: transform .3s var(--feder); } }
 .ausblick { padding: 0 4px 6px 0; }
 .ausblick__h {
   margin: var(--s-5) 0 var(--s-3); font-size: var(--t-sm); font-weight: 700; color: var(--text-muted);
@@ -10522,6 +10536,56 @@ function taskEl(t) {
     try { e.dataTransfer.setData("text/plain", t.title); } catch (err) {}
   });
   row.addEventListener("dragend", () => { dragTaskId = null; row.classList.remove("is-dragging"); });
+
+  /* v1.47: Wischen an der Aufgabe, dieselbe Sprache wie in „Heute" —
+     nach rechts abhaken (oder wieder öffnen), nach links planen bzw. den
+     Vorschlag prüfen. Nur mit dem Finger; die Zeile folgt ihm, ab WISCH_AB
+     erscheint der Aufkleber mit dem, was beim Loslassen passiert. Beide
+     Richtungen gehen durch die vorhandenen Bedienelemente (change am Haken,
+     Klick auf .task__go) — kein zweiter Weg am Abhaken vorbei. */
+  const go = row.querySelector(".task__go");
+  let wx = 0, wy = 0, wachse = null, wdx = 0, wAktiv = false, gewischt = false;
+  const wischZeigen = dx => {
+    row.style.setProperty("--wisch", dx + "px");
+    row.classList.toggle("is-wisch", dx !== 0);
+    row.classList.toggle("is-wisch-links", dx < 0);
+    row.classList.toggle("is-wisch-voll", Math.abs(dx) >= WISCH_AB);
+    row.dataset.wischText = dx < 0 ? go.textContent : (cb.checked ? "Wieder offen" : "Erledigt");
+  };
+  row.addEventListener("pointerdown", e => {
+    gewischt = false;
+    if (e.pointerType === "mouse" || e.target.closest(".task__check, .task__go, .task__more")) return;
+    wx = e.clientX; wy = e.clientY; wachse = null; wdx = 0; wAktiv = true;
+  });
+  row.addEventListener("pointermove", e => {
+    if (!wAktiv) return;
+    const dx = e.clientX - wx, dy = e.clientY - wy;
+    if (wachse === null) {
+      if (Math.hypot(dx, dy) < 10) return;
+      wachse = Math.abs(dx) > Math.abs(dy) * 1.5 ? "x" : "y";
+      if (wachse === "y") { wAktiv = false; return; }
+    }
+    wdx = clamp(dx, go ? -140 : 0, 140);
+    wischZeigen(wdx);
+  });
+  const wischEnde = () => {
+    if (!wAktiv) return;
+    wAktiv = false;
+    const dx = wdx, war = wachse === "x";
+    wischZeigen(0);
+    if (!war) return;
+    // Erst handeln, dann sperren: go.click() läuft selbst durch den
+    // Klick-Fänger unten. Die Sperre gilt nur dem einen Folge-Klick und
+    // wird beim nächsten Antippen (pointerdown) wieder aufgehoben.
+    if (dx >= WISCH_AB) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
+    else if (dx <= -WISCH_AB && go) go.click();
+    gewischt = true;
+  };
+  row.addEventListener("pointerup", wischEnde);
+  row.addEventListener("pointercancel", wischEnde);
+  row.addEventListener("click", e => {
+    if (gewischt) { gewischt = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
   return row;
 }
 

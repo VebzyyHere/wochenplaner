@@ -15,6 +15,8 @@
       unter (lieber spaet als gar nicht).
    e) Reihenfolge „Ohne Platz": fruehere Frist zuerst, ohne Frist zuletzt.
    f) Ausblick nennt die Aufgabe mit Zaehler und „Frist".
+   h) Wischen an der Aufgabenzeile (echte Touch-Events): rechts abhaken,
+      links planen, kurzer Wisch tut nichts.
    g) keine Konsolenfehler.
 
    Feste Uhr: Montag 2026-12-21, 08:00 Europe/Berlin.
@@ -136,6 +138,38 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
   const f = await p.evaluate(() => [...document.querySelectorAll('.kommt__row')].map(r => r.textContent));
   ok(f.some(z => z.includes('Mmm frueh') && z.includes('in 7 Tagen') && z.includes('Frist')), 'f) Ausblick nennt die Aufgabe mit Zaehler und „Frist": ' + JSON.stringify(f.find(z => z.includes('Mmm'))));
   ok(!(await p.evaluate(() => !!document.querySelector('.ausblick__leer'))), 'f) kein Leer-Hinweis, wenn eine Frist ansteht');
+
+  console.log('=== h) Wischen an der Aufgabe ===');
+  await p.evaluate(() => closeModal()); await p.waitForTimeout(200);
+  await basis([{ title: 'Wisch mich', dauer: 30 }, { title: 'Zweite', dauer: 30 }]);
+  await p.waitForTimeout(200);
+  const wisch = async (titel, dx, halt) => {
+    const box = await p.locator('.task', { hasText: titel }).locator('.task__title').boundingBox();
+    const x0 = box.x + box.width / 2, y = box.y + box.height / 2;
+    const cdp = await ctx.newCDPSession(p);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y, id: 1 }] });
+    for (let i = 1; i <= 8; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + dx * i / 8, y, id: 1 }] }); await p.waitForTimeout(16); }
+    if (halt) await halt();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach(); await p.waitForTimeout(350);
+  };
+  await wisch('Wisch mich', 30);
+  const h0 = await p.evaluate(() => ({ done: state.tasks[0].done, offen: !!document.querySelector('.sheet') }));
+  ok(!h0.done && !h0.offen, 'h) ein kurzer Wisch tut nichts und oeffnet auch kein Blatt');
+  let mitte = null;
+  await wisch('Wisch mich', 110, async () => {
+    mitte = await p.evaluate(() => { const r = [...document.querySelectorAll('.task')].find(x => x.textContent.includes('Wisch mich'));
+      return { voll: r.classList.contains('is-wisch-voll'), text: r.dataset.wischText }; });
+    if (process.env.WP_SHOT) await p.screenshot({ path: process.env.WP_SHOT });
+  });
+  const h1 = await p.evaluate(() => ({ done: state.tasks[0].done, offen: !!document.querySelector('.sheet') }));
+  ok(mitte && mitte.voll && mitte.text === 'Erledigt', 'h) ueber der Schwelle zeigt der Aufkleber „Erledigt"');
+  ok(h1.done === true && !h1.offen, 'h) nach rechts wischen hakt die Aufgabe ab');
+  await wisch('Zweite', -110, async () => {
+    mitte = await p.evaluate(() => [...document.querySelectorAll('.task')].find(x => x.textContent.includes('Zweite')).dataset.wischText);
+  });
+  const h2 = await p.evaluate(() => ({ done: state.tasks[1].done, geplant: !!state.tasks[1].geplant, offen: !!document.querySelector('.sheet') }));
+  ok(mitte === 'Planen' && !h2.done && (h2.geplant || h2.offen), 'h) nach links wischen plant die Aufgabe (derselbe Weg wie der Knopf „Planen")');
 
   console.log('=== g) Konsole ===');
   ok(konsolenfehler.length === 0, 'g) keine Konsolenfehler' + (konsolenfehler.length ? ': ' + konsolenfehler.join(' | ') : ''));

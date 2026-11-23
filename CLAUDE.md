@@ -120,6 +120,8 @@ Mo–Fr-Woche an; `ausblickSheet()` (Knopf im Monatsblatt, per `modalPush()`) is
 `s.version`). `placeTask()` sucht zuerst bis zum Fristtag, sonst in der ganzen Woche; Reihenfolge:
 Wichtigstes, dann frühere Frist. `fristText()` bleibt sachlich — bewusst kein Rot, kein
 Überfällig-Zähler (`frist.js`).
+Aufgabenzeilen (`taskEl()`) lassen sich wie Agenda-Zeilen wischen (nur Touch): rechts = `change` am
+`.task__check`, links = Klick auf `.task__go`; nie ein eigener Weg am Abhaken vorbei (`frist.js` h).
 
 **Rest des Tages** (`restDesTagesBauen()`, derselbe Verteiler nur für heute) — zwei rote Linien: auf
 einem freigehaltenen Tag (`istFrei()`) kein Vorschlag; ein vergangener eigener Vorschlag von heute
