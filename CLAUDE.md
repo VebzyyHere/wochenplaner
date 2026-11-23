@@ -103,6 +103,10 @@ Wochen-Blatt (v1.54): `blattFilter` lebt in `freizeitSheet()` und endet mit dem 
 `wochenMehr(montag)` (v1.54, nur lesend) liefert dem Belegt-Gesicht „x von y Einträgen abgehakt“ und die offenen
 Checklisten-Punkte (`#freizeitMehr`); dort speichert nur ein Schritt-Haken. Keine Quote, keine Wertung (`waage.js` i).
 
+**Beispielwoche** (v1.55). `?beispiel` setzt `BEISPIEL`: `Store.setScope("beispiel")`, `Sync.configured()` ist
+false, `beispielFuellen()` baut beim Laden jedes Mal frisch eine Woche relativ zu heute (danach `buildSuggestions()`),
+Banner mit Rückweg. Der echte Plan wird nie gelesen oder geschrieben (`beispiel.js`). Inhalt ist sichtbarer Text.
+
 **Lieblingssteine.** `lieblingsSteine()` leitet „Oft geplant" rein aus `state.blocks` ab (gleicher Titel im
 selben Bereich mindestens zweimal, Serie zählt doppelt, höchstens fünf) — kein Feld, nichts gespeichert.
 Die Zeile steht nur im frischen, leeren `blockSheet()`; ein Tipp öffnet den Editor neu vorausgefüllt

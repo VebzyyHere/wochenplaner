@@ -1668,6 +1668,9 @@ html[data-theme="dark"] .sheet__foot { box-shadow: 0 -10px 14px -10px oklch(0 0 
   color: var(--text);
 }
 .banner b { font-weight: 700; }
+.banner--beispiel { flex-wrap: nowrap; padding-top: max(6px, var(--safe-top)); padding-bottom: 6px; background: var(--tray); border-bottom: 1px solid var(--fein, var(--rand)); }
+.banner--beispiel > span { flex: 1 1 auto; min-width: 0; }
+.banner--beispiel .btn { flex: none; }
 .app:has(.banner) .topbar { padding-top: 4px; }
 
 /* ============================================================ Responsive */
@@ -3618,6 +3621,34 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .waage--blatt button.waage__item + button.waage__item { margin-left: 0; }
 .wochenzeile__seg.is-gedimmt { opacity: .2; }
 
+
+/* ============================================================
+   v1.55 „Eintrags-Karte" (Studio-Entwurf, Aktivitäten-Karte): Bereiche als
+   ruhiges Raster statt drei Zeilen Flattersatz, Nebenaktionen im Fuß als
+   leise Textknöpfe, Hauptaktionen gleich breit in einer Reihe.
+   ============================================================ */
+.chipset--raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.chipset--raster > .chip { justify-content: flex-start; min-width: 0; }
+.chipset--raster > .chip .chip__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.btn--leise:not(.btn--primary) { background: transparent; border-color: transparent; box-shadow: none; }
+.btn.btn--leise:hover { background: var(--tray); }
+/* Der klebende Fuß deckt auch die Konturen (--hart) darunterliegender Chips, die
+   seitlich über den Inhaltsrand ragen — sonst blitzt links ein schwarzer Bogen durch. */
+.sheet__foot { margin-left: -8px; margin-right: -8px; padding-left: 8px; padding-right: 8px; }
+.btn--leise:not(.btn--danger) { color: var(--text-muted); }
+#bSchrittDazu { flex: none; white-space: nowrap; }
+/* Klebender Titel eines Vorschlags: ohne eigene Fläche schob er sich beim Scrollen
+   über Uhrzeit und Begründung (Beispielwoche, Sonntag). Er bekommt die Fläche des Blocks. */
+.block.is-sug .block__title { background: var(--bg); }
+.banner--beispiel .banner__lang { display: inline; }
+@media (max-width: 1100px) {
+  .sheet__foot--eintrag { row-gap: 4px; }
+  .sheet__foot--eintrag > .btn--leise { order: 0; flex: 0 0 auto; min-height: 44px; padding: 0 10px; }
+  .sheet__foot--eintrag > .btn--danger { order: 0; }
+  .sheet__foot--eintrag .spacer { display: block; order: 1; flex: 1 0 100%; height: 0; }
+  .sheet__foot--eintrag > .btn:not(.btn--leise) { order: 2; flex: 1 1 40%; }
+  .banner--beispiel .banner__lang { display: none; }
+}
 </style>
 </head>
 <body>
@@ -4118,7 +4149,12 @@ function freshState() {
   };
 }
 
-let state = Store.load() || freshState();
+/* Beispielwoche (v1.55): index.html?beispiel zeigt eine gefüllte Woche zum Anschauen.
+   Eigener Speicherplatz „wochenplaner.beispiel“, kein Abgleich, die echten Daten
+   bleiben unberührt. Gefüllt wird erst unten (beispielFuellen()), wenn der Verteiler steht. */
+const BEISPIEL = /[?&]beispiel(?:[=&]|$)/.test(location.search);
+if (BEISPIEL) Store.setScope("beispiel");
+let state = BEISPIEL ? freshState() : (Store.load() || freshState());
 migrate(state);
 
 function migrate(s) {
@@ -10437,7 +10473,7 @@ function blockSheet(draft, dayKey) {
         "<input class='field' id='bBis' type='date' style='max-width:200px'>" +
         "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
         "<p class='field-error' id='bBisError' role='status' hidden></p></div>" +
-      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset' id='bAreas'></div></div>" +
+      "<div class='sheet__row'><span class='label'>Bereich</span><div class='chipset chipset--raster' id='bAreas'></div></div>" +
       "<div class='sheet__row'><label class='label' for='bOrt'>Wo? <span style='font-weight:400'>(optional)</span></label>" +
         "<input class='field' id='bOrt' maxlength='120' placeholder='z.B. Uni, Café Lotte, bei Mama' autocomplete='off'>" +
         "<div class='chipset' id='bOrte' style='margin-top:8px'></div>" +
@@ -10450,7 +10486,7 @@ function blockSheet(draft, dayKey) {
         "<button type='button' class='btn btn--sm' id='bSchrittDazu'>Dazu</button></div></div>" +
       (isNew ? "" :
       "<div class='sheet__row'><span class='label'>Stattgefunden?</span>" +
-        "<label class='switch'><input type='checkbox' id='bDone'> Erledigt</label>" +
+        "<label class='switch schritt'><input type='checkbox' class='task__check' id='bDone'><span>Erledigt</span></label>" +
         "<div id='bDoneHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
       "</div>");
 
@@ -10717,7 +10753,8 @@ function blockSheet(draft, dayKey) {
         c.style.setProperty("--h", a.hue);
         c.setAttribute("aria-pressed", String(a.id === draft.areaId));
         c.innerHTML = "<span class='chip__dot'></span>";
-        c.append(a.name);
+        const n = document.createElement("span"); n.className = "chip__name"; n.textContent = a.name;
+        c.append(n); c.title = a.name;
         c.onclick = () => { draft.areaId = a.id; paintAreas(); paintOrtHint(); };
         areaWrap.appendChild(c);
       });
@@ -10844,10 +10881,10 @@ function blockSheet(draft, dayKey) {
     paintDays();
 
     const foot = document.createElement("div");
-    foot.className = "sheet__foot";
+    foot.className = "sheet__foot sheet__foot--eintrag";
     if (!isNew) {
       const del = document.createElement("button");
-      del.className = "btn btn--danger"; del.type = "button"; del.textContent = "Löschen";
+      del.className = "btn btn--danger btn--leise"; del.type = "button"; del.textContent = "Löschen";
       del.onclick = () => {
         const weg = () => {
           unlinkTask(draft);
@@ -10887,7 +10924,7 @@ function blockSheet(draft, dayKey) {
       // die beste Verschiebefunktion der App. Kein neuer Verschiebe-Code,
       // nur ein zweiter Weg dorthin.
       const move = document.createElement("button");
-      move.className = "btn"; move.type = "button"; move.textContent = "Verschieben";
+      move.className = "btn btn--leise"; move.type = "button"; move.textContent = "Verschieben";
       move.onclick = () => { close(); moveSheet(draft.id); };
       foot.appendChild(move);
 
@@ -13641,7 +13678,7 @@ function kalenderExport() {
 const BACKUP_NAG_DAYS = 14;
 
 function maybeBackupNag() {
-  if (!Store.available) return;
+  if (!Store.available || BEISPIEL) return;
   if (Sync.active()) return;
   const stuff = state.blocks.length + state.tasks.length;
   if (stuff < 8) return;                       // zu wenig, um daran zu hängen
@@ -13833,7 +13870,7 @@ const Sync = (() => {
   let pending = false;
   let timer = null;
 
-  const configured = () => !!(SUPABASE.url && SUPABASE.key);
+  const configured = () => !BEISPIEL && !!(SUPABASE.url && SUPABASE.key);
 
   function loadSession() {
     try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
@@ -14709,6 +14746,81 @@ sugbarPlatzieren();
 kopfhoeheMessen();
 window.matchMedia(SUG_OBEN_Q).addEventListener("change", sugbarPlatzieren);
 window.matchMedia(QUER_Q).addEventListener("change", fussbereichMessen);
+
+/* Beispielwoche füllen — nur mit ?beispiel (siehe BEISPIEL oben). Alles relativ
+   zur laufenden Woche, damit „heute“ immer etwas zeigt: Serien, Einzeltermine mit
+   Ort und Notiz, grobe Einträge, ein mehrtägiges Festival, Aufgaben mit Frist,
+   Checklisten, Wochenziele, Abgehaktes an vergangenen Tagen und Vorschläge. */
+function beispielFuellen() {
+  const s = freshState();
+  s.profile.name = "Sunny";
+  const mon = mondayOf(new Date());
+  const tag = i => iso(addDays(mon, i));
+  const t = (h, m) => h * 60 + (m || 0);
+  const ziele = { a1: 0, a2: 6, a3: 4, a4: 2, a5: 5, a6: 3, a7: 2 };
+  s.areas.forEach(a => { a.plan.goal = ziele[a.id] || 0; });
+  const B = [];
+  const serie = (title, areaId, tage, von, bis, mehr) => tage.forEach(d => B.push({
+    id: "bsp-" + title.replace(/\W+/g, "").toLowerCase() + d, title, areaId, day: d, date: tag(d), since: tag(d),
+    repeat: "weekly", start: von, end: bis, grob: false, frog: false, ...(mehr || {}) }));
+  const einmal = (title, areaId, d, von, bis, mehr) => B.push({
+    id: "bsp-" + title.replace(/\W+/g, "").toLowerCase(), title, areaId, day: d, date: tag(d),
+    repeat: "none", start: von, end: bis, grob: false, frog: false, ...(mehr || {}) });
+  const grob = (title, areaId, d, teil, dauer, mehr) => B.push({
+    id: "bsp-" + title.replace(/\W+/g, "").toLowerCase(), title, areaId, day: d, date: tag(d),
+    repeat: "none", start: 0, end: 0, grob: true, teil, dauer, frog: false, ...(mehr || {}) });
+
+  serie("Büro", "a1", [0, 2], t(9), t(16, 30), { ort: "Büro" });
+  serie("Homeoffice", "a1", [1, 3], t(8, 30), t(13));
+  serie("Vorlesung Statistik", "a2", [1], t(14), t(15, 30), { ort: "Hörsaal 3" });
+  serie("Laufen", "a3", [0, 3], t(18, 30), t(19, 30), { schritte: [{ t: "Schuhe bereitstellen", ok: false }] });
+  einmal("Projekt-Sprint", "a1", 4, t(9), t(12), { notiz: "Hauptfeature bauen",
+    schritte: [{ t: "Entwurf abnehmen", ok: true }, { t: "Umsetzung testen", ok: false }] });
+  einmal("Lerngruppe", "a2", 3, t(16), t(17, 30), { ort: "Bibliothek" });
+  einmal("Kaffee mit Lea", "a6", 1, t(17, 30), t(18, 30), { ort: "Café am Markt" });
+  einmal("Zahnarzt", "a7", 2, t(17), t(17, 45), { ort: "Praxis Dr. Berg" });
+  einmal("Einkaufen", "a7", 4, t(17), t(18));
+  einmal("Yoga", "a3", 5, t(10), t(11));
+  einmal("Mainstage Headliner", "a6", 5, t(20), t(22), { ort: "Mainstage", notiz: "Treffpunkt am Riesenrad" });
+  grob("Gitarre üben", "a4", 2, "ab", 60);
+  grob("Wäsche", "a7", 0, "ab", 45);
+  grob("Spaziergang", "a5", 6, "nm", 90);
+  grob("Serienabend", "a5", 3, "ab", 120);
+  B.push({ id: "bsp-festival", title: "Festival-Wochenende", areaId: "a6", day: 4, date: tag(4), bis: tag(6),
+    repeat: "none", start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0, frog: false,
+    schritte: [{ t: "Zelt einpacken", ok: true }, { t: "Bändchen abholen", ok: false }, { t: "Powerbank laden", ok: false }] });
+  B.push({ id: "bsp-geburtstag", title: "Geburtstag Mama", areaId: "a6", day: 3, date: tag(3),
+    repeat: "none", start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0, frog: false });
+  s.blocks = B;
+
+  s.tasks = [
+    { id: "bsp-t1", title: "Präsentation vorbereiten", areaId: "a1", done: false, frog: true, dauer: 90, frist: tag(3) },
+    { id: "bsp-t2", title: "Steuererklärung abschicken", areaId: "a7", done: false, frog: false, dauer: 60, frist: tag(4) },
+    { id: "bsp-t3", title: "Hausarbeit Kapitel 2", areaId: "a2", done: false, frog: false, dauer: 120, frist: tag(9) },
+    { id: "bsp-t4", title: "Fahrrad reparieren", areaId: "a7", done: false, frog: false, dauer: 45 },
+    { id: "bsp-t5", title: "Geschenk für Mama besorgen", areaId: "a6", done: true, frog: false, dauer: 30 },
+    { id: "bsp-t6", title: "Neues Kaffeerezept ausprobieren", areaId: "a5", done: false, frog: false, dauer: 30 }
+  ];
+  s.areas.find(a => a.id === "a5").ideen = [{ t: "Kaffee-Date einladen", min: 60 }];
+
+  state = s;
+  migrate(state);
+  // Vergangene Tage dieser Woche: fast alles abgehakt, ein Eintrag bleibt offen.
+  const heute = iso(new Date());
+  for (let i = 0; i < 7; i++) {
+    const key = tag(i);
+    if (key >= heute) break;
+    state.blocks.forEach(b => {
+      if (b.sug || !onDay(b, key, i) || b.id === "bsp-wsche") return;
+      state.erledigt[hakenKey(b, key)] = { on: true, at: 0 };
+    });
+  }
+  state.days[heute] = { energy: "mid" };
+  try { buildSuggestions(); } catch (e) {}
+  Store.save(state);
+  $("#banner").innerHTML = "<div class='banner banner--beispiel' role='status'><span><b>Beispielwoche</b><span class='banner__lang'>. Deine Daten bleiben unberührt.</span></span> <a class='btn btn--ghost btn--sm' href='" + location.pathname + "'>Zu meinem Plan</a></div>";
+}
+if (BEISPIEL) beispielFuellen();
 
 applyTheme();
 document.body.dataset.tage = einTag ? "1" : "7";

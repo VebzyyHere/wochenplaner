@@ -21,6 +21,8 @@ Fußknopf, volle Woche, iPhone SE; Ideenglas: `area.ideen` speichern, säubern i
 Herausnehmen). Feste Uhr Mi 5.8.2026.
 Version 1.54 ergänzt dort Abschnitt i: Filter mit Stunden im Wochen-Blatt am Telefon, „x von y Einträgen abgehakt“
 und offene Checklisten-Punkte im Belegt-Gesicht.
+Version 1.55 ergänzt `beispiel.js`: Beispielwoche (`?beispiel`, eigener Speicherplatz, kein Abgleich, echter Plan
+unverändert) und die Eintrags-Karte am Telefon (Bereichsraster, „Dazu“ einzeilig, runde Mulde, Fuß ohne Überlappen).
 
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.
