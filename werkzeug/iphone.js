@@ -122,10 +122,14 @@ const beispiel = () => {
     ok(deckend.kopf && deckend.tabbar && deckend.pille, 'Kopf, Tabbar und Leisten-Pille haben eine deckende Fläche (' + JSON.stringify(deckend) + ')');
     const sug = await rect(p, '#sugBar');
     ok(sug && Math.abs(sug.bottom - tab.top) < 1, 'Vorschlagsleiste steht direkt über der Tabbar');
-    await p.evaluate(() => { document.querySelector('.panel').scrollTop = 150; });
+    // Seit v1.57 passt „Heute" der Beispielwoche ohne Scrollen auf den Schirm;
+    // ein Abstandhalter am Ende macht den Bereich scrollbar, gemessen wird die Karte.
+    await p.evaluate(() => { const d = document.createElement('div'); d.id = 'zzPlatz'; d.style.cssText = 'height:600px;min-height:600px;flex:none';
+      document.querySelector('.panel').appendChild(d); document.querySelector('.panel').scrollTop = 150; });
     await p.waitForTimeout(100);
     const karte2 = await rect(p, '.card[data-card="heute"]');
     ok(karte2.top < kopf.bottom, 'nach dem Scrollen liegt Karteninhalt unter dem Glaskopf');
+    await p.evaluate(() => { document.getElementById('zzPlatz').remove(); document.querySelector('.panel').scrollTop = 0; });
 
     // v1.33: vom Home-Bildschirm gestartet legt iOS 26/27 seinen
     // Scroll-Edge-Effekt über jeden nicht flachen oberen Rand — dort ist der

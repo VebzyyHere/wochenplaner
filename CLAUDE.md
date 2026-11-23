@@ -315,6 +315,11 @@ zwischengespeicherter Plan wäre schlimmer als keiner. `manifest.json`: `id` ble
   Haken, Eingabezeile, „Passt das noch?"); Behälter (`.agenda__list`, `.energy`, `.goal`, `.task`) flach mit
   `--fein`, Termine im Raster mit Kante in Bereichsfarbe (`--area-line`). Fraunces nur für Blatt- und
   Ansichtstitel, Schwerpunkt, laufenden Termin und Tageszahlen. Neue Flächen: erst fragen „drückt man das?".
+- „Ruhig & dicht" (v1.57, Sunny 2026-11-23: Tagesform zu dominant, Handy ruhiger wie im Studio-Entwurf):
+  Tagesform ist eine Zeile `.tagesform` (Titel + schmale Pille mit drei Stufen, Ids unverändert, `renderEnergy()`
+  schreibt weiter hinein); der Erklärtext `#energyHint` steht nur bei „Wenig". Die Tagesform steuert den Verteiler
+  nicht, nur Hinweis und „Was kann heute weg?". „Prüfen"/„Planen" an Aufgaben ohne `--hart`, Frist „nah" als
+  Honig-Tönung ohne Kontur, Vorschlagszeilen mit 1-px-Strichkante.
 - Tage einkreisen (Review 2026-10-25): heute = Honigring `--honig-ring` (3:1) auf allen Flächen
   (Tagesband, Desktop-Tageskopf, Monat); gewählt = gefüllte Pille bzw. Mint-Spalte; beides = Pille mit
   Honigring und `--raised`-Rand dazwischen. Frei = Mulde `--tray` mit kleinem Ring statt Strich (wie im

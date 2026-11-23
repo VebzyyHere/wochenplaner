@@ -3699,6 +3699,34 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   .planzeile { justify-content: flex-end; }
   .planzeile__wahl { flex-basis: 100%; }
 }
+
+/* ============================================================
+   v1.57 „Ruhig & dicht" (Sunny 2026-11-23: Tagesform zu dominant, Handy
+   ruhiger und kompakter wie im Studio-Entwurf). Tagesform = eine Zeile mit
+   drei schmalen Stufen; Vorschläge, Aufgaben und Aufkleber leiser.
+   ============================================================ */
+.tagesform { display: flex; align-items: center; gap: var(--s-2); flex-wrap: nowrap; margin-bottom: var(--s-2); }
+.tagesform .card__title { flex: none; margin: 0; }
+.tagesform__tag { flex: 1 1 auto; min-width: 0; font-size: var(--t-sm); color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tagesform .energy { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--tray); box-shadow: none; border: 0; }
+.tagesform .energy__opt { min-height: 36px; padding: 0 10px; gap: 4px; border: 0; border-radius: 999px; background: transparent; box-shadow: none;
+  font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); }
+.tagesform .energy__opt[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--rand); }
+.tagesform .energy__bars { transform: scale(.8); }
+#energyHint[hidden] { display: none; }
+/* Leiser: Vorschläge mit feiner Strichkante statt Kontur, „Prüfen"/„Planen" an
+   Aufgaben ohne harten Versatz (drückbar bleibt es über die Fläche), Frist als
+   ruhige Honig-Tönung ohne Kontur und ohne Schräglage – sachlich, kein Rot. */
+.agenda__row.is-vorschlag { border: 1px dashed var(--rand); background: transparent; }
+.task__go { box-shadow: none; background: var(--tray); color: var(--text); font-weight: 600; }
+.task__go:hover { background: var(--surface-3); }
+.task__frist.is-nah { padding: 0 6px; transform: none; box-shadow: none;
+  background: color-mix(in oklab, var(--honig) 30%, transparent); color: var(--text); }
+@media (max-width: 1100px) {
+  .task { padding: var(--s-2) var(--s-2); }
+  .tagesform__tag { display: none; }
+  .tagesform { justify-content: space-between; }
+}
 </style>
 </head>
 <body>
@@ -3748,10 +3776,9 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
       <!-- Tagesform -->
       <section class="card" data-card="heute">
         <div class="agenda" id="agenda"></div>
-        <div class="card__head">
+        <div class="card__head tagesform">
           <h2 class="card__title">Tagesform</h2>
-          <span id="energyDay" style="font-size:var(--t-sm);color:var(--text-faint)"></span>
-        </div>
+          <span id="energyDay" class="tagesform__tag"></span>
         <div class="energy" role="group" aria-label="Wie viel Energie hast du heute?">
           <button class="energy__opt" data-lvl="low" aria-pressed="false">
             <span class="energy__bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -3765,6 +3792,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
             <span class="energy__bars" aria-hidden="true"><i></i><i></i><i></i></span>
             Viel
           </button>
+        </div>
         </div>
         <div class="hint" id="energyHint"></div>
         <div id="energyAct"></div>
@@ -12523,6 +12551,9 @@ function renderEnergy() {
   // v1.32: „Das Wichtigste: …" stand hier ein zweites Mal — dieselbe Karte
   // nennt den Schwerpunkt schon ganz oben („Heute zählt", renderAgenda()).
   $("#energyHint").innerHTML = ENERGY[lvl || "none"].text;
+  // v1.57 (Sunny: Tagesform zu dominant): der Erklärtext steht nur noch bei „Wenig",
+  // wo er zu „Was kann heute weg?" führt — sonst ist die Tagesform eine Zeile.
+  $("#energyHint").hidden = lvl !== "low";
   renderEnergyAction();
 
   const freiBox = $("#dayFrei");
