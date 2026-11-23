@@ -3370,6 +3370,113 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .sheet__kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: var(--s-4); }
 .sheet__kopf .sheet__title { min-width: 0; margin: 0; }
 .sheet__kopf .btn { flex: none; }
+/* ============================================================
+   v1.47 „Ausblick": Feiertage im Monat, Vorfreude-Zähler und
+   Brückentag-Tipps — im Aufkleber-Stil von v1.43 (Kontur und Versatz nur
+   über box-shadow). Honig bleibt bei „heute" und Aufklebern: der
+   Feiertagspunkt und der Zähler sind Aufkleber.
+   ============================================================ */
+:root { --auf-honig: oklch(0.270 0.045 150); }
+.monatcell { position: relative; }
+.monatcell.is-feiertag::after {
+  content: ""; position: absolute; top: 3px; right: calc(50% - 15px);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--honig); box-shadow: 0 0 0 1.5px var(--ol);
+}
+.monatgrid { touch-action: pan-y; }
+.monatfeiertage {
+  margin: var(--s-3) 0 0; font-size: var(--t-sm); color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center;
+}
+.monatfeiertage span::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px;
+  background: var(--honig); box-shadow: 0 0 0 1.5px var(--ol); vertical-align: 1px;
+}
+.planhead__feiertag {
+  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 99px; vertical-align: 2px;
+  font-family: var(--font); font-size: var(--t-xs); font-weight: 700; letter-spacing: 0;
+  background: var(--honig); color: var(--auf-honig); box-shadow: 0 0 0 1.5px var(--ol);
+}
+.task__frist {
+  display: inline-block; margin-top: 4px; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted);
+}
+.task__frist.is-nah {
+  padding: 1px 8px; border-radius: 99px; background: var(--honig); color: var(--auf-honig);
+  box-shadow: 0 0 0 1.5px var(--ol); transform: rotate(-1deg);
+}
+/* Wischen an der Aufgabenzeile: die ganze Karte folgt dem Finger, der
+   Aufkleber bleibt an der Stelle stehen, die sie freigibt. */
+.task { touch-action: pan-y; position: relative; }
+.task.is-wisch { transform: translateX(var(--wisch, 0px)); transition: none; }
+.task.is-wisch::after {
+  content: attr(data-wisch-text); position: absolute; top: 50%; left: 4px;
+  transform: translate(calc(var(--wisch, 0px) * -1), -50%) rotate(-3deg);
+  padding: 4px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+  font-size: var(--t-sm); font-weight: 700; background: var(--honig); color: var(--auf-honig);
+  box-shadow: var(--hart-klein); opacity: 0; transition: opacity .12s;
+}
+.task.is-wisch.is-wisch-links::after { left: auto; right: 4px; transform: translate(calc(var(--wisch, 0px) * -1), -50%) rotate(3deg); }
+.task.is-wisch-voll::after { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .task { transition: transform .3s var(--feder); } }
+.ausblick { padding: 0 4px 6px 0; }
+.ausblick__h {
+  margin: var(--s-5) 0 var(--s-3); font-size: var(--t-sm); font-weight: 700; color: var(--text-muted);
+}
+.ausblick .sheet__title + .ausblick__h { margin-top: 0; }
+.ausblick__hinweis { margin: var(--s-3) 0 0; font-size: var(--t-sm); line-height: 1.55; color: var(--text-muted); }
+.ausblick__leer {
+  display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-3);
+  padding: var(--s-3); border-radius: var(--radius-sm); background: var(--tray, var(--surface-2));
+}
+.ausblick__leer p { margin: 0; flex: 1; font-size: var(--t-sm); line-height: 1.5; color: var(--text-muted); }
+.kommt { display: grid; gap: 10px; }
+.kommt__row, .tipp__opt {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 48px;
+  border: 0; text-align: left; color: var(--text); font: inherit;
+}
+.kommt__row {
+  padding: 8px 12px 8px 8px; border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--kontur);
+}
+.kommt__wann {
+  flex: none; min-width: 84px; padding: 6px 8px; border-radius: 10px; text-align: center;
+  font-size: var(--t-sm); font-weight: 700;
+  background: oklch(0.87 0.085 var(--h, 145)); color: var(--auf-honig);
+  box-shadow: var(--hart-klein); transform: rotate(-2deg);
+}
+.kommt__row.is-feiertag .kommt__wann { background: var(--honig); }
+.kommt__text, .tipp__text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.kommt__text b, .tipp__text b { font-size: var(--t-body); font-weight: 700; overflow-wrap: anywhere; }
+.kommt__text span, .tipp__text span { font-size: var(--t-sm); color: var(--text-muted); }
+.tipp {
+  margin: 0 3px 16px 0; padding: 12px 12px 6px; border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--hart);
+}
+.tipp__name { font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-size: var(--t-h1); font-weight: 680; line-height: 1.25; margin-bottom: 4px; }
+.tipp__opt { padding: 8px 0; background: transparent; border-top: 1px solid var(--border); }
+.tipp__name + .tipp__opt { border-top: 0; }
+.tipp__zahl {
+  flex: none; width: 74px; display: flex; flex-direction: column; align-items: center;
+  font-size: var(--t-xs); font-weight: 700; color: var(--text-muted);
+}
+.tipp__zahl b {
+  font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-size: 1.75rem; line-height: 1; font-weight: 700; color: var(--text);
+}
+.tipp__text { flex: 1; }
+.tipp__pfeil { flex: none; font-size: 1.25rem; color: var(--text-muted); }
+@media (hover: hover) { .tipp__opt:hover .tipp__pfeil { color: var(--text); } .kommt__row:hover { background: var(--surface-2); } }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ausblickRein { from { opacity: 0; transform: translateY(14px) rotate(-1.2deg); } }
+  .ausblick .kommt__row, .ausblick .tipp, .ausblick__leer {
+    animation: ausblickRein .46s var(--feder) both; animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  .tipp__opt:active .tipp__zahl b { transform: scale(1.12); }
+  .tipp__zahl b { transition: transform .26s var(--feder); }
+  .monatgrid.is-zieh { transition: none; }
+  .monatgrid { transition: transform .22s var(--feder), opacity .18s; }
+}
 </style>
 </head>
 <body>
@@ -3883,6 +3990,8 @@ function migrate(s) {
   s.tasks.forEach(t => {
     if (typeof t.schritt === "string" && t.schritt.trim()) t.schritt = t.schritt.trim().slice(0, 240);
     else delete t.schritt;
+    // v1.47 Frist: ein ISO-Datum oder nichts (wertbasiert, keine neue s.version).
+    if (!(typeof t.frist === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.frist) && !isNaN(new Date(t.frist + "T12:00:00")))) delete t.frist;
   });
   if (!s.days) s.days = {};
   // v2: Wochenziele + bevorzugte Zeitfenster pro Bereich
@@ -3924,6 +4033,8 @@ function migrate(s) {
   // v3: Vorbereitung für den Abgleich zwischen Geräten
   if (!s.tombs || typeof s.tombs !== "object") s.tombs = {};
   if (typeof s.settingsAt !== "number") s.settingsAt = 0;
+  // v1.47: nur „false" ist ein Wert (Feiertage nicht freihalten), alles andere fehlt.
+  if (s.settings.feiertageFrei !== false) delete s.settings.feiertageFrei;
   if (typeof s.backupAt !== "number") s.backupAt = 0;
 
   // Tagfenster absichern. Geclampt wurde bisher nur im Einstellungsdialog —
@@ -4238,6 +4349,114 @@ function dayMetaLesen(dateIso) {
 function istFrei(dateIso) {
   const m = state.days[dateIso];
   return !!(m && m.frei);
+}
+
+/* ============================================================
+   Feiertage Baden-Württemberg und Brückentage (v1.47)
+
+   Quelle: Gesetz über die Sonntage und Feiertage (Feiertagsgesetz BW),
+   § 1 — zwölf gesetzliche Feiertage: Neujahr, Erscheinungsfest (6.1.),
+   Karfreitag, Ostermontag, 1. Mai, Christi Himmelfahrt, Pfingstmontag,
+   Fronleichnam, 3. Oktober, Allerheiligen (1.11.), Erster und Zweiter
+   Weihnachtstag. Oster- und Pfingstsonntag sind dort KEINE gesetzlichen
+   Feiertage (ohnehin Sonntage), Heiligabend und Silvester auch nicht —
+   nichts dazuerfinden. Gründonnerstag und Reformationstag sind in BW nur
+   schulfrei und stehen deshalb ebenfalls nicht hier.
+
+   Die beweglichen Tage hängen am Ostersonntag (Gregorianische
+   Osterformel nach Meeus/Jones/Butcher, gilt für jedes Jahr ab 1583):
+   Karfreitag −2, Ostermontag +1, Himmelfahrt +39, Pfingstmontag +50,
+   Fronleichnam +60. Alles wird gerechnet, nichts gespeichert: kein Feld
+   in state, nichts für migrate() oder den Abgleich. Feiertage sind reine
+   Anzeige — der Verteiler behandelt sie (noch) wie jeden anderen Tag.
+   ============================================================ */
+function osterSonntag(jahr) {
+  const a = jahr % 19, b = Math.floor(jahr / 100), c = jahr % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const n = h + l - 7 * m + 114;
+  return new Date(jahr, Math.floor(n / 31) - 1, (n % 31) + 1);
+}
+const feiertageCache = {};
+function feiertageBW(jahr) {
+  if (feiertageCache[jahr]) return feiertageCache[jahr];
+  const ostern = osterSonntag(jahr);
+  const fest = [["01-01", "Neujahr"], ["01-06", "Heilige Drei Könige"], ["05-01", "Tag der Arbeit"],
+                ["10-03", "Tag der Deutschen Einheit"], ["11-01", "Allerheiligen"],
+                ["12-25", "1. Weihnachtstag"], ["12-26", "2. Weihnachtstag"]];
+  const beweglich = [[-2, "Karfreitag"], [1, "Ostermontag"], [39, "Christi Himmelfahrt"],
+                     [50, "Pfingstmontag"], [60, "Fronleichnam"]];
+  const m = new Map();
+  fest.forEach(([md, name]) => m.set(jahr + "-" + md, name));
+  beweglich.forEach(([plus, name]) => m.set(iso(addDays(ostern, plus)), name));
+  return (feiertageCache[jahr] = m);
+}
+/* Name des Feiertags an einem ISO-Datum oder null. */
+function feiertagAm(dateIso) {
+  return feiertageBW(+dateIso.slice(0, 4)).get(dateIso) || null;
+}
+/* Sunny, 2026-11-23: an Feiertagen schlägt der Verteiler nichts vor —
+   abschaltbar in den Einstellungen (settings.feiertageFrei === false heißt
+   aus; das Feld fehlt sonst ganz, damit kein Gerät ohne Anlass einen neuen
+   Einstellungsstand hochschiebt). Wie beim freigehaltenen Tag gilt: frei
+   heißt „nichts Neues", von Hand eintragen geht weiter. Nur die
+   Verteiler-Stellen fragen vorschlagGesperrt(); istFrei() bleibt die
+   Auskunft über den vom Nutzer gesetzten Schalter am Tag. */
+function feiertagFrei(dateIso) {
+  return state.settings.feiertageFrei !== false && !!feiertagAm(dateIso);
+}
+function vorschlagGesperrt(dateIso) { return istFrei(dateIso) || feiertagFrei(dateIso); }
+const kurzDatum = d => DAY_SHORT[(d.getDay() + 6) % 7] + " " + d.getDate() + "." + (d.getMonth() + 1) + ".";
+
+/* Brückentage: wo wenige Urlaubstage viele freie Tage am Stück ergeben.
+   Gerechnet für eine Mo–Fr-Woche (Annahme, steht sichtbar im Blatt).
+   Ein „Lauf" sind höchstens vier Arbeitstage zwischen zwei freien Blöcken
+   (Wochenende oder Feiertag) — das gibt es nur, wenn ein Feiertag auf
+   einen Werktag fällt. Nimmt man den ganzen Lauf frei, wachsen die beiden
+   freien Blöcke davor und danach zusammen. Läufe, die nur ein freier
+   Block trennt, bilden eine Kette (z. B. vor und nach Ostern); die ganze
+   Kette ist dann eine eigene, größere Möglichkeit. Rein lesend. */
+function brueckenTipps(ab, tage) {
+  const frei = d => d.getDay() === 0 || d.getDay() === 6 || !!feiertagAm(iso(d));
+  const start = addDays(ab, 1), ende = addDays(start, tage || 370);
+  const laeufe = [];
+  let lauf = null;
+  for (let d = start; d < ende; d = addDays(d, 1)) {
+    if (frei(d)) { if (lauf) { laeufe.push(lauf); lauf = null; } continue; }
+    // Ein Lauf, der schon vor „morgen" begonnen hat, ist angebrochen und zählt nicht.
+    if (!lauf) lauf = { von: d, n: 0, ganz: frei(addDays(d, -1)) };
+    lauf.n++; lauf.bis = d;
+  }
+  const kurz = laeufe.filter(l => l.ganz && l.n <= 4);
+  kurz.forEach(l => {
+    let v = l.von, b = l.bis;
+    while (frei(addDays(v, -1))) v = addDays(v, -1);
+    while (frei(addDays(b, 1))) b = addDays(b, 1);
+    l.freiVon = v; l.freiBis = b;
+  });
+  const zwischen = (a, b) => Math.round((b - a) / 864e5);
+  const option = (von, bis, urlaub, nehmen) => ({
+    von, bis, urlaub, frei: zwischen(von, bis) + 1, nehmen
+  });
+  const ketten = [];
+  kurz.forEach(l => {
+    const letzte = ketten[ketten.length - 1];
+    if (letzte && iso(addDays(letzte[letzte.length - 1].freiBis, 1)) === iso(l.von)) letzte.push(l);
+    else ketten.push([l]);
+  });
+  return ketten.map(kette => {
+    const von = kette[0].freiVon, bis = kette[kette.length - 1].freiBis;
+    const namen = [];
+    for (let d = von; d <= bis; d = addDays(d, 1)) {
+      const n = feiertagAm(iso(d));
+      if (n && d.getDay() !== 0 && d.getDay() !== 6) namen.push(n);
+    }
+    const optionen = kette.map(l => option(l.freiVon, l.freiBis, l.n, [l]));
+    if (kette.length > 1) optionen.push(option(von, bis, kette.reduce((s, l) => s + l.n, 0), kette));
+    return { von, bis, namen, optionen };
+  });
 }
 
 /* ============================================================ Theme */
@@ -4652,6 +4871,7 @@ function freizeitZeile(day, todayKey) {
   // Lücken — er ist trotzdem der freieste Tag der Woche und muss darum
   // genauso fett auftreten wie "ganzer Tag frei", nicht wie "nichts frei".
   if (gruende.includes("Tag freigehalten")) return { text: "<b>freigehalten</b>" + hinweis, art: "frei" };
+  if (gruende.includes("Feiertag")) return { text: "<b>Feiertag</b> · " + escapeHtml(feiertagAm(day.key)) + hinweis, art: "frei" };
 
   const echte = gaps.filter(g => g.end - g.start >= FREIZEIT_MIN);
   if (!echte.length) return { text: "nichts frei" + hinweis, art: "voll" };
@@ -4922,6 +5142,143 @@ function freizeitSheet(startMontag) {
   });
 }
 
+/* ============================================================
+   Ausblick (v1.47) — der Blick über die Woche hinaus, aus dem
+   Monatsblatt heraus: was steht an (ganztägige Einträge wie Urlaub,
+   Festival, Prüfung und die nächsten Feiertage, je mit Vorfreude-Zähler)
+   und wo sich Urlaubstage lohnen (brueckenTipps()).
+
+   Rein lesend, kein save(): ein Tipp öffnet höchstens blockSheet()
+   vorausgefüllt (ganztägig, mehrtägig über b.bis) — dieselbe Regel wie
+   „Passt das noch?". Ein Tipp auf eine Zeile springt in den Tag
+   (Tages-Tipp, der einzige Weg, der hier anchor bewegt).
+   ============================================================ */
+const AUSBLICK_TAGE = 370;
+function ausblickEintraege(heute) {
+  const todayIso = iso(heute);
+  const liste = [];
+  state.blocks.forEach(b => {
+    if (!b.ganztag || b.sug || istSerie(b) || !b.date) return;
+    const bis = b.bis && b.bis > b.date ? b.bis : b.date;
+    if (bis < todayIso) return;
+    liste.push({ von: b.date, bis, titel: b.title || "Ohne Titel", areaId: b.areaId });
+  });
+  state.tasks.forEach(t => {
+    if (t.done || !t.frist || t.frist < todayIso) return;
+    liste.push({ von: t.frist, bis: t.frist, titel: t.title || "Ohne Titel", areaId: t.areaId, frist: true });
+  });
+  let anzahl = 0;
+  for (let d = heute, i = 0; i < AUSBLICK_TAGE && anzahl < 3; i++, d = addDays(d, 1)) {
+    const name = feiertagAm(iso(d));
+    if (name) { liste.push({ von: iso(d), bis: iso(d), titel: name, feiertag: true }); anzahl++; }
+  }
+  return liste.sort((a, b) => a.von < b.von ? -1 : a.von > b.von ? 1 : 0).slice(0, 8);
+}
+function ausblickSheet() {
+  const oeffnen = openModal ? modalPush : modal;
+  oeffnen((s, close) => {
+    const heute = new Date();
+    const mitternacht = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate());
+    const todayIso = iso(heute);
+    const tag = isoStr => new Date(isoStr + "T00:00:00");
+    const inTagen = isoStr => Math.round((tag(isoStr) - mitternacht) / 864e5);
+    const wann = e => {
+      const n = inTagen(e.von);
+      if (n <= 0) return e.bis > todayIso ? "läuft" : "heute";
+      return n === 1 ? "morgen" : "in " + n + " Tagen";
+    };
+    const spanne = (von, bis) => von === bis ? kurzDatum(tag(von)) : kurzDatum(tag(von)) + " – " + kurzDatum(tag(bis));
+    const alleSchliessen = () => { close(); if (openModal) closeModal(); };
+    const urlaubsBereich = () =>
+      (state.areas.find(a => a.plan && a.plan.art === "erholung") || state.areas[0]).id;
+    const eintragen = (titel, von, bis) => {
+      alleSchliessen();
+      blockSheet({
+        id: null, title: titel, areaId: urlaubsBereich(),
+        day: (von.getDay() + 6) % 7, date: iso(von), repeat: "none",
+        start: 0, end: 0, grob: true, ganztag: true, teil: "mo", dauer: 0,
+        bis: iso(bis) > iso(von) ? iso(bis) : undefined, frog: false
+      });
+    };
+
+    const eintraege = ausblickEintraege(heute);
+    const eigene = eintraege.some(e => !e.feiertag);
+    const tipps = brueckenTipps(heute, AUSBLICK_TAGE);
+    let i = 0;
+
+    let html = "<h2 class='sheet__title'>Ausblick</h2>" +
+      "<h3 class='ausblick__h'>Das steht an</h3><div class='kommt'>";
+    eintraege.forEach(e => {
+      const area = e.areaId ? areaById(e.areaId) : null;
+      const tage = inTagen(e.bis) - inTagen(e.von) + 1;
+      html += "<button type='button' class='kommt__row" + (e.feiertag ? " is-feiertag" : "") + "'"
+        + " style='--i:" + (i++) + (area ? ";--h:" + area.hue : "") + "' data-date='" + (e.von < todayIso ? todayIso : e.von) + "'>"
+        + "<span class='kommt__wann'>" + wann(e) + "</span>"
+        + "<span class='kommt__text'><b>" + escapeHtml(e.titel) + "</b>"
+        + "<span>" + spanne(e.von, e.bis) + (tage > 1 ? " · " + tage + " Tage" : "")
+        + (e.feiertag ? " · Feiertag" : "") + (e.frist ? " · Frist" : "") + "</span></span></button>";
+    });
+    html += "</div>";
+    if (!eigene) {
+      html += "<div class='ausblick__leer' style='--i:" + (i++) + "'><p>Urlaub, Festival, Prüfung? " +
+        "Trag es ganztägig ein, dann zählt hier die Vorfreude mit. Aufgaben mit Frist stehen auch hier.</p>" +
+        "<button type='button' class='btn btn--sm' id='ausblickNeu'>Eintragen</button></div>";
+    }
+
+    html += "<h3 class='ausblick__h'>Mehr freie Tage am Stück</h3>";
+    tipps.forEach((t, ti) => {
+      html += "<div class='tipp' style='--i:" + (i++) + "'>"
+        + "<div class='tipp__name'>" + escapeHtml(t.namen.join(" · ")) + "</div>";
+      t.optionen.forEach((o, oi) => {
+        const nehmen = o.nehmen.map(l => l.n === 1 ? kurzDatum(l.von) : kurzDatum(l.von) + " – " + kurzDatum(l.bis)).join(", ");
+        html += "<button type='button' class='tipp__opt' data-tipp='" + ti + "' data-opt='" + oi + "'"
+          + " aria-label='" + o.urlaub + (o.urlaub === 1 ? " Urlaubstag" : " Urlaubstage") + " ergeben " + o.frei
+          + " freie Tage, " + spanne(iso(o.von), iso(o.bis)) + ". Als Eintrag vorbereiten.'>"
+          + "<span class='tipp__zahl'><b>" + o.frei + "</b> Tage frei</span>"
+          + "<span class='tipp__text'><b>" + o.urlaub + (o.urlaub === 1 ? " Urlaubstag" : " Urlaubstage") + "</b>"
+          + "<span>" + spanne(iso(o.von), iso(o.bis)) + "</span>"
+          + "<span>Frei nehmen: " + nehmen + "</span></span>"
+          + "<span class='tipp__pfeil' aria-hidden='true'>&rsaquo;</span></button>";
+      });
+      html += "</div>";
+    });
+    if (!tipps.length) html += "<p class='ausblick__hinweis'>In den nächsten zwölf Monaten liegt kein Feiertag so, dass ein Brückentag hilft.</p>";
+    html += "<p class='ausblick__hinweis'>Gerechnet für eine Woche von Montag bis Freitag mit den gesetzlichen " +
+      "Feiertagen in Baden-Württemberg. Heiligabend und Silvester zählen als normale Arbeitstage. " +
+      "Ein Tipp trägt nichts ein, er bereitet nur den Eintrag vor.</p>";
+    s.innerHTML = "<div class='ausblick'>" + html + "</div>";
+
+    s.querySelector(".ausblick").addEventListener("click", e => {
+      const zeile = e.target.closest(".kommt__row[data-date]");
+      if (zeile) {
+        const d = new Date(zeile.dataset.date + "T12:00:00");
+        alleSchliessen();
+        anchor = mondayOf(d);
+        selectedDayIdx = (d.getDay() + 6) % 7;
+        setView("plan");
+        renderAll();
+        return;
+      }
+      const opt = e.target.closest(".tipp__opt");
+      if (opt) {
+        const o = tipps[+opt.dataset.tipp].optionen[+opt.dataset.opt];
+        eintragen("Urlaub", o.von, o.bis);
+        return;
+      }
+      if (e.target.closest("#ausblickNeu")) eintragen("", heute, heute);
+    });
+
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    foot.innerHTML = "<span class='spacer'></span>";
+    const okBtn = document.createElement("button");
+    okBtn.className = "btn btn--primary"; okBtn.type = "button"; okBtn.textContent = "Fertig";
+    okBtn.onclick = close;
+    foot.appendChild(okBtn);
+    s.appendChild(foot);
+  });
+}
+
 /* ============================================================ Tag-Umschalter (Mobile) */
 
 /* Wie viel steht an einem Tag, gemessen an dem, was der Tag verträgt.
@@ -5148,12 +5505,14 @@ function monatSheet(startDatum) {
         "<button type='button' class='btn btn--sm' id='monatHeute' hidden>Heute</button>" +
       "</div>" +
       "<div class='monatgrid' id='monatGrid'></div>" +
+      "<div class='monatfeiertage' id='monatFeiertage' hidden></div>" +
       "<div class='monatfuss' id='monatFuss' hidden></div>";
 
     const titelEl = s.querySelector("#monatTitel");
     const gridEl = s.querySelector("#monatGrid");
     const fussEl = s.querySelector("#monatFuss");
     const heuteBtn = s.querySelector("#monatHeute");
+    const feiertageEl = s.querySelector("#monatFeiertage");
 
     // Zeichnet Titel + Raster für den aktuell gewählten Monat (jahr/
     // monatIdx) neu — beim Öffnen und nach jedem Klick auf ‹/›/Heute.
@@ -5222,11 +5581,14 @@ function monatSheet(startDatum) {
           const wieVoll = frei ? "freigehalten"
             : last.min < 15 ? "nichts geplant"
             : fmtDur(last.min) + " geplant" + (last.quote > 1 ? " — das wird eng" : "");
-          const label = DAY_LONG[i] + ", " + d.getDate() + ". " + MONTHS[monatIdx] + " — " + wieVoll;
+          const feiertag = feiertagAm(key);
+          const label = DAY_LONG[i] + ", " + d.getDate() + ". " + MONTHS[monatIdx] + " — " + wieVoll
+            + (feiertag ? " — Feiertag: " + feiertag : "");
 
           html += "<button type='button' class='monatcell"
             + (frei ? " is-frei" : "") + (last.quote > 1 ? " is-voll" : "")
-            + (istHeute ? " is-today" : "") + (vergangen ? " is-vergangen" : "") + "'"
+            + (istHeute ? " is-today" : "") + (vergangen ? " is-vergangen" : "")
+            + (feiertag ? " is-feiertag" : "") + "'"
             + " style='--last:" + Math.round(clamp(last.quote, 0, 1) * 100) + "%'"
             + " data-date='" + key + "' aria-label='" + label + "'>"
             + "<b>" + d.getDate() + "</b><i class='monatcell__bar'></i>"
@@ -5234,6 +5596,13 @@ function monatSheet(startDatum) {
         }
       });
       gridEl.innerHTML = html;
+
+      // v1.47: die Zelle trägt nur einen Punkt — der Name des Feiertags
+      // steht darunter, in der Reihenfolge des Monats.
+      const imMonat = [...feiertageBW(jahr)].filter(([k]) => +k.slice(5, 7) === monatIdx + 1).sort();
+      feiertageEl.hidden = !imMonat.length;
+      feiertageEl.innerHTML = imMonat.map(([k, name]) =>
+        "<span>" + kurzDatum(new Date(k + "T12:00:00")) + " " + name + "</span>").join("");
 
       // Fußzeile: nur wenn der angezeigte Monat die Woche des echten
       // Heute trägt UND der globale anchor selbst schon auf ihr steht —
@@ -5304,9 +5673,68 @@ function monatSheet(startDatum) {
     };
     heuteBtn.onclick = () => { jahr = heute.getFullYear(); monatIdx = heute.getMonth(); zeichnen(); };
 
+    /* v1.47: seitlich wischen blättert den Monat — das Raster folgt dem
+       Finger und kommt von der anderen Seite wieder herein. Nur Touch.
+       Die Richtung wird nach 10 px entschieden: waagrecht gehört die Geste
+       dem Raster (das Blatt bekommt sie nicht mehr zum Wegziehen),
+       senkrecht bleibt sie beim Blatt (blattZiehenEinrichten()). Nach einem
+       Wisch verschluckt das Raster den Folge-Klick, sonst spränge der Tag
+       unter dem Finger auf. Blättern fasst anchor nicht an. */
+    const ruhig = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let wx = null, wy = 0, wdx = 0, achse = null, gewischt = 0;
+    const blaettern = richtung => {
+      monatIdx += richtung;
+      if (monatIdx < 0) { monatIdx = 11; jahr--; }
+      if (monatIdx > 11) { monatIdx = 0; jahr++; }
+      zeichnen();
+      if (ruhig() || !gridEl.animate) return;
+      gridEl.animate([{ transform: "translateX(" + (richtung * 56) + "px)", opacity: 0 },
+                      { transform: "none", opacity: 1 }],
+                     { duration: 260, easing: "cubic-bezier(.22, 1.28, .4, 1)" });
+    };
+    gridEl.addEventListener("touchstart", e => {
+      if (e.touches.length !== 1) { wx = null; return; }
+      wx = e.touches[0].clientX; wy = e.touches[0].clientY; wdx = 0; achse = null;
+    }, { passive: true });
+    gridEl.addEventListener("touchmove", e => {
+      if (wx === null) return;
+      const dx = e.touches[0].clientX - wx, dy = e.touches[0].clientY - wy;
+      if (!achse) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { e.stopPropagation(); return; }
+        achse = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (achse !== "x") return;
+      e.stopPropagation();
+      wdx = dx;
+      if (ruhig()) return;
+      gridEl.classList.add("is-zieh");
+      gridEl.style.transform = "translateX(" + (dx * .55) + "px)";
+      gridEl.style.opacity = String(Math.max(.35, 1 - Math.abs(dx) / 260));
+    }, { passive: true });
+    const wischEnde = () => {
+      if (wx === null) return;
+      const war = achse === "x", dx = wdx;
+      wx = null; achse = null; wdx = 0;
+      gridEl.classList.remove("is-zieh");
+      gridEl.style.transform = ""; gridEl.style.opacity = "";
+      if (!war) return;
+      gewischt = Date.now();
+      if (Math.abs(dx) >= 56) blaettern(dx < 0 ? 1 : -1);
+    };
+    gridEl.addEventListener("touchend", wischEnde);
+    gridEl.addEventListener("touchcancel", wischEnde);
+    gridEl.addEventListener("click", e => {
+      if (Date.now() - gewischt < 350) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
+
     const foot = document.createElement("div");
     foot.className = "sheet__foot";
-    foot.innerHTML = "<span class='spacer'></span>";
+    const ausblickBtn = document.createElement("button");
+    ausblickBtn.className = "btn"; ausblickBtn.type = "button"; ausblickBtn.id = "monatAusblick";
+    ausblickBtn.textContent = "Ausblick";
+    ausblickBtn.onclick = () => ausblickSheet();
+    foot.appendChild(ausblickBtn);
+    foot.insertAdjacentHTML("beforeend", "<span class='spacer'></span>");
     const okBtn = document.createElement("button");
     okBtn.className = "btn btn--primary"; okBtn.type = "button"; okBtn.textContent = "Fertig";
     okBtn.onclick = close;
@@ -6004,6 +6432,7 @@ function freeGaps(day, plan, area, opts) {
   const gruende = [];
   const leer = () => { const g = []; g.gruende = gruende; return g; };
   if (!opts.ignoreFrei && istFrei(day.key)) { gruende.push("Tag freigehalten"); return leer(); }
+  if (!opts.ignoreFrei && feiertagFrei(day.key)) { gruende.push("Feiertag"); return leer(); }
 
   const regeln = area && area.regeln;
   if (!opts.ignoreFenster && !fensterErlaubtTag(regeln, day.i)) { gruende.push(DAY_LONG[day.i]); return leer(); }
@@ -6225,7 +6654,7 @@ function placeGrob(area, open, tage) {
   const moeglich = [];
   tage.forEach(day => {
     if (day.key < heuteKey) return;
-    if (istFrei(day.key)) return;
+    if (vorschlagGesperrt(day.key)) return;
     if (!fensterErlaubtTag(area.regeln, day.i)) return;
     reihenfolge.forEach((teil, rang) => {
       const a = abschnittVon(teil);
@@ -6349,6 +6778,18 @@ function grundAbzug(area, cand, best) {
    areaId der Aufgabe; die Zugehörigkeit zur Aufgabe steckt separat in
    .taskId (nie als areaId benutzt) — und als Nebeneffekt zählt verplante
    Aufgabenzeit dadurch ganz von selbst richtig aufs Wochenziel des Bereichs. */
+/* Frist einer Aufgabe (v1.47, task.frist = ISO-Datum, „bis einschließlich").
+   Bewusst ohne Alarmfarbe und ohne Überfällig-Zähler (Nutzerprüfung
+   2026-11: Schuldgefühle sind ein Hauptgrund, Planer zu meiden) — eine
+   verstrichene Frist wird nur sachlich genannt. */
+function fristText(t) {
+  if (!t.frist) return null;
+  const heute = new Date();
+  const d = new Date(t.frist + "T00:00:00");
+  const n = Math.round((d - new Date(heute.getFullYear(), heute.getMonth(), heute.getDate())) / 864e5);
+  if (n < 0) return { text: "Frist war " + kurzDatum(d), nah: false, vorbei: true };
+  return { text: "bis " + kurzDatum(d) + " · " + (n === 0 ? "heute" : n === 1 ? "morgen" : "in " + n + " Tagen"), nah: n <= 2, vorbei: false };
+}
 function taskVorhaben(t) {
   const a = areaById(t.areaId);
   return {
@@ -6379,11 +6820,21 @@ function unlinkTask(b) {
    Darum keine placeArea()-Wiederverwendung, sondern derselbe Bauplan wie
    dort (freeGaps + slotScore, dieselben Begründungsfunktionen), nur ohne
    dessen Aufteil-Schleife. */
-function placeTask(t) {
+function placeTask(t, opts = {}) {
   const v = taskVorhaben(t);
-  const tage = weekDays().filter(day => v.plan.days.includes(day.i));
+  const alleTage = weekDays().filter(day => v.plan.days.includes(day.i));
   const len = t.dauer;
-  if (!tage.length || !len) return false;
+  if (!alleTage.length || !len) return false;
+  // Frist: zuerst nur Tage bis einschließlich Fristtag. Gibt es davor
+  // keinen Platz, gilt die ganze Woche — lieber spät als gar nicht. Eine
+  // verstrichene Frist oder eine nach dieser Woche ändert nichts.
+  if (!opts.fertig && t.frist && t.frist >= iso(new Date())) {
+    const davor = alleTage.filter(day => day.key <= t.frist);
+    if (davor.length && davor.length < alleTage.length) {
+      return placeTask(t, { fertig: true, tage: davor }) || placeTask(t, { fertig: true });
+    }
+  }
+  const tage = opts.tage || alleTage;
 
   let best = null;
   const alt = [];
@@ -6642,7 +7093,8 @@ function buildSuggestions() {
   state.tasks
     .filter(t => !t.done && !t.geplant && t.dauer)
     .filter(t => { const ar = areaById(t.areaId); return !ar || !ar.plan.keinVorschlag; })
-    .sort((x, y) => y.frog - x.frog)
+    // Das Wichtigste zuerst, danach die frühere Frist (ohne Frist zuletzt).
+    .sort((x, y) => y.frog - x.frog || (x.frist || "9999").localeCompare(y.frist || "9999"))
     .forEach(t => {
       const got = placeTask(t);
       placed += got ? t.dauer : 0;
@@ -6695,7 +7147,7 @@ function vorschlagGueltig(b) {
   const day = weekDays().find(d => d.key === b.date);
   if (!day) return false;
   if (!area.plan.days.includes(day.i)) return false;
-  if (b.grob) return !istFrei(day.key) && fensterErlaubtTag(area.regeln, day.i);
+  if (b.grob) return !vorschlagGesperrt(day.key) && fensterErlaubtTag(area.regeln, day.i);
   const gaps = freeGaps(day, area.plan, area, { excludeId: b.id });
   return gaps.some(g => g.start <= b.start && g.end >= b.end);
 }
@@ -6785,7 +7237,7 @@ function restDesTagesBauen() {
   if (!day) return { placed: 0, missing: 0, hinweise: [] };
   // Derselbe Vertrag wie ueberall sonst im Verteiler (istFrei, s. 2997/3217/
   // 3649): auf einem freigehaltenen Tag schlaegt dieser Weg nichts vor.
-  if (istFrei(heuteKey)) return { placed: 0, missing: 0, hinweise: [] };
+  if (vorschlagGesperrt(heuteKey)) return { placed: 0, missing: 0, hinweise: [] };
   const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
 
   state.blocks = state.blocks.filter(b => {
@@ -8382,6 +8834,7 @@ function renderGrid() {
   const planTag = addDays(mon, selectedDayIdx);
   planTitel.innerHTML = einTag
     ? "<span class='planhead__weekday'>" + DAY_LONG[selectedDayIdx] + ", </span>" + planTag.getDate() + ". " + MONTHS[planTag.getMonth()]
+      + (feiertagAm(iso(planTag)) ? "<span class='planhead__feiertag'>" + feiertagAm(iso(planTag)) + "</span>" : "")
     : "Deine Woche";
   const todayIso = iso(new Date());
   const dayIdxs = einTag ? [selectedDayIdx] : [0, 1, 2, 3, 4, 5, 6];
@@ -9872,6 +10325,7 @@ function renderTasks() {
   // Punkt C: mit Dauer vor ohne Dauer (die kann der Planer einplanen),
   // alphabetisch nur als letzter Schlüssel — Scannbarkeit vor Anlegereihenfolge.
   const ohnePlatz = open.filter(t => !aufgabenBlock(t)).sort((a, b) =>
+    (a.frist || "9999").localeCompare(b.frist || "9999") ||
     (a.dauer ? 0 : 1) - (b.dauer ? 0 : 1) || a.title.localeCompare(b.title, "de"));
 
   // Chronologisch nach Tag+Uhrzeit des Blocks, alphabetisch nur als letzter
@@ -10034,6 +10488,12 @@ function taskEl(t) {
         : (t.dauer ? "<span class='task__dur num'>" + fmtDur(t.dauer) + "</span>" : "<span>· Dauer offen</span>"));
 
   body.append(ti, meta);
+  const frist = t.done ? null : fristText(t);
+  if (frist) {
+    const f = document.createElement("div");
+    f.className = "task__frist" + (frist.nah ? " is-nah" : "") + (frist.vorbei ? " is-vorbei" : "");
+    f.textContent = frist.text; body.appendChild(f);
+  }
   if (t.schritt && !t.done) {
     const schritt = document.createElement("div"); schritt.className = "task__step";
     schritt.innerHTML = "<b>Start:</b> " + escapeHtml(t.schritt); body.appendChild(schritt);
@@ -10076,6 +10536,56 @@ function taskEl(t) {
     try { e.dataTransfer.setData("text/plain", t.title); } catch (err) {}
   });
   row.addEventListener("dragend", () => { dragTaskId = null; row.classList.remove("is-dragging"); });
+
+  /* v1.47: Wischen an der Aufgabe, dieselbe Sprache wie in „Heute" —
+     nach rechts abhaken (oder wieder öffnen), nach links planen bzw. den
+     Vorschlag prüfen. Nur mit dem Finger; die Zeile folgt ihm, ab WISCH_AB
+     erscheint der Aufkleber mit dem, was beim Loslassen passiert. Beide
+     Richtungen gehen durch die vorhandenen Bedienelemente (change am Haken,
+     Klick auf .task__go) — kein zweiter Weg am Abhaken vorbei. */
+  const go = row.querySelector(".task__go");
+  let wx = 0, wy = 0, wachse = null, wdx = 0, wAktiv = false, gewischt = false;
+  const wischZeigen = dx => {
+    row.style.setProperty("--wisch", dx + "px");
+    row.classList.toggle("is-wisch", dx !== 0);
+    row.classList.toggle("is-wisch-links", dx < 0);
+    row.classList.toggle("is-wisch-voll", Math.abs(dx) >= WISCH_AB);
+    row.dataset.wischText = dx < 0 ? go.textContent : (cb.checked ? "Wieder offen" : "Erledigt");
+  };
+  row.addEventListener("pointerdown", e => {
+    gewischt = false;
+    if (e.pointerType === "mouse" || e.target.closest(".task__check, .task__go, .task__more")) return;
+    wx = e.clientX; wy = e.clientY; wachse = null; wdx = 0; wAktiv = true;
+  });
+  row.addEventListener("pointermove", e => {
+    if (!wAktiv) return;
+    const dx = e.clientX - wx, dy = e.clientY - wy;
+    if (wachse === null) {
+      if (Math.hypot(dx, dy) < 10) return;
+      wachse = Math.abs(dx) > Math.abs(dy) * 1.5 ? "x" : "y";
+      if (wachse === "y") { wAktiv = false; return; }
+    }
+    wdx = clamp(dx, go ? -140 : 0, 140);
+    wischZeigen(wdx);
+  });
+  const wischEnde = () => {
+    if (!wAktiv) return;
+    wAktiv = false;
+    const dx = wdx, war = wachse === "x";
+    wischZeigen(0);
+    if (!war) return;
+    // Erst handeln, dann sperren: go.click() läuft selbst durch den
+    // Klick-Fänger unten. Die Sperre gilt nur dem einen Folge-Klick und
+    // wird beim nächsten Antippen (pointerdown) wieder aufgehoben.
+    if (dx >= WISCH_AB) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
+    else if (dx <= -WISCH_AB && go) go.click();
+    gewischt = true;
+  };
+  row.addEventListener("pointerup", wischEnde);
+  row.addEventListener("pointercancel", wischEnde);
+  row.addEventListener("click", e => {
+    if (gewischt) { gewischt = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
   return row;
 }
 
@@ -10131,6 +10641,10 @@ function taskSheet(t) {
       "<div class='sheet__row'><span class='label'>Wie lange dauert das?</span>" +
       "<div class='chipset' id='tkDauer'></div>" +
       "<div id='tkDauerHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div></div>" +
+      "<div class='sheet__row'><label class='label' for='tkFrist'>Fällig bis <span style='font-weight:400'>(optional)</span></label>" +
+      "<input class='field' id='tkFrist' type='date' style='max-width:200px'>" +
+      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>" +
+      "Der Planer sucht dann zuerst einen Platz bis zu diesem Tag.</div></div>" +
       "<div class='sheet__row'><label class='switch'><input type='checkbox' id='tkFrog'> " +
       "Das Wichtigste — zuerst dran</label></div>" +
       "<div class='sheet__row' id='tkRegeln' hidden></div>";
@@ -10140,6 +10654,8 @@ function taskSheet(t) {
     titel.required = true;
     titel.oninput = () => titel.setCustomValidity("");
     const schritt = s.querySelector("#tkSchritt");
+    const fristFeld = s.querySelector("#tkFrist");
+    fristFeld.value = t.frist || "";
     schritt.value = t.schritt || "";
     const notiz = s.querySelector("#tkNotiz");
     notiz.value = t.notiz || "";
@@ -10229,6 +10745,7 @@ function taskSheet(t) {
       if (!titel.reportValidity()) return false;
       t.title = neu;
       if (schritt.value.trim()) t.schritt = schritt.value.trim().slice(0, 240); else delete t.schritt;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fristFeld.value)) t.frist = fristFeld.value; else delete t.frist;
       if (notiz.value.trim()) t.notiz = notiz.value.trim().slice(0, 2000); else delete t.notiz;
       t.areaId = areaId;
       if (dauer) t.dauer = dauer; else delete t.dauer;
@@ -11524,6 +12041,11 @@ $("#settingsBtn").onclick = () => {
           "<div id='sSleepHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'></div>" +
         "</div>" +
       "</div>" +
+      "<div class='sheet__row' data-page='zeit'><span class='label'>Feiertage</span>" +
+        "<label class='switch'><input type='checkbox' id='sFeiertage'> Feiertage freihalten</label>" +
+        "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px;line-height:1.5'>" +
+        "An gesetzlichen Feiertagen in Baden-Württemberg schlägt der Planer nichts vor. Von Hand eintragen kannst du dort trotzdem.</div>" +
+      "</div>" +
       "<div class='sheet__row' id='sAcctRow' data-page='konto'><span class='label'>Konto</span><div class='acct' id='sAcct'></div></div>" +
       "<div class='sheet__row' data-page='bereiche'><span class='label'>Bereiche</span><div class='arealist' id='sAreas'></div>" +
       "<button class='btn btn--sm' id='sAddArea' type='button' style='margin-top:10px'>+ Bereich</button></div>" +
@@ -11589,6 +12111,8 @@ $("#settingsBtn").onclick = () => {
     const slBody = s.querySelector("#sSleepBody");
     const slHint = s.querySelector("#sSleepHint");
 
+    const feiertageBox = s.querySelector("#sFeiertage");
+    feiertageBox.checked = state.settings.feiertageFrei !== false;
     slOn.checked = sl.on;
     slFrom.value = fmtTime(sl.from);
     slTo.value = fmtTime(sl.to);
@@ -11833,6 +12357,7 @@ $("#settingsBtn").onclick = () => {
         to: parseTime(slTo.value),
         wind: clamp(parseInt(slWind.value, 10) || 0, 0, 180)
       };
+      if (feiertageBox.checked) delete state.settings.feiertageFrei; else state.settings.feiertageFrei = false;
       save();
     };
 
