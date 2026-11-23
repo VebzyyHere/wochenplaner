@@ -122,6 +122,10 @@ const ok = (bed, txt) => { console.log((bed ? '   OK    ' : '   FEHLER ') + txt)
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(vonX + (bisX - vonX) * i / schritte) });
       await p.waitForTimeout(16);
     }
+    // Vor dem Loslassen kurz halten: ein schneller synthetischer Wisch hinterlaesst
+    // in Chromium einen Schwung (Fling), und der naechste Touch-Tipp haelt dann nur
+    // diesen an, ohne einen click zu erzeugen (gemessen unter Windows, 2026-11-23).
+    await p.waitForTimeout(300);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach();
     await p.waitForTimeout(400);
