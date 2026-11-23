@@ -3722,9 +3722,14 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .task__go:hover { background: var(--surface-3); }
 .task__frist.is-nah { padding: 0 6px; transform: none; box-shadow: none;
   background: color-mix(in oklab, var(--honig) 30%, transparent); color: var(--text); }
+.loose__spur { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(var(--lcols, 7), minmax(0, 1fr));
+  grid-auto-flow: row dense; gap: 3px 0; padding: 2px 0; min-width: 0; }
+.loose__spur .loosechip { margin: 0 3px; min-width: 0; }
+.loosechip.is-lang { justify-content: space-between; }
+/* Das Datum steht schon im Tageskopf; in der schmalen Arbeitsfläche wurde es nur abgeschnitten. */
+.tagesform__tag { display: none; }
 @media (max-width: 1100px) {
   .task { padding: var(--s-2) var(--s-2); }
-  .tagesform__tag { display: none; }
   .tagesform { justify-content: space-between; }
 }
 </style>
@@ -9462,6 +9467,36 @@ function renderLoose() {
     lab.textContent = abschnitt.kurz;
     band.appendChild(lab);
 
+    // v1.57: Mehrtägiges (Festival, Urlaub) steht in der Woche als EIN Balken über
+    // seine Tage statt als Chip je Tag. Nur Anzeige; ein Tipp öffnet wie bisher den Eintrag.
+    if (abschnitt === GANZTAG && tage.length > 1) {
+      const spur = document.createElement("div");
+      spur.className = "loose__spur";
+      const laeufe = [];
+      inZeile.forEach((liste, n) => liste.forEach(b => {
+        const l = laeufe.find(x => x.b === b && x.bis === n - 1);
+        if (l) l.bis = n; else laeufe.push({ b, von: n, bis: n });
+      }));
+      laeufe.forEach(({ b, von, bis }) => {
+        const area = areaById(b.areaId);
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "loosechip" + (bis > von ? " is-lang" : "") + (waageFilter && b.areaId !== waageFilter ? " is-gedimmt" : "");
+        chip.style.setProperty("--h", area.hue);
+        chip.style.gridColumn = (von + 1) + " / span " + (bis - von + 1);
+        let fertig = true;
+        for (let n = von; n <= bis; n++) if (!istErledigt(b, daten[n].key)) fertig = false;
+        if (fertig) chip.classList.add("is-done");
+        chip.title = (fertig ? "Erledigt: " : "") + b.title + " · " + ungefaehrText(b, " · ");
+        chip.innerHTML = "<span class='loosechip__t'>" + escapeHtml(b.title) + "</span>" +
+          (bis > von ? "<span class='loosechip__d'>" + (bis - von + 1) + " Tage</span>" : "");
+        chip.onclick = () => blockSheet({ ...b }, daten[von].key);
+        spur.appendChild(chip);
+      });
+      band.appendChild(spur);
+      return;
+    }
+
     inZeile.forEach((liste, n) => {
       const cell = document.createElement("div");
       cell.className = "loose__cell";
@@ -15197,6 +15232,9 @@ function beispielFuellen() {
   }
   state.days[heute] = { energy: "mid" };
   try { buildSuggestions(); } catch (e) {}
+  // Wie im echten Leben ist ein Teil schon bestätigt: die zwei Aufgaben mit der
+  // nächsten Frist stehen fest im Plan, nicht nur als Vorschlag (v1.57).
+  state.blocks.forEach(b => { if (b.sug && (b.taskId === "bsp-t1" || b.taskId === "bsp-t2")) delete b.sug; });
   Store.save(state);
   $("#banner").innerHTML = "<div class='banner banner--beispiel' role='status'><span><b>Beispielwoche</b><span class='banner__lang'>. Deine Daten bleiben unberührt.</span></span> <a class='btn btn--ghost btn--sm' href='" + location.pathname + "'>Zu meinem Plan</a></div>";
 }

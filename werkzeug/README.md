@@ -25,6 +25,7 @@ Version 1.55 ergänzt `beispiel.js`: Beispielwoche (`?beispiel`, eigener Speiche
 unverändert) und die Eintrags-Karte am Telefon (Bereichsraster, „Dazu“ einzeilig, runde Mulde, Fuß ohne Überlappen).
 Version 1.56 ergänzt `plaene.js`: mehrere Pläne (Vorlage, offener Plan je Gerät, schraffierte Termine anderer Pläne
 bleiben für den Verteiler belegt, Aufgaben/Vorschläge je Plan, Umbenennen/Löschen, migrate/merge, Kopf am Telefon).
+Version 1.57 erweitert `beispiel.js` um f): mehrtägiges Festival als ein Balken im Ganztags-Band, zwei Aufgaben bestätigt.
 
 Version 1.47 ergänzt `ausblick.js`: Osterformel, zwölf Feiertage Baden-Württemberg, Brückentag-Tipps,
 Monat wischen (echte Touch-Events), Ausblick-Blatt speichert nichts. Feste Uhr Mi 18.11.2026.
