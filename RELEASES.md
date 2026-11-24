@@ -7,6 +7,15 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.62 vom 2026-11-24
+
+PWA-Cache `wp-v1.62`, Datenschema 10, Kette 76 Skripte.
+
+- Bereinigung (Paket B/C): Kalender-Export in „Daten und Sicherung" zusammengeführt, einheitliche `16×16`-Einstellungs-Pfeile, monochromes Plan-Symbol `PLAN_STANDARD_SVG` und entfernte CSS-Altlasten.
+- Paket D: Checklisten-Fortschritt `✓ x/y` in Raster & Heute, `#bFokus`-Schnellstart + Offline-Regen/Rauschen im Fokus-Timer, horizontaler Tag-zu-Tag-Drag am Desktop, Plan-Teilen per `#teilen=`-Hash, 15-stufiges `Strg+Z`-Rückgängig und `@media print`-Drucklayout.
+- Persönlicher Feinschliff & Geheimpunkt: Versteckter „Kleiner Geheimpunkt" (3× Tippen mit Tipp-2-Hinweis + Namens-Ansprache, graue Katze mit Kaffeetasse & Wintersonne, 150-BPM-Equalizer, On-Demand Spotify-Embed ohne Autoplay), Evoli/Glurak/Wintersonne-Spuren in Mikroideen und Abhak-Funken sowie wärmere Begleitsätze bei Tagesform „Wenig".
+- Paralleler Prüfläufer `werkzeug/alles.js`: Worker-Pool mit `--parallel N`/`-j N` und exklusiver PWA-Schlussrunde.
+
 ### Release v1.44 vom 2026-10-25
 
 PWA-Cache `wp-v1.44`, Datenschema 10, Kette 63 Skripte. Notizen für Nutzer: `release/v1.44.md`.

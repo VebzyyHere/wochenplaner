@@ -947,7 +947,7 @@ html[data-theme="dark"] .agenda__loading {
   font-size: var(--t-sm); color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.setmenu__pfeil { flex: none; font-size: var(--t-h1); color: var(--text-faint); line-height: 1; }
+.setmenu__pfeil { flex: none; display: inline-flex; align-items: center; color: var(--text-faint); line-height: 1; }
 .setback {
   display: flex; align-items: center; gap: 6px;
   background: none; border: none; padding: 4px 0; margin: 0 0 var(--s-4);
@@ -955,7 +955,7 @@ html[data-theme="dark"] .agenda__loading {
   min-height: 40px;
 }
 .setback:hover { color: var(--text); }
-.setback span { font-size: var(--t-h1); line-height: 1; }
+.setback .ui-icon { flex: none; }
 .sheet__row[hidden], .setmenu[hidden], .setback[hidden] { display: none; }
 
 /* Konto in den Einstellungen */
@@ -3376,9 +3376,10 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
    großen Laufend-Karte und im Zielnamen abgeschnitten statt umbrochen. */
 .agenda__hero-title, .goal__name { overflow-wrap: anywhere; hyphens: auto; }
 /* Eintrag bearbeiten: „Kopieren" klein neben dem Titel. */
-.sheet__kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: var(--s-4); }
+.sheet__kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: var(--s-4); }
 .sheet__kopf .sheet__title { min-width: 0; margin: 0; }
 .sheet__kopf .btn { flex: none; }
+.sheet__kopf-acts { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
 /* ============================================================
    v1.49 „Wochenwaage" — die Woche als ein Balken
    Am Desktop steht sie im Rasterkopf neben „Deine Woche" (dort war Platz),
@@ -3681,7 +3682,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   font: inherit; font-size: var(--t-sm); font-weight: 650; cursor: pointer; }
 .planbtn:hover { border-color: var(--ink); }
 .planbtn__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.planbtn__emoji { font-size: 1.1em; line-height: 1; }
+.planbtn__emoji { font-size: 1.1em; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
 .fremd { position: absolute; left: 3px; right: 3px; z-index: 0; overflow: hidden; pointer-events: none; border-radius: 10px;
   border: 1px dashed var(--rand); color: var(--text-muted); font-size: var(--t-xs); font-weight: 600; padding: 4px 6px;
   background: repeating-linear-gradient(135deg, var(--tray) 0 6px, transparent 6px 12px); }
@@ -3693,7 +3694,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .planzeile__wahl { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px;
   text-align: left; border-radius: 14px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
 .planzeile__wahl[aria-pressed="true"] { border-color: var(--ink); background: var(--tray); box-shadow: var(--hart-klein, none); }
-.planzeile__emoji { font-size: 1.4em; line-height: 1; flex: none; }
+.planzeile__emoji { font-size: 1.4em; line-height: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; }
 .planzeile__text { display: flex; flex-direction: column; min-width: 0; }
 .planzeile__text b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .planzeile__text small { color: var(--text-muted); font-size: var(--t-sm); }
@@ -3730,10 +3731,9 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 .tagesform { display: flex; align-items: center; gap: var(--s-2); flex-wrap: nowrap; margin-bottom: var(--s-2); }
 .tagesform .card__title { flex: none; margin: 0; }
 .tagesform__tag { flex: 1 1 auto; min-width: 0; font-size: var(--t-sm); color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tagesform .energy { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--tray); box-shadow: none; border: 0; }
-.tagesform .energy__opt { min-height: 36px; padding: 0 10px; gap: 4px; border: 0; border-radius: 999px; background: transparent; box-shadow: none;
+.tagesform .energy { display: inline-flex; flex: none; gap: 2px; padding: 3px; background: var(--tray); box-shadow: none; border: 0; }
+.tagesform .energy__opt { min-height: 36px; padding: 0 10px; gap: 4px; border: 0; background: transparent; box-shadow: none;
   font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); }
-.tagesform .energy__opt[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--rand); }
 .tagesform .energy__bars { transform: scale(.8); }
 #energyHint[hidden] { display: none; }
 /* Leiser: Vorschläge mit feiner Strichkante statt Kontur, „Prüfen"/„Planen" an
@@ -3857,8 +3857,6 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
 .btn { border-radius: var(--r-ctl); }
 .chip { border-radius: var(--r-chip); }
 .planbtn, .syncbadge { border-radius: var(--r-ctl); }
-.panelnav, .tagesform .energy, .planmode { border-radius: var(--r-seg); }
-.panelnav button, .tagesform .energy__opt, .planmode button { border-radius: 7px; }
 .taskadd { border-radius: 12px; padding: 4px 4px 4px 6px; }
 .taskadd .btn--primary { border-radius: 8px; }
 .task__go, .loosechip { border-radius: var(--r-chip); }
@@ -4183,6 +4181,78 @@ input.field[type="time"] {
   line-height: normal;
 }
 body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
+
+/* ---- Finale Abrundung: Desktop-Tag-Drag, Offline-Klang, Geheimpunkt & Druck ---- */
+.daycol.is-dragziel { background: color-mix(in oklab, var(--ink) 7%, transparent); }
+.block.is-dragging { z-index: 25; box-shadow: var(--shadow-3); opacity: .94; }
+.dragzeit {
+  position: absolute; left: 4px; top: 4px; z-index: 3;
+  padding: 2px 7px; border-radius: var(--r-xs);
+  background: var(--ink); color: var(--on-ink);
+  font-size: var(--t-xs); font-weight: 700; pointer-events: none; white-space: nowrap;
+}
+.fokus__klang {
+  display: inline-flex; flex-wrap: nowrap; justify-content: center; gap: 3px;
+  padding: 3px; margin: 0 auto 16px; border-radius: var(--r-sm); background: var(--tray); max-width: 100%;
+}
+.fokus__klang button {
+  min-height: 38px; padding: 0 12px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-muted); font: inherit; font-size: var(--t-sm); font-weight: 650; cursor: pointer;
+}
+@media (pointer: coarse) { .fokus__klang button { min-height: 44px; } }
+.fokus__klang button[aria-pressed="true"] {
+  background: var(--raised); color: var(--text); box-shadow: 0 0 0 1px var(--rand);
+}
+.geheim { text-align: center; }
+.geheim__karte {
+  display: block; width: 100%; text-align: center; padding: var(--s-4); margin: 0 0 var(--s-3);
+  border: 1.5px solid var(--rand); border-radius: var(--r-md); background: var(--surface-2);
+  color: var(--text); font: inherit; cursor: pointer; transition: transform .15s var(--feder), border-color .15s;
+}
+.geheim__karte:hover { border-color: var(--ink); }
+.geheim__karte:active { transform: scale(.985); }
+.katze-svg {
+  width: 96px; height: 76px; display: block; margin: 0 auto 10px;
+  stroke: var(--ink); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.katze-svg .katze-sonne { fill: color-mix(in oklab, var(--honig) 78%, var(--surface)); stroke: var(--honig); }
+.katze-svg .katze-fell { fill: color-mix(in oklab, var(--text-muted) 26%, var(--surface)); stroke: var(--ink); }
+.katze-svg .katze-ohr { fill: color-mix(in oklab, var(--text-muted) 42%, var(--surface)); stroke: none; }
+.katze-svg .katze-tasse { fill: color-mix(in oklab, var(--surface) 85%, var(--honig)); stroke: var(--ink); }
+@keyframes katzeSchnurr {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.04) rotate(-2deg); }
+  70% { transform: scale(1.03) rotate(2deg); }
+}
+.katze-svg.is-schnurr { animation: katzeSchnurr .45s var(--feder); }
+.geheim__spruch { margin: 0 0 6px; font-size: var(--t-body); font-weight: 650; line-height: 1.45; color: var(--text); }
+.geheim__hinweis { margin: 0; font-size: var(--t-xs); color: var(--text-faint); }
+.geheim__eq { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 22px; margin: 10px auto 4px; }
+.geheim__eq i { display: block; width: 5px; height: 6px; border-radius: 3px; background: var(--ink); opacity: .28; transform-origin: bottom; }
+@keyframes raveTakt {
+  0%, 100% { height: 6px; opacity: .55; }
+  50% { height: 20px; opacity: 1; }
+}
+.geheim.is-rave .geheim__eq i { animation: raveTakt .4s ease-in-out infinite; animation-delay: calc(var(--bi, 0) * 65ms); }
+.geheim.is-rave .geheim__eq i:nth-child(even) { background: var(--honig); }
+.geheim__aktionen { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2); margin-top: var(--s-2); }
+#geheimRave[aria-pressed="true"], #geheimPlayerBtn[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.geheim__player { margin-top: var(--s-3); text-align: center; }
+.geheim__iframe { width: 100%; height: 152px; border: 0; border-radius: var(--r-md); display: block; background: var(--surface-2); }
+.geheim__offline { margin: 0; font-size: var(--t-xs); color: var(--text-muted); }
+.geheim__link { display: inline-block; margin-top: var(--s-2); font-size: var(--t-xs); font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+@media (pointer: coarse) { #geheimRave, #geheimPlayerBtn { min-height: 44px; padding: 0 var(--s-4); } }
+@media (prefers-reduced-motion: reduce) {
+  .katze-svg.is-schnurr, .geheim.is-rave .geheim__eq i { animation: none !important; }
+}
+@media print {
+  body, .app { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
+  .main, .gridwrap { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .kopf { position: static !important; box-shadow: none !important; }
+  .tabbar, .sugbar, .panelnav, .toasts, .scrim, .wuerfel, .fab, .banner,
+  .tagesform, #restTagBtn, .topbar .btn, #planBtn .weeknav__caret { display: none !important; }
+  .block, .goal, .task { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+}
 </style>
 </head>
 <body>
@@ -5054,6 +5124,9 @@ function snapshot(s) {
 let lastSnap = snapshot(state);
 let lastSavedJson = JSON.stringify(state);
 let prevSavedJson = null;     // Stand vor der letzten Änderung — für „Rückgängig"
+const UNDO_MAX = 15;
+const undoStapel = [];
+let imUndo = false;
 
 function stampChanges() {
   const now = Date.now();
@@ -5083,10 +5156,15 @@ function stampChanges() {
 }
 
 function save() {
-  prevSavedJson = lastSavedJson;
+  const vorher = lastSavedJson;
   stampChanges();
   Store.save(state);
   lastSavedJson = JSON.stringify(state);
+  if (!imUndo && vorher && vorher !== lastSavedJson) {
+    undoStapel.push(vorher);
+    if (undoStapel.length > UNDO_MAX) undoStapel.shift();
+  }
+  prevSavedJson = undoStapel[undoStapel.length - 1] || null;
   syncPush();
 }
 
@@ -5094,12 +5172,15 @@ function save() {
    Einträge bekommen dabei neue Zeitstempel, damit sie beim nächsten
    Abgleich nicht erneut von der Löschung überholt werden. */
 function undoLast() {
-  if (!prevSavedJson) { toast("Nichts zum Rückgängigmachen"); return; }
+  const ziel = undoStapel.pop() || prevSavedJson;
+  if (!ziel) { toast("Nichts zum Rückgängigmachen"); return; }
   try {
-    const s = JSON.parse(prevSavedJson);
+    const s = JSON.parse(ziel);
     migrate(s);
     state = s;
-    save();
+    imUndo = true;
+    try { save(); } finally { imUndo = false; }
+    prevSavedJson = undoStapel[undoStapel.length - 1] || null;
     renderAll();
     toast("Wiederhergestellt");
   } catch (e) { toast("Konnte nicht wiederhergestellt werden"); }
@@ -5140,6 +5221,131 @@ function planMerken(id) {
     if (aktiverPlan) localStorage.setItem(planSchluessel(), aktiverPlan);
     else localStorage.removeItem(planSchluessel());
   } catch (e) {}
+}
+
+function b64UrlEnc(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64UrlDec(b64) {
+  const pad = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
+  const bin = atob(pad);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+function planLinkBauen(planId) {
+  const pk = planInfo(planId);
+  const bereiche = state.areas.filter(a => planVon(a) === (planId || null));
+  const ids = new Set(bereiche.map(a => a.id));
+  const wocheKeys = new Set(weekDays().map(d => d.key));
+  const bloecke = state.blocks.filter(b => !b.sug && ids.has(b.areaId) &&
+    (planId || istSerie(b) ? true : wocheKeys.has(b.date))).slice(0, 80);
+  const payload = {
+    v: 1,
+    n: pk.name,
+    e: pk.emoji || "",
+    a: bereiche.map(a => [a.id, a.name, a.hue, a.plan && a.plan.goal ? a.plan.goal : 0, a.ideen || []]),
+    b: bloecke.map(b => [
+      b.title, b.areaId, b.day, b.date, b.start, b.end,
+      b.grob ? 1 : 0, b.ganztag ? 1 : 0, b.repeat || "none",
+      b.bis || "", b.teil || "", b.dauer || 0, b.ort || "", b.notiz || "",
+      b.schritte ? b.schritte.map(x => x.t) : [], b.sperrt ? 1 : 0
+    ])
+  };
+  return location.href.split("#")[0] + "#teilen=" + b64UrlEnc(JSON.stringify(payload));
+}
+function planLinkLesen(hashStr) {
+  if (typeof hashStr !== "string" || !hashStr.startsWith("#teilen=") || hashStr.length > 32000) return null;
+  try {
+    const raw = JSON.parse(b64UrlDec(hashStr.slice(8)));
+    if (!raw || raw.v !== 1 || !Array.isArray(raw.a) || !raw.a.length || raw.a.length > 24 || !Array.isArray(raw.b) || raw.b.length > 100) return null;
+    return {
+      name: String(raw.n || "Geteilter Plan").slice(0, 40),
+      emoji: String(raw.e || "✨").slice(0, 8),
+      areas: raw.a.filter(x => Array.isArray(x) && x.length >= 3),
+      blocks: raw.b.filter(x => Array.isArray(x) && x.length >= 6)
+    };
+  } catch (e) { return null; }
+}
+function planLinkImportSheet(daten) {
+  if (!daten) return;
+  modal((s, close) => {
+    s.innerHTML =
+      "<h2 class='sheet__title'>Geteilter Plan</h2>" +
+      "<div class='tipp' style='margin:0 0 var(--s-3)'>" +
+        "<div style='font-weight:750;font-size:1.05rem;margin-bottom:4px'>" +
+          (daten.emoji ? escapeHtml(daten.emoji) + " " : "") + escapeHtml(daten.name) +
+        "</div>" +
+        "<div style='font-size:var(--t-sm);color:var(--text-muted)'>" +
+          daten.areas.length + (daten.areas.length === 1 ? " Bereich" : " Bereiche") + " · " +
+          daten.blocks.length + (daten.blocks.length === 1 ? " Eintrag" : " Einträge") +
+        "</div>" +
+      "</div>" +
+      "<p style='margin:0;font-size:var(--t-sm);color:var(--text-muted);line-height:1.5'>" +
+        "Wird als neuer eigener Plan angelegt — deine bisherigen Pläne und Daten bleiben unberührt.</p>";
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const no = document.createElement("button");
+    no.type = "button"; no.className = "btn"; no.textContent = "Abbrechen";
+    no.onclick = close;
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const ok = document.createElement("button");
+    ok.type = "button"; ok.className = "btn btn--primary"; ok.textContent = "Als neuen Plan übernehmen";
+    ok.onclick = () => {
+      const pid = "p-" + uid();
+      const map = new Map();
+      const kal = { id: pid, name: daten.name, emoji: daten.emoji || "✨" };
+      daten.areas.forEach(([altId, name, hue, goal, ideen]) => {
+        const nid = uid();
+        map.set(altId, nid);
+        const a = { id: nid, name: String(name || "Bereich").slice(0, 32), hue: clamp(+hue || 150, 0, 359), plan: defaultPlan(), kalender: kal };
+        a.plan.art = artRaten(a);
+        if (+goal > 0) a.plan.goal = clamp(+goal, 0, 80);
+        if (Array.isArray(ideen) && ideen.length) a.ideen = ideen.slice(0, 20).map(i => ({ t: String(i.t || "").slice(0, 60), min: clamp(+i.min || 30, 15, 240) })).filter(i => i.t);
+        state.areas.push(a);
+      });
+      const fallbackArea = map.values().next().value || state.areas[0].id;
+      daten.blocks.forEach(([title, altArea, day, date, start, end, grob, ganztag, repeat, bis, teil, dauer, ort, notiz, schritte, sperrt]) => {
+        const blk = {
+          id: uid(), title: String(title || "Eintrag").slice(0, 80), areaId: map.get(altArea) || fallbackArea,
+          day: clamp(+day || 0, 0, 6), date: typeof date === "string" ? date : "",
+          start: clamp(+start || 0, 0, 1440), end: clamp(+end || 0, 0, 1440),
+          grob: !!grob, ganztag: !!ganztag,
+          repeat: repeat === "weekly" || repeat === "2wochen" ? repeat : "none",
+          frog: false
+        };
+        if (blk.repeat !== "none" && blk.date) blk.since = blk.date;
+        if (bis) blk.bis = String(bis).slice(0, 10);
+        if (teil) blk.teil = String(teil).slice(0, 6);
+        if (+dauer > 0) blk.dauer = clamp(+dauer, 15, 480);
+        if (ort) blk.ort = String(ort).slice(0, 80);
+        if (notiz) blk.notiz = String(notiz).slice(0, 400);
+        if (sperrt) blk.sperrt = true;
+        if (Array.isArray(schritte) && schritte.length) blk.schritte = schritte.slice(0, 12).map(t => ({ t: String(t || "").slice(0, 80) })).filter(x => x.t);
+        state.blocks.push(blk);
+      });
+      migrate(state);
+      planMerken(pid);
+      const mitDatum = daten.blocks.find(b => typeof b[3] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b[3]));
+      if (mitDatum) {
+        const d = new Date(mitDatum[3] + "T12:00:00");
+        if (!isNaN(d)) { anchor = d; selectedDayIdx = (d.getDay() + 6) % 7; }
+      }
+      save(); close(); renderAll();
+      toast("Plan „" + daten.name + "“ übernommen");
+    };
+    foot.append(no, sp, ok);
+    s.appendChild(foot);
+  });
+}
+function pruefeTeilenLink() {
+  const d = planLinkLesen(location.hash);
+  if (!d) return false;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; }
+  planLinkImportSheet(d);
+  return true;
 }
 /* Bereiche des offenen Plans; hat er keine (sollte nicht vorkommen), alle. */
 function planBereiche() {
@@ -5318,11 +5524,7 @@ function toast(msg, action) {
 
 /* Toast mit Rückgängig — für alles, was etwas wegnimmt. */
 function toastUndo(msg) {
-  const snap = prevSavedJson;
-  toast(msg, { label: "Rückgängig", run: () => {
-    prevSavedJson = snap;
-    undoLast();
-  }});
+  toast(msg, { label: "Rückgängig", run: () => undoLast() });
 }
 
 /* ============================================================ Modal */
@@ -5621,6 +5823,9 @@ function confirmSheet(title, text, confirmLabel, onYes, opts = {}) {
 }
 
 /* ============================================================ Kopfzeile */
+const PLAN_STANDARD_SVG =
+  "<svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true' style='width:16px;height:16px'>" +
+  "<rect x='3.5' y='4.5' width='17' height='16' rx='3'/><path d='M8 2.5v4M16 2.5v4M3.5 9.5h17'/></svg>";
 function renderHeader() {
   const mon = mondayOf(anchor);
   const sun = addDays(mon, 6);
@@ -5647,7 +5852,8 @@ function renderHeader() {
   if (heuteBtn) heuteBtn.hidden = iso(mon) === iso(mondayOf(new Date()));
   const pb = $("#planBtn"), pk = planInfo(aktiverPlan);
   if (pb) {
-    pb.querySelector(".planbtn__emoji").textContent = pk.emoji || "•";
+    if (!aktiverPlan) pb.querySelector(".planbtn__emoji").innerHTML = PLAN_STANDARD_SVG;
+    else pb.querySelector(".planbtn__emoji").textContent = pk.emoji || "•";
     pb.querySelector(".planbtn__name").textContent = pk.name;
     pb.setAttribute("aria-label", "Plan: " + pk.name + " — Pläne anzeigen");
     pb.title = pk.name;
@@ -5725,11 +5931,42 @@ function planSheet() {
         b.type = "button"; b.className = "planzeile__wahl";
         b.setAttribute("aria-pressed", String(p.id === aktiverPlan));
         b.innerHTML = "<span class='planzeile__emoji' aria-hidden='true'></span><span class='planzeile__text'><b></b><small></small></span>";
-        b.querySelector(".planzeile__emoji").textContent = p.emoji || "•";
+        if (!p.id) b.querySelector(".planzeile__emoji").innerHTML = PLAN_STANDARD_SVG;
+        else b.querySelector(".planzeile__emoji").textContent = p.emoji || "•";
         b.querySelector("b").textContent = p.name;
         b.querySelector("small").textContent = z.bereiche + (z.bereiche === 1 ? " Bereich" : " Bereiche") + " · " + z.eintraege + (z.eintraege === 1 ? " Eintrag" : " Einträge");
         b.onclick = () => { close(); planWechseln(p.id); toast((p.emoji ? p.emoji + " " : "") + p.name); };
         row.appendChild(b);
+        const share = document.createElement("button");
+        share.type = "button"; share.className = "btn btn--sm btn--leise"; share.textContent = "Teilen";
+        share.onclick = () => {
+          const link = planLinkBauen(p.id);
+          const zeigLinkBlatt = () => {
+            modal((m, zu) => {
+              m.innerHTML =
+                "<h2 class='sheet__title'>Link zum Plan</h2>" +
+                "<p style='margin:0 0 10px;font-size:var(--t-sm);color:var(--text-muted);line-height:1.5'>Diesen Link kopieren und weiterschicken:</p>" +
+                "<input class='field' id='teilenFeld' readonly>";
+              const f = m.querySelector("#teilenFeld");
+              f.value = link;
+              setTimeout(() => { f.focus(); f.select(); }, 30);
+              const ft = document.createElement("div");
+              ft.className = "sheet__foot";
+              ft.innerHTML = "<span class='spacer'></span>";
+              const ok = document.createElement("button");
+              ok.type = "button"; ok.className = "btn btn--primary"; ok.textContent = "Schließen";
+              ok.onclick = zu;
+              ft.appendChild(ok);
+              m.appendChild(ft);
+            });
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(() => toast("Link zum Plan kopiert")).catch(zeigLinkBlatt);
+          } else {
+            zeigLinkBlatt();
+          }
+        };
+        row.appendChild(share);
         if (p.id) {
           const um = document.createElement("button");
           um.type = "button"; um.className = "btn btn--sm btn--leise"; um.textContent = "Umbenennen";
@@ -7127,6 +7364,19 @@ const gefeiert = new Set();
 /* Haken setzen und, wenn er gesetzt wird, darauf antworten. el ist der
    Knopf/Haken, von dem die Schnipsel ausgehen. Der Aufrufer speichert und
    zeichnet danach wie bisher selbst. */
+const nutzerName = () => (state.profile && state.profile.name || "").trim();
+const HAKEN_FUNKEN = [
+  n => n ? "Stark, " + n + " — wieder ein Stück leichter." : "Geschafft — wieder ein Stück leichter.",
+  () => "Evoli-Moment: kleiner Schritt, neue Energie.",
+  n => "Psst" + (n ? ", " + n : "") + " — deine Begrüßung oben schnurrt, wenn man 3× tippt.",
+  () => "Alte Lasten bleiben draußen. Gut gemacht.",
+  () => "Kleines Glurak-Feuer gezündet — weiter so, in deinem Tempo.",
+  () => "Die kleine graue Katze nickt anerkennend.",
+  n => n ? "Darfst dir gerade mal kurz stolz zunicken, " + n + "." : "Darfst dir gerade mal kurz stolz zunicken.",
+  () => "Kurzer Wintertag, trotzdem ein guter Haken mehr."
+];
+let hakenFunkenIdx = 0;
+
 function abhaken(b, dayKey, on, el) {
   const area = areaById(b.areaId);
   const ziel = area && area.plan ? area.plan.goal * 60 : 0;
@@ -7155,8 +7405,10 @@ function abhaken(b, dayKey, on, el) {
       gefeiert.add("tag|" + dayKey);
       jubel(el, area ? area.hue : 150, true);
       toast("Alles abgehakt. Der Rest des Tages gehört dir.");
+      return;
     }
   }
+  if (++hakenFunkenIdx % 2 === 0) toast(HAKEN_FUNKEN[(Math.floor(hakenFunkenIdx / 2) - 1) % HAKEN_FUNKEN.length](nutzerName()));
 }
 
 /* Wie viel von einem Bereich in dieser Woche wirklich stattgefunden hat. */
@@ -10439,7 +10691,10 @@ function blockEl({ b, col, of }, hourH, dayKey, visStart) {
   // Über Mitternacht: beide Teile zeigen die ganze Spanne, z. B. 22:00–02:00.
   const paar = nachtPaar(b);
   tm.className = "block__time num";
-  tm.textContent = paar ? fmtTime(paar.erst.start) + "–" + fmtTime(paar.zweit.end) : fmtTime(b.start) + "–" + fmtTime(b.end);
+  const schrittInfo = !b.sug && b.schritte && b.schritte.length && h >= 34
+    ? " · ✓ " + b.schritte.filter(x => schrittOk(b, x, dayKey || b.date)).length + "/" + b.schritte.length
+    : "";
+  tm.textContent = (paar ? fmtTime(paar.erst.start) + "–" + fmtTime(paar.zweit.end) : fmtTime(b.start) + "–" + fmtTime(b.end)) + schrittInfo;
   el.append(t, tm);
   // Begründungszeile (Stufe 11) — nur Vorschläge haben eine, das reicht als
   // Erkennungsmerkmal. In kurzen Blöcken (is-short) ist ohnehin kein Platz.
@@ -10596,26 +10851,54 @@ function attachColumnHandlers(col, hourH, visStart, visEnd) {
       return;
     }
 
-    /* --- Block verschieben (nur Maus) --- */
+    /* --- Block verschieben (nur Maus, waagerecht zwischen Tagen & senkrecht in Zeit) --- */
     if (blockNode && fine) {
       const b = state.blocks.find(x => x.id === blockNode.dataset.id);
-      const startY = e.clientY, origStart = b.start, len = b.end - b.start;
+      const startX = e.clientX, startY = e.clientY, origStart = b.start, len = b.end - b.start;
+      const colRect = col.getBoundingClientRect();
+      const darfQuer = !isMobile && !b.nacht;
+      let targetCol = col, badge = null;
       let moved = false;
       const move = ev => {
-        if (!moved && Math.abs(ev.clientY - startY) < 4) return;
+        if (!moved && Math.abs(ev.clientY - startY) < 4 && (!darfQuer || Math.abs(ev.clientX - startX) < 6)) return;
         moved = true;
         blockNode.classList.add("is-dragging");
         const delta = snap((ev.clientY - startY) / hourH * 60);
         const ns = clamp(origStart + delta, dayStart * 60, dayEnd * 60 - len);
         blockNode.style.top = ((ns - dayStart * 60) / 60 * hourH) + "px";
         blockNode.dataset.pendStart = ns;
+        if (darfQuer && document.elementsFromPoint) {
+          const hit = document.elementsFromPoint(ev.clientX, ev.clientY).find(x => x.classList && x.classList.contains("daycol"));
+          if (hit && hit !== targetCol) {
+            targetCol.classList.remove("is-dragziel");
+            targetCol = hit;
+            targetCol.classList.add("is-dragziel");
+          }
+          const dx = targetCol !== col ? targetCol.getBoundingClientRect().left - colRect.left : 0;
+          blockNode.style.transform = dx ? "translateX(" + dx + "px)" : "";
+        }
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "dragzeit num";
+          blockNode.appendChild(badge);
+        }
+        const tagK = targetCol !== col ? DAY_SHORT[+targetCol.dataset.day] + " · " : "";
+        badge.textContent = tagK + fmtTime(ns) + "–" + fmtTime(ns + len);
       };
       const up = () => {
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", up);
+        document.querySelectorAll(".daycol.is-dragziel").forEach(x => x.classList.remove("is-dragziel"));
+        blockNode.style.transform = "";
+        if (badge) badge.remove();
         if (moved) {
           const ns = +blockNode.dataset.pendStart;
           b.start = ns; b.end = ns + len;
+          if (targetCol && targetCol !== col) {
+            b.day = +targetCol.dataset.day;
+            b.date = targetCol.dataset.date;
+            if (istSerie(b) && b.since && b.date < b.since) b.since = b.date;
+          }
           // fix (Stufe 11): von Hand gezogen — der Verteiler rührt den Block
           // beim nächsten Durchlauf nicht mehr an.
           b.fix = true;
@@ -11000,6 +11283,42 @@ function schrittOk(b, s, dayKey) { return istSerie(b) ? s.ok === dayKey : !!s.ok
 function schrittSetzen(b, s, dayKey, on) {
   if (on) s.ok = istSerie(b) ? dayKey : true; else delete s.ok;
 }
+let fokusKlangCtx = null;
+let fokusKlangStopRef = null;
+function fokusKlangStop() {
+  if (fokusKlangStopRef) { try { fokusKlangStopRef(); } catch (e) {} fokusKlangStopRef = null; }
+}
+function fokusKlangStart(art) {
+  fokusKlangStop();
+  if (!art || art === "aus") return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!fokusKlangCtx) fokusKlangCtx = new AC();
+    const ctx = fokusKlangCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < ch.length; i++) {
+      const w = Math.random() * 2 - 1;
+      last = (last + 0.02 * w) / 1.02;
+      ch[i] = art === "regen" ? (w * 0.45 + last * 1.4) : last * 3.1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const flt = ctx.createBiquadFilter();
+    flt.type = art === "regen" ? "bandpass" : "lowpass";
+    flt.frequency.value = art === "regen" ? 900 : 190;
+    if (art === "regen") flt.Q.value = 0.7;
+    const gain = ctx.createGain();
+    gain.gain.value = art === "regen" ? 0.07 : 0.09;
+    src.connect(flt); flt.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    fokusKlangStopRef = () => { try { src.stop(); src.disconnect(); flt.disconnect(); gain.disconnect(); } catch (e) {} };
+  } catch (e) {}
+}
+
 function fokusSheet(id, dayKey) {
   const b = state.blocks.find(x => x.id === id);
   if (!b || b.grob) return;
@@ -11007,6 +11326,8 @@ function fokusSheet(id, dayKey) {
   const ortText = b.ortId ? ortName(b.ortId) : (b.ort || "");
   const R = 86, UMFANG = 2 * Math.PI * R;
   modal((s, close) => {
+    modalOnCancel = fokusKlangStop;
+    const zuFokus = o => { modalOnCancel = null; fokusKlangStop(); close(o); };
     s.classList.add("fokus");
     s.style.setProperty("--h", a.hue);
     s.innerHTML =
@@ -11017,18 +11338,30 @@ function fokusSheet(id, dayKey) {
         "<circle class='fokus__bogen' id='fokusBogen' cx='100' cy='100' r='" + R + "' transform='rotate(-90 100 100)'/></svg>" +
         "<div class='fokus__mitte'><b class='num' id='fokusRest'></b><span id='fokusBis'></span></div>" +
       "</div>" +
+      "<div class='fokus__klang' id='fokusKlang' role='group' aria-label='Hintergrundklang'>" +
+        "<button type='button' data-klang='aus' aria-pressed='true'>Aus</button>" +
+        "<button type='button' data-klang='regen' aria-pressed='false'>Regen</button>" +
+        "<button type='button' data-klang='rauschen' aria-pressed='false'>Rauschen</button>" +
+      "</div>" +
       (b.notiz ? "<p class='fokus__notiz'>" + escapeHtml(b.notiz) + "</p>" : "") +
       (b.schritte && b.schritte.length ? "<div class='sheet__row'><span class='label' id='fokusSchritteLab'></span><div class='schritte' id='fokusSchritte'></div></div>" : "");
 
     const malen = () => {
+      const istHeute = (dayKey || b.date) === iso(new Date());
       const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
-      const rest = Math.max(0, b.end - jetzt);
-      const anteil = clamp(rest / Math.max(1, b.end - b.start), 0, 1);
+      let restText = "", bisText = "", anteil = 1;
+      if (istHeute && jetzt >= b.start) {
+        const rest = Math.max(0, b.end - jetzt);
+        anteil = clamp(rest / Math.max(1, b.end - b.start), 0, 1);
+        restText = rest > 0 ? "noch " + fmtDur(rest) : "Zeit ist um";
+        bisText = (rest > 0 ? "bis " : "geplant bis ") + fmtTime(b.end % 1440);
+      } else {
+        restText = fmtDur(Math.max(1, b.end - b.start));
+        bisText = fmtTime(b.start) + "–" + fmtTime(b.end % 1440);
+      }
       s.querySelector("#fokusBogen").setAttribute("stroke-dasharray", (UMFANG * anteil).toFixed(1) + " " + UMFANG.toFixed(1));
       // Runde Enden zeichnen auch bei Länge 0 einen Punkt — dann ganz weg.
       s.querySelector("#fokusBogen").style.visibility = anteil > 0 ? "" : "hidden";
-      const restText = rest > 0 ? "noch " + fmtDur(rest) : "Zeit ist um";
-      const bisText = (rest > 0 ? "bis " : "geplant bis ") + fmtTime(b.end % 1440);
       s.querySelector("#fokusRest").textContent = restText;
       s.querySelector("#fokusBis").textContent = bisText;
       s.querySelector("#fokusRing").setAttribute("aria-label", restText + ", " + bisText);
@@ -11036,6 +11369,13 @@ function fokusSheet(id, dayKey) {
     malen();
     // Der Takt endet von selbst, sobald das Blatt weg ist.
     const takt = setInterval(() => { if (!s.isConnected) { clearInterval(takt); return; } malen(); }, 20000);
+
+    s.querySelectorAll("#fokusKlang button").forEach(btn => {
+      btn.onclick = () => {
+        s.querySelectorAll("#fokusKlang button").forEach(k => k.setAttribute("aria-pressed", String(k === btn)));
+        fokusKlangStart(btn.dataset.klang);
+      };
+    });
 
     const liste = s.querySelector("#fokusSchritte");
     const schritteMalen = () => {
@@ -11060,16 +11400,16 @@ function fokusSheet(id, dayKey) {
     foot.className = "sheet__foot";
     const zu = document.createElement("button");
     zu.className = "btn"; zu.type = "button"; zu.textContent = "Schließen";
-    zu.onclick = close;
+    zu.onclick = () => zuFokus();
     const edit = document.createElement("button");
     edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
-    edit.onclick = () => { close({ sofort: true }); blockSheet({ ...b }, dayKey, { sofort: true }); };
+    edit.onclick = () => { zuFokus({ sofort: true }); blockSheet({ ...b }, dayKey, { sofort: true }); };
     const sp = document.createElement("span"); sp.className = "spacer";
     foot.append(zu, edit, sp);
     if (!istErledigt(b, dayKey)) {
       const ok = document.createElement("button");
       ok.className = "btn btn--primary"; ok.type = "button"; ok.id = "fokusOk"; ok.textContent = "Erledigt";
-      ok.onclick = () => { abhaken(b, dayKey, true, ok); save(); close(); renderAll(); };
+      ok.onclick = () => { abhaken(b, dayKey, true, ok); save(); zuFokus(); renderAll(); };
       foot.appendChild(ok);
     }
     s.appendChild(foot);
@@ -11134,7 +11474,7 @@ const IDEEN = [
   { t: "Ein Lieblingsalbum am Stück hören", min: 45, ab: 1080, fam: "musik" }
 ];
 const IDEE_BAUKASTEN = {
-  latte: ["ein Herz", "eine kleine Tulpe", "ein Blatt", "eine Rosette", "eine ruhige Spirale"],
+  latte: ["ein Herz", "eine kleine Tulpe", "ein Blatt", "eine Rosette", "eine ruhige Spirale", "eine kleine Katzenpfote"],
   kaffee: [
     ["Einen Iced Espresso Tonic mixen", 15],
     ["Einen Cortado oder Flat White testen", 15],
@@ -11142,7 +11482,8 @@ const IDEE_BAUKASTEN = {
     ["Espresso mit einer Prise Zimt oder Kardamom probieren", 15],
     ["Einen cremigen Chai-Latte aufschäumen", 15],
     ["Kaffeebohnen frisch mahlen & bewusst kosten", 15],
-    ["Einen kalten Hafer-Latte oder Affogato machen", 15]
+    ["Einen kalten Hafer-Latte oder Affogato machen", 15],
+    ["Kaffee ans Fenster stellen und 10 Min Wintersonne einfangen", 15]
   ],
   spaziergang: [
     ["Kurzer Spaziergang ohne Handy in der Tasche", 15],
@@ -11151,20 +11492,27 @@ const IDEE_BAUKASTEN = {
     ["Raus vor die Tür mit einem Lieblingssong auf den Ohren", 15],
     ["Spaziergang in der Nachmittagssonne, ganz ohne Ziel", 30],
     ["Kurzer Walk auf der Suche nach schönem Licht", 15],
-    ["Einen kleinen Umweg zu Fuß ums Viertel drehen", 30]
+    ["Einen kleinen Umweg zu Fuß ums Viertel drehen", 30],
+    ["15 Min echte Wintersonne im Gesicht tanken — Jacke an, Handy weg", 15],
+    ["Warmen Kaffee im Thermobecher mitnehmen & frische Winterluft schnappen", 15],
+    ["Kurz rausgehen, solange noch Tageslicht da ist", 15]
   ],
   zeichneMedien: ["Mit Fineliner skizzieren", "Mit Bleistift locker zeichnen"],
   zeichneMotive: [
     "die Kaffeetasse vor dir",
     "eine Pflanze im Raum",
     "den Blick aus dem Fenster",
-    "drei kleine Alltagsdinge auf dem Tisch"
+    "drei kleine Alltagsdinge auf dem Tisch",
+    "eine kleine schlafende Katze"
   ],
   kreativSolo: [
     ["Mit Buntstiften oder Aquarell einfach drauflos malen", 30],
     ["Eine Seite im Skizzenbuch mit Linien & Formen füllen", 15],
     ["Ein kleines Motiv auf Postkartengröße malen", 30],
-    ["Ein neues, simples Rezept für die Woche heraussuchen", 15]
+    ["Ein neues, simples Rezept für die Woche heraussuchen", 15],
+    ["15 Minuten locker ein Evoli oder Glurak skizzieren — ganz ohne Anspruch", 15],
+    ["10 Minuten locker eine kleine graue Katze skizzieren", 15],
+    ["Lieblingsgrün & Stift: 5 Minuten einfach drauflos schraffieren", 15]
   ],
   menschen: [
     ["Einer alten Freundin spontan eine Sprachnachricht schicken", 15],
@@ -11179,8 +11527,11 @@ const IDEE_BAUKASTEN = {
     ["Espresso kochen & zwei Seiten in einer Zeitschrift blättern", 15, "kaffee"],
     ["Zwei Lieblingssongs lang nur zuhören, nichts nebenbei", 15, "musik"],
     ["Eine neue Album-Empfehlung anspielen & kurz versinken", 30, "musik"],
+    ["Einen Hardstyle-Lieblingstrack aufdrehen & kurz den Kopf freitanzen", 15, "musik"],
+    ["Drei Minuten Kopfhörer auf, Bass an, alles andere auf stumm", 15, "musik"],
     ["Ein Kapitel im Sitzen am offenen Fenster lesen", 30, "ruhe"],
     ["Fünf Minuten alle losen Gedanken auf Papier werfen", 15, "ruhe"],
+    ["Eine alte Sache gedanklich loslassen & bewusst durchatmen", 15, "ruhe"],
     ["Kurz barfuß dehnen, Schultern kreisen & Wasser trinken", 15, "koerper", "koerper"],
     ["Lieblingsecke kurz lüften, Tee machen & durchatmen", 15, "ruhe"]
   ]
@@ -11462,7 +11813,9 @@ function blockSheet(draft, dayKey, opts = {}) {
         // Kopieren steht oben neben dem Titel, nicht im Fuß: dort liegen am
         // Telefon schon zwei Zeilen Knöpfe, eine dritte verdeckte das Formular.
         : "<div class='sheet__kopf'><h2 class='sheet__title'>Eintrag bearbeiten</h2>" +
-          "<button type='button' class='btn btn--sm' id='bKopie'>Kopieren</button></div>") +
+          "<div class='sheet__kopf-acts'>" +
+          (!draft.sug && !draft.grob ? "<button type='button' class='btn btn--sm' id='bFokus'>Fokus</button>" : "") +
+          "<button type='button' class='btn btn--sm' id='bKopie'>Kopieren</button></div></div>") +
       (draft.grund ? "<p class='agenda__sub' style='margin:0 0 12px'>" + escapeHtml(draft.grund) + "</p>" : "") +
       "<div class='sheet__row'><label class='label' for='bTitle'>Was?</label>" +
       "<input class='field' id='bTitle' placeholder='z.B. Vorlesung, Sport, Serienabend' autocomplete='off'>" +
@@ -11994,6 +12347,8 @@ function blockSheet(draft, dayKey, opts = {}) {
       // wird erst mit „Eintragen". Bewusst nicht mitkopiert: Verknüpfung zur
       // Aufgabe (eine Aufgabe ist genau ein Block), Schwerpunkt, Abhaken,
       // ausgelassene Termine und die Begründung des Verteilers.
+      const bf = s.querySelector("#bFokus");
+      if (bf) bf.onclick = () => { close({ sofort: true }); fokusSheet(draft.id, hakenTag || draft.date); };
       s.querySelector("#bKopie").onclick = () => {
         const vorlage = {
           id: null, title: draft.title, areaId: draft.areaId,
@@ -12819,6 +13174,13 @@ const ENERGY = {
   high: { text: "<b>Viel Energie.</b> Guter Tag für das, was sonst liegen bleibt." },
   none: { text: "Wie fühlst du dich heute? An einem schwachen Tag zeigt der Planer, was warten kann." }
 };
+const ENERGY_LOW_TEXTE = [
+  "<b>Wenig Energie.</b> Nicht alles muss heute sein{n} — und das ist völlig okay. Unten steht, was warten kann.",
+  "<b>Wenig Energie.</b> Auch ein Glurak macht mal Pause. Sei heute mild zu dir{n} — unten steht, was warten kann.",
+  "<b>Wenig Energie.</b> Heute reicht das Nötigste, alte Lasten bleiben draußen. Unten steht, was warten kann.",
+  "<b>Wenig Energie.</b> Selbst Evoli entwickelt sich nicht an einem Tag. Unten steht, was warten kann.",
+  "<b>Wenig Energie.</b> Erst ein warmer Kaffee{n} — und psst: 3× auf deine Begrüßung tippen hilft manchmal. Unten steht, was warten kann."
+];
 
 function currentDayIso() { return iso(addDays(mondayOf(anchor), selectedDayIdx)); }
 
@@ -12988,6 +13350,10 @@ function renderAgenda() {
           const z = b.notiz.split(/\r?\n/)[0];
           sub = escapeHtml(z.length > 60 ? z.slice(0, 59) + "…" : z);
         }
+        if (b.schritte && b.schritte.length) {
+          const nOk = b.schritte.filter(x => schrittOk(b, x, dayKey)).length;
+          sub = (sub ? sub + " · " : "") + "✓ " + nOk + "/" + b.schritte.length;
+        }
         html += "<label class='agenda__row" + (e.grob ? " agenda__row--grob" : "") + (fertig ? " is-on" : "")
           + "' style='--h:" + a.hue + "'>"
           + "<input type='checkbox' class='agenda__check' data-id='" + b.id + "'" + (fertig ? " checked" : "") + ">"
@@ -13064,6 +13430,9 @@ function renderAgenda() {
   }
 
   box.innerHTML = html;
+
+  const grussEl = box.querySelector(".agenda__gruss");
+  if (grussEl) geheimTippRegistrieren(grussEl);
 
   $("#agendaFrog").onclick = () => { if (wichtig) taskSheet(wichtig); else setView("aufgaben"); };
   const hero = $("#agendaHero");
@@ -13265,7 +13634,10 @@ function renderEnergy() {
   $("#energyDay").textContent = DAY_LONG[selectedDayIdx] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".";
   // v1.32: „Das Wichtigste: …" stand hier ein zweites Mal — dieselbe Karte
   // nennt den Schwerpunkt schon ganz oben („Heute zählt", renderAgenda()).
-  $("#energyHint").innerHTML = ENERGY[lvl || "none"].text;
+  const lowIdx = (d.getDate() + d.getMonth() * 31) % ENERGY_LOW_TEXTE.length;
+  const nm = nutzerName();
+  const lowHtml = ENERGY_LOW_TEXTE[lowIdx].replace("{n}", nm ? ", " + escapeHtml(nm) : "");
+  $("#energyHint").innerHTML = lvl === "low" ? lowHtml : ENERGY[lvl || "none"].text;
   // v1.57 (Sunny: Tagesform zu dominant): der Erklärtext steht nur noch bei „Wenig",
   // wo er zu „Was kann heute weg?" führt — sonst ist die Tagesform eine Zeile.
   $("#energyHint").hidden = lvl !== "low";
@@ -13986,7 +14358,8 @@ $("#settingsBtn").onclick = () => {
       "<h2 class='sheet__title'>Einstellungen</h2>" +
       "<div class='sheet__row' data-page='person'><label class='label' for='sName'>Wer plant hier?</label>" +
       "<input class='field' id='sName' placeholder='Dein Name' autocomplete='off'>" +
-      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div></div>" +
+      "<div style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px'>Steht oben in der Leiste. Später kann jeder seinen eigenen Plan haben.</div>" +
+      "<div style='font-size:var(--t-xs);color:var(--text-faint);margin-top:8px'>Psst: Dreimal auf deinen Namen oben oder die Begrüßung in „Heute“ tippen — irgendwo schnurrt hier etwas.</div></div>" +
       "<div class='sheet__row' data-page='zeit'><span class='label'>Wochenstart</span>" +
         "<div style='font-size:var(--t-sm);color:var(--text-muted);line-height:1.55;margin-bottom:12px'>" +
         "Rückblick, Ziele, Verteilung — in drei Schritten. Wird am Wochenanfang von selbst " +
@@ -14038,7 +14411,7 @@ $("#settingsBtn").onclick = () => {
       "<button class='btn btn--sm btn--danger' id='sReset' type='button'>Alles löschen</button>" +
       "</div><div id='sStore' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:8px'></div>" +
       "<div id='sVorV9' style='margin-top:10px'></div></div>" +
-      "<div class='sheet__row' data-page='kalender'><span class='label'>In deinen Kalender</span>" +
+      "<div class='sheet__row' data-page='daten' style='border-top:1px solid var(--border);padding-top:var(--s-4)'><span class='label'>In deinen Kalender</span>" +
       "<p style='margin:0 0 12px;font-size:var(--t-body);color:var(--text-muted);line-height:1.6'>" +
       "Speichert alle Termine mit fester Uhrzeit als Kalenderdatei (.ics). Google, Apple und " +
       "Outlook können sie importieren. Serien bleiben Serien, ausgelassene Tage bleiben ausgelassen.</p>" +
@@ -14384,12 +14757,8 @@ const SETTINGS_SEITEN = [
   { id: "konto",    name: "Konto",               kurz: () => (Sync.active() ? "angemeldet" : "nur dieses Gerät"),
     wennVerfuegbar: () => Sync.configured() },
   { id: "daten",    name: "Daten und Sicherung", kurz: () => (
-      state.backupAt ? "zuletzt gesichert am " + new Date(state.backupAt).toLocaleDateString("de-DE")
-                     : "noch nie gesichert") },
-  { id: "kalender", name: "Kalender-Export",     kurz: () => {
-      const n = state.blocks.filter(b => !b.grob && !b.sug).length;
-      return n ? "Termine für Google, Apple oder Outlook" : "noch keine Termine";
-    } },
+      state.backupAt ? "Kalender-Export · zuletzt gesichert am " + new Date(state.backupAt).toLocaleDateString("de-DE")
+                     : "Kalender-Export · noch nie gesichert") },
   // Nur zeigen, solange die App im Browser läuft — wer sie schon auf dem
   // Startbildschirm hat, braucht die Anleitung nicht mehr.
   { id: "app",      name: "Auf den Startbildschirm", kurz: () => "wie eine App öffnen",
@@ -14427,6 +14796,7 @@ function appAnleitung() {
 
 function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   const titel = s.querySelector(".sheet__title");
+  if (titel) geheimTippRegistrieren(titel);
   const abschnitte = {};
   {
     const rb = s.querySelector("#sRitual");
@@ -14452,7 +14822,7 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   const zurueck = document.createElement("button");
   zurueck.type = "button";
   zurueck.className = "setback";
-  zurueck.innerHTML = "<span aria-hidden='true'>‹</span> Einstellungen";
+  zurueck.innerHTML = "<svg class='ui-icon' viewBox='0 0 24 24' aria-hidden='true' style='width:16px;height:16px'><path d='m15 6-6 6 6 6'/></svg> Einstellungen";
   zurueck.hidden = true;
   titel.after(zurueck);
 
@@ -14491,7 +14861,7 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
       b.innerHTML =
         "<span class='setmenu__txt'><span class='setmenu__name'>" + escapeHtml(seite.name) + "</span>" +
         "<span class='setmenu__kurz'>" + escapeHtml(seite.kurz()) + "</span></span>" +
-        "<span class='setmenu__pfeil' aria-hidden='true'>›</span>";
+        "<span class='setmenu__pfeil' aria-hidden='true'><svg class='ui-icon' viewBox='0 0 24 24' style='width:16px;height:16px'><path d='m9 6 6 6-6 6'/></svg></span>";
       b.onclick = () => zeigeSeite(seite);
       menue.appendChild(b);
     });
@@ -15229,6 +15599,11 @@ document.addEventListener("keydown", e => {
   if (tag === "input" || tag === "textarea" || tag === "select") return;
   if (e.key === "ArrowLeft")  { if (einTag) tagWechseln(-1); else $("#prevWeek").click(); }
   if (e.key === "ArrowRight") { if (einTag) tagWechseln(1);  else $("#nextWeek").click(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && !e.target.isContentEditable && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    undoLast();
+    return;
+  }
   if (e.key.toLowerCase() === "t") { $("#todayBtn").click(); }
   if (e.key.toLowerCase() === "n") {
     e.preventDefault();
@@ -15256,6 +15631,7 @@ const TASTENKUERZEL = [
   ["W", "Wochenübersicht: freie und belegte Zeit"],
   ["M", "Monatsübersicht"],
   ["Z", "Passt das noch? Eine neue Zusage durchspielen"],
+  ["Strg+Z", "Letzte Änderung rückgängig machen"],
   ["Esc", "Offenes Blatt schließen"],
   ["?", "Diese Übersicht"]
 ];
@@ -15276,6 +15652,125 @@ function kuerzelSheet() {
     ok.onclick = close;
     foot.append(sp, ok);
     s.appendChild(foot);
+  });
+}
+
+const GEHEIM_PLAYLIST_ID = "77s5XxTYzzIx4piW1nVIbb";
+const GEHEIM_SPOTIFY_URL = "https://open.spotify.com/playlist/" + GEHEIM_PLAYLIST_ID;
+const GEHEIM_SPRUECHE = [
+  "Altes darf heute vor der Tür bleiben. Du schuldest niemandem Perfektion.",
+  "Kurze Wintertage, kalte Luft — schon 10 Minuten echtes Licht sind ein Gewinn.",
+  "Sich selbst zu verzeihen gehört genau so in den Plan wie alles andere.",
+  "Regel 1 für schwere Tage: Erst einen guten Kaffee in Ruhe austrinken.",
+  "Miau. Die kleine graue Katze genehmigt dir jetzt offiziell eine Schnurrpause.",
+  "Auch ein Evoli weiß noch nicht, wohin es geht — einfach da sein reicht für heute.",
+  "Selbst ein Glurak spuckt nicht jeden Tag Feuer. Manchmal reicht ein kleiner Funke.",
+  "Kleine Schritte zählen genauso wie große Entwicklungen. Sei lieb zu dir.",
+  "Jeden Tag ein kleines bisschen freundlicher zu dir selbst als gestern.",
+  "Kopfhörer auf, 150 BPM rein — manchmal spült ein einziger Track den Kopf frei."
+];
+let geheimSpruchIdx = 0;
+function geheimSheet() {
+  modal((s, close) => {
+    s.classList.add("geheim");
+    const nm = nutzerName();
+    const spruch = () => GEHEIM_SPRUECHE[geheimSpruchIdx % GEHEIM_SPRUECHE.length];
+    s.innerHTML =
+      "<h2 class='sheet__title'>" + escapeHtml(nm ? "Kleiner Geheimpunkt für " + nm : "Kleiner Geheimpunkt") + "</h2>" +
+      "<button type='button' class='geheim__karte' id='geheimKarte'>" +
+        "<svg class='katze-svg' id='katzeSvg' viewBox='0 0 120 90' aria-hidden='true'>" +
+          "<circle class='katze-sonne' cx='95' cy='21' r='8.5'/>" +
+          "<path d='M83 64c11 0 18-5 19-12 1-4.5-3.5-7.5-8-4.8'/>" +
+          "<path class='katze-fell' d='M36 68C25 68 24 53 32 44c3-3 7-4 9-8l3-12 7 8c4-1 10-1 14 0l7-8 3 12c2 4 6 5 9 9 5 6 4 17-3 22-3 2-7 3-13 3H36Z'/>" +
+          "<path class='katze-ohr' d='M45 28.5l4.2 4.5-4.7 1.2zM67 28.5l-4.2 4.5 4.7 1.2z'/>" +
+          "<path d='M48 43q2.5-2.2 5 0M60 43q2.5-2.2 5 0M55 47l1.5 2 1.5-2M39 46l-4-.8M39 49l-4 1M72 46l4-.8M72 49l4 1'/>" +
+          "<rect class='katze-tasse' x='11' y='52' width='14' height='15' rx='3'/><path d='M25 56c3.5 0 3.5 7 0 7M15 46c-1-3 2-5 1-8M20 47c-1-3 2-5 1-8'/>" +
+        "</svg>" +
+        "<p class='geheim__spruch' id='geheimSpruch'>" + escapeHtml(spruch()) + "</p>" +
+        "<p class='geheim__hinweis'>Auf die graue Katze tippen für den nächsten Gedanken</p>" +
+      "</button>" +
+      "<div class='geheim__eq' aria-hidden='true'>" +
+        [0, 1, 2, 3, 4].map(i => "<i style='--bi:" + i + "'></i>").join("") +
+      "</div>" +
+      "<div class='geheim__aktionen'>" +
+        "<button type='button' class='btn btn--sm' id='geheimRave' aria-pressed='false'>150 BPM · Kurz-Rave</button>" +
+        "<button type='button' class='btn btn--sm' id='geheimPlayerBtn' aria-expanded='false'>Playlist anhören</button>" +
+      "</div>" +
+      "<div class='geheim__player' id='geheimPlayer' hidden></div>";
+    s.querySelector("#geheimKarte").onclick = () => {
+      geheimSpruchIdx = (geheimSpruchIdx + 1) % GEHEIM_SPRUECHE.length;
+      s.querySelector("#geheimSpruch").textContent = spruch();
+      const k = s.querySelector("#katzeSvg");
+      k.classList.remove("is-schnurr");
+      void k.offsetWidth;
+      k.classList.add("is-schnurr");
+    };
+    const raveBtn = s.querySelector("#geheimRave");
+    raveBtn.onclick = () => {
+      const an = s.classList.toggle("is-rave");
+      raveBtn.setAttribute("aria-pressed", String(an));
+    };
+    const playerBtn = s.querySelector("#geheimPlayerBtn");
+    const playerBox = s.querySelector("#geheimPlayer");
+    playerBtn.onclick = () => {
+      if (!playerBox.hidden) {
+        playerBox.innerHTML = "";
+        playerBox.hidden = true;
+        playerBtn.setAttribute("aria-expanded", "false");
+        playerBtn.textContent = "Playlist anhören";
+        return;
+      }
+      playerBox.hidden = false;
+      playerBtn.setAttribute("aria-expanded", "true");
+      playerBtn.textContent = "Player ausblenden";
+      playerBox.innerHTML = "";
+      if (navigator.onLine === false) {
+        const hinweis = document.createElement("p");
+        hinweis.className = "geheim__offline";
+        hinweis.textContent = "Gerade offline — sobald Netz da ist, läuft hier eure Playlist.";
+        playerBox.appendChild(hinweis);
+      } else {
+        const themeParam = document.documentElement.dataset.theme === "dark" ? "&theme=0" : "";
+        const iframe = document.createElement("iframe");
+        iframe.className = "geheim__iframe";
+        iframe.title = "Spotify Playlist";
+        iframe.loading = "lazy";
+        iframe.allow = "encrypted-media; clipboard-write; picture-in-picture";
+        iframe.src = "https://open.spotify.com/embed/playlist/" + GEHEIM_PLAYLIST_ID + "?utm_source=generator" + themeParam;
+        playerBox.appendChild(iframe);
+      }
+      const link = document.createElement("a");
+      link.className = "geheim__link";
+      link.href = GEHEIM_SPOTIFY_URL;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "In Spotify öffnen ↗";
+      playerBox.appendChild(link);
+    };
+    const foot = document.createElement("div");
+    foot.className = "sheet__foot";
+    const sp = document.createElement("span"); sp.className = "spacer";
+    const ok = document.createElement("button");
+    ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Schließen";
+    ok.onclick = close;
+    foot.append(sp, ok);
+    s.appendChild(foot);
+  });
+}
+function geheimTippRegistrieren(el) {
+  if (!el || el.dataset.geheimWired) return;
+  el.dataset.geheimWired = "1";
+  if (!el.title) el.title = "Manchmal lohnt sich dreimaliges Tippen …";
+  let n = 0, t0 = 0;
+  el.addEventListener("click", () => {
+    const jetzt = Date.now();
+    if (!t0 || jetzt - t0 > 2500) { n = 0; t0 = jetzt; }
+    n++;
+    if (n === 2) {
+      const nm = nutzerName();
+      toast(nm ? "Psst, " + nm + " … noch einmal tippen 🐾" : "Psst … noch einmal tippen 🐾");
+    }
+    if (n >= 3) { n = 0; t0 = 0; geheimSheet(); }
   });
 }
 
@@ -15953,6 +16448,7 @@ document.querySelectorAll("#tagModus button[data-tage]").forEach(btn => {
 setView("heute");
 renderAll();
 paintSyncBadge();
+geheimTippRegistrieren($(".brand"));
 
 Sync.boot()
   .catch(() => {})
@@ -15961,8 +16457,10 @@ Sync.boot()
     // Schraffur gegen den echten Inhalt (siehe renderAgenda, ~4139).
     syncSettled = true;
     renderAgenda();
-    maybeWelcome();
-    maybeBackupNag();
+    if (!pruefeTeilenLink()) {
+      maybeWelcome();
+      maybeBackupNag();
+    }
   });
 
 // Während ein Zeiger im Raster aktiv ist (Halten, Verschieben, Wischen),

@@ -14,12 +14,22 @@
 // nicht blind gewartet, und beide Server werden danach in jedem Fall wieder
 // beendet — auch bei Strg-C oder wenn ein Skript dazwischen abbricht.
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const net = require('net');
-const { spawnSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 
 const SELBST = path.basename(__filename);
 const AUSGENOMMEN = new Set([SELBST, 'mockserver.js', 'serve.js']);
+// Diese Skripte fassen index.html/sw.js vorübergehend an oder testen den
+// laufenden Service Worker — sie laufen ganz zum Schluss nacheinander.
+const EXKLUSIV = new Set(['pwatest.js', 'pwaupd.js']);
+// Längere Läufe zuerst einreihen, damit kein Nachzügler den Pool aufhält.
+const SCHWER = [
+  'test3.js', 'kontrastlauf.js', 'szenarien.js', 'audit.js',
+  'wochenzeilen.js', 'freiwoche.js', 'frei.js', 'kontrast.js',
+  'plaene.js', 'release.js'
+];
 
 // Welches abhängige Skript braucht welchen Server, auf welchem Port.
 const SERVER_FUER = {
@@ -39,7 +49,28 @@ function nurFilter() {
   return wert.toLowerCase().replace(/\.js$/, '');
 }
 
+function parallelAnzahl() {
+  const cpus = (os.cpus() || []).length || 4;
+  const standard = Math.min(Math.max(cpus - 1, 2), 6);
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i];
+    let roh = null;
+    if (arg === '--parallel' || arg === '-j') roh = process.argv[i + 1];
+    else if (arg.startsWith('--parallel=')) roh = arg.slice('--parallel='.length);
+    else if (/^-j\d+$/.test(arg)) roh = arg.slice(2);
+    else continue;
+    const n = parseInt(roh, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      console.log(arg + ' braucht eine Zahl >= 1, z.B. --parallel 4');
+      process.exit(1);
+    }
+    return n;
+  }
+  return standard;
+}
+
 const nur = nurFilter();
+const maxParallel = parallelAnzahl();
 
 let skripte = fs.readdirSync(__dirname)
   .filter(f => f.endsWith('.js') && !AUSGENOMMEN.has(f))
@@ -87,6 +118,7 @@ function wartenAufPort(proc, port, timeoutMs) {
 }
 
 const serverProzesse = [];
+const laufendeSkripte = new Set();
 
 async function serverStarten(datei, port) {
   console.log('\n--- starte ' + datei + ' (Port ' + port + ') ---');
@@ -107,16 +139,67 @@ async function serverStarten(datei, port) {
   return bereit;
 }
 
-function alleServerBeenden() {
+function alleProzesseBeenden() {
+  laufendeSkripte.forEach(proc => { if (!proc.killed) proc.kill(); });
   serverProzesse.forEach(proc => { if (!proc.killed) proc.kill(); });
 }
 
-// Kein Server bleibt als Waise auf dem Port sitzen und blockiert den
-// nächsten Lauf — auch nicht bei Strg-C oder einem Absturz mittendrin.
-process.on('SIGINT', () => { alleServerBeenden(); process.exit(130); });
-process.on('exit', alleServerBeenden);
+// Kein Server oder Worker bleibt als Waise zurück — auch nicht bei Strg-C.
+process.on('SIGINT', () => { alleProzesseBeenden(); process.exit(130); });
+process.on('exit', alleProzesseBeenden);
+
+function skriptAusfuehren(skript, bereitschaft) {
+  const braucht = SERVER_FUER[skript];
+  if (braucht && !bereitschaft[braucht.port]) {
+    console.log('=== ' + skript + ' === übersprungen (Server ' + braucht.datei + ' auf Port ' + braucht.port + ' nicht bereit)');
+    return Promise.resolve({ skript, status: 'uebersprungen', dauer: 0, letzte: braucht.datei + ' nicht bereit' });
+  }
+
+  return new Promise(resolve => {
+    const start = Date.now();
+    const proc = spawn(process.execPath, [path.join(__dirname, skript)], {
+      cwd: __dirname,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    laufendeSkripte.add(proc);
+    const outChunks = [];
+    const errChunks = [];
+    let fertig = false;
+
+    proc.stdout.on('data', d => outChunks.push(d));
+    proc.stderr.on('data', d => errChunks.push(d));
+
+    const abschliessen = (code, err) => {
+      if (fertig) return;
+      fertig = true;
+      laufendeSkripte.delete(proc);
+      const dauer = Date.now() - start;
+      const stdout = Buffer.concat(outChunks).toString('utf8');
+      const stderr = Buffer.concat(errChunks).toString('utf8') + (err ? '\n' + err.message : '');
+      const gruen = !err && code === 0;
+
+      // Bei rot sofort die volle Ausgabe zeigen — bei parallel laufenden
+      // Skripten gebündelt pro Skript, damit sich Zeilen nicht mischen.
+      if (!gruen) {
+        console.log('\n=== ' + skript + ' (ROT) ===');
+        if (stdout) process.stdout.write(stdout);
+        if (stderr) process.stderr.write(stderr);
+      } else {
+        console.log('grün  ' + ((dauer / 1000).toFixed(1) + 's').padStart(5) + '  ' + skript);
+      }
+
+      const zeilen = (stdout + '\n' + stderr).split('\n').map(z => z.trim()).filter(Boolean);
+      const letzte = zeilen.length ? zeilen[zeilen.length - 1] : '(keine Ausgabe)';
+      resolve({ skript, status: gruen ? 'gruen' : 'rot', dauer, letzte });
+    };
+
+    proc.on('error', err => abschliessen(1, err));
+    proc.on('close', code => abschliessen(code, null));
+  });
+}
 
 (async () => {
+  const gesamtStart = Date.now();
   const bereitschaft = {}; // port -> bool
   const gebrauchtePorts = new Set(skripte.filter(s => SERVER_FUER[s]).map(s => SERVER_FUER[s].port));
   for (const port of gebrauchtePorts) {
@@ -124,38 +207,37 @@ process.on('exit', alleServerBeenden);
     bereitschaft[port] = await serverStarten(eintrag.datei, port);
   }
 
+  const gewicht = s => {
+    const idx = SCHWER.indexOf(s);
+    return idx === -1 ? SCHWER.length : idx;
+  };
+  const parallelListe = skripte
+    .filter(s => !EXKLUSIV.has(s))
+    .sort((a, b) => gewicht(a) - gewicht(b) || a.localeCompare(b));
+  const exklusivListe = skripte.filter(s => EXKLUSIV.has(s));
+
   const ergebnisse = [];
-
-  for (const skript of skripte) {
-    const braucht = SERVER_FUER[skript];
-    if (braucht && !bereitschaft[braucht.port]) {
-      console.log('\n=== ' + skript + ' === übersprungen (Server ' + braucht.datei + ' auf Port ' + braucht.port + ' nicht bereit)');
-      ergebnisse.push({ skript, status: 'uebersprungen', dauer: 0, letzte: braucht.datei + ' nicht bereit' });
-      continue;
-    }
-
-    console.log('\n=== ' + skript + ' ===');
-    const start = Date.now();
-    const r = spawnSync(process.execPath, [path.join(__dirname, skript)], { encoding: 'utf8', cwd: __dirname });
-    const dauer = Date.now() - start;
-    const stdout = r.stdout || '';
-    const stderr = r.stderr || '';
-    const gruen = r.status === 0;
-
-    // Bei rot sofort die volle Ausgabe zeigen — sonst muss man das Skript
-    // gleich nochmal einzeln starten, nur um den Fehler zu lesen.
-    if (!gruen) {
-      process.stdout.write(stdout);
-      process.stderr.write(stderr);
-    }
-
-    const zeilen = (stdout + stderr).split('\n').map(z => z.trim()).filter(Boolean);
-    const letzte = zeilen.length ? zeilen[zeilen.length - 1] : '(keine Ausgabe)';
-    ergebnisse.push({ skript, status: gruen ? 'gruen' : 'rot', dauer, letzte });
-    console.log((gruen ? 'grün' : 'rot ') + '  ' + (dauer / 1000).toFixed(1) + 's');
+  if (parallelListe.length) {
+    const workerZahl = Math.min(maxParallel, parallelListe.length);
+    console.log('\n--- Starte ' + parallelListe.length + ' Skripte (' + workerZahl + ' parallel) ---');
+    let naechster = 0;
+    const worker = async () => {
+      while (naechster < parallelListe.length) {
+        const s = parallelListe[naechster++];
+        ergebnisse.push(await skriptAusfuehren(s, bereitschaft));
+      }
+    };
+    await Promise.all(Array.from({ length: workerZahl }, worker));
   }
 
-  alleServerBeenden();
+  for (const s of exklusivListe) {
+    console.log('\n=== ' + s + ' (exklusiv) ===');
+    ergebnisse.push(await skriptAusfuehren(s, bereitschaft));
+  }
+
+  alleProzesseBeenden();
+
+  ergebnisse.sort((a, b) => a.skript.localeCompare(b.skript));
 
   console.log('\n' + '='.repeat(60));
   console.log('ERGEBNIS');
@@ -174,7 +256,9 @@ process.on('exit', alleServerBeenden);
 
   const rot = ergebnisse.filter(e => e.status === 'rot');
   const uebersprungen = ergebnisse.filter(e => e.status === 'uebersprungen');
+  const gesamtSek = ((Date.now() - gesamtStart) / 1000).toFixed(1);
   console.log('\n' + ergebnisse.length + ' Skripte, ' + rot.length + ' rot'
-    + (uebersprungen.length ? ', ' + uebersprungen.length + ' übersprungen' : ''));
+    + (uebersprungen.length ? ', ' + uebersprungen.length + ' übersprungen' : '')
+    + ' — Gesamtdauer: ' + gesamtSek + 's (' + maxParallel + ' parallel)');
   process.exit(rot.length || uebersprungen.length ? 1 : 0);
 })();

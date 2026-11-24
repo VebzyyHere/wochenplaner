@@ -494,6 +494,190 @@ async function boot(br, devName) {
     await ctx.close();
   }
 
+  /* ---- 7. Persona: Gimmicks, Geheimpunkt, Checklisten-Zaehler, Fokus-Klang, Drag, Teilen & Multi-Undo ---- */
+  console.log('\n=== Persona 7: Persoenliche Gimmicks, Fokus-Klang, Tag-Drag, Teilen & Multi-Undo ===');
+  {
+    const ctx = await br.newContext({ viewport: { width: 1440, height: 900 }, timezoneId: 'Europe/Berlin', locale: 'de-DE' });
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+    p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+    await p.clock.setFixedTime(new Date('2026-11-25T10:20:00+01:00'));
+    await p.goto(F + '?beispiel');
+    await p.waitForFunction(() => typeof syncSettled !== 'undefined' && syncSettled);
+    await p.evaluate(() => {
+      if (typeof closeModal === 'function') closeModal();
+      const mon = mondayOf(new Date());
+      const di = iso(addDays(mon, 1));
+      state.blocks.push({
+        id: 'p7-steps', title: 'Atelier Skizze', areaId: 'a5', day: 2, date: iso(addDays(mon, 2)),
+        repeat: 'none', start: 18 * 60, end: 19 * 60, frog: false,
+        schritte: [{ t: 'Stifte', ok: true }, { t: 'Kaffee', ok: false }]
+      });
+      state.blocks.push({
+        id: 'p7-drag', title: 'Verschiebe-Test', areaId: 'a2', day: 1, date: di,
+        repeat: 'none', start: 11 * 60, end: 12 * 60, frog: false
+      });
+      selectedDayIdx = 2;
+      save(); renderAll();
+    });
+    await p.waitForTimeout(200);
+
+    const ideenCheck = await p.evaluate(() => {
+      const texte = ideenGeneriert().map(i => i.t).join(' | ');
+      return /Wintersonne/.test(texte) && /Katzenpfote/.test(texte) && /Hardstyle/.test(texte)
+        && /Evoli/.test(texte) && /graue Katze/.test(texte);
+    });
+    ok(ideenCheck, 'P7a) Neue Mikroideen (Wintersonne, Katzenpfote, Hardstyle, Evoli, graue Katze) im Ideenpool');
+
+    // Checklisten-Fortschritt ✓ 1/2 im Raster und in Heute
+    const schrittCheck = await p.evaluate(() => {
+      const blk = document.querySelector('.block[data-id="p7-steps"] .block__time');
+      const agRow = document.querySelector('#agenda .agenda__check[data-id="p7-steps"]').closest('.agenda__row');
+      const agSub = agRow && agRow.querySelector('.agenda__sub');
+      return {
+        raster: blk ? blk.textContent : '',
+        heute: agSub ? agSub.textContent : ''
+      };
+    });
+    ok(schrittCheck.raster.includes('✓ 1/2') && schrittCheck.heute.includes('✓ 1/2'), 'P7b) Checklisten-Fortschritt ✓ 1/2 in Raster und Heute sichtbar');
+
+    // 3x Tippen auf .brand oeffnet „Kleiner Geheimpunkt" (Zwischenhinweis bei Tipp 2 + Name im Titel)
+    await p.route('https://open.spotify.com/**', r => r.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html><body>Spotify Embed Mock</body></html>'
+    }));
+    const preStateJson = await p.evaluate(() => JSON.stringify(state));
+    await p.click('.brand');
+    await p.click('.brand');
+    const hinweis2 = await p.evaluate(() =>
+      Array.from(document.querySelectorAll('#toasts .toast')).map(t => t.textContent).join(' ')
+    );
+    await p.click('.brand');
+    await p.waitForSelector('.sheet.geheim');
+    const geheimTitel = await p.textContent('.sheet.geheim .sheet__title');
+    const keinAutoIframe = await p.evaluate(() => document.querySelectorAll('#geheimPlayer iframe').length === 0);
+    const spruch1 = await p.textContent('#geheimSpruch');
+    await p.click('#geheimKarte');
+    const spruch2 = await p.textContent('#geheimSpruch');
+    await p.click('#geheimRave');
+    await p.waitForTimeout(150);
+    const raveAn = await p.evaluate(() => document.querySelector('.sheet.geheim').classList.contains('is-rave'));
+    await p.evaluate(() => { const t = document.querySelector('#toasts'); if (t) t.innerHTML = ''; });
+    await p.screenshot({ path: path.join(__dirname, 'sz-geheim.png') });
+    await p.click('#geheimPlayerBtn');
+    await p.waitForSelector('#geheimPlayer iframe');
+    const playerOffen = await p.evaluate(() => {
+      const ifr = document.querySelector('#geheimPlayer iframe');
+      const lnk = document.querySelector('#geheimPlayer .geheim__link');
+      return {
+        src: ifr ? ifr.getAttribute('src') || '' : '',
+        allow: ifr ? ifr.getAttribute('allow') || '' : '',
+        href: lnk ? lnk.getAttribute('href') || '' : ''
+      };
+    });
+    await p.click('#geheimPlayerBtn');
+    const playerZu = await p.evaluate(() =>
+      document.querySelector('#geheimPlayer').hidden && document.querySelectorAll('#geheimPlayer iframe').length === 0
+    );
+    await p.evaluate(() => closeModal());
+    const stateUnberuehrt = await p.evaluate(v => JSON.stringify(state) === v, preStateJson);
+    ok(
+      hinweis2.includes('noch einmal tippen') && geheimTitel.includes('Sunny')
+      && keinAutoIframe && spruch1 !== spruch2 && raveAn
+      && playerOffen.src.includes('77s5XxTYzzIx4piW1nVIbb')
+      && !/autoplay/i.test(playerOffen.src) && !/autoplay/i.test(playerOffen.allow)
+      && playerOffen.href.includes('https://open.spotify.com/playlist/77s5XxTYzzIx4piW1nVIbb')
+      && playerZu && stateUnberuehrt,
+      'P7c) Geheimpunkt (graue Katze + Name + 150 BPM Rave + On-Demand Spotify) via 3x-Tipp, speichert nichts in state'
+    );
+
+    // #bFokus im Eintrags-Blatt + Offline-Klang im Fokus-Blatt
+    await p.evaluate(() => { const b = state.blocks.find(x => x.id === 'p7-steps'); blockSheet({ ...b }, b.date); });
+    await p.waitForSelector('#bFokus');
+    await p.click('#bFokus');
+    await p.waitForSelector('#fokusKlang');
+    await p.click('#fokusKlang button[data-klang="regen"]');
+    await p.waitForTimeout(150);
+    const klangPressed = await p.getAttribute('#fokusKlang button[data-klang="regen"]', 'aria-pressed');
+    await p.screenshot({ path: path.join(__dirname, 'sz-fokus.png') });
+    await p.evaluate(() => closeModal());
+    ok(klangPressed === 'true', 'P7d) #bFokus oeffnet Fokus-Blatt mit Offline-Klang „Regen"');
+
+    // Horizontaler Block-Drag am Desktop (Di -> Do)
+    const dragRes = await p.evaluate(() => {
+      const bEl = document.querySelector('.block[data-id="p7-drag"]');
+      const ziel = document.querySelector('.daycol[data-day="3"]');
+      const rB = bEl.getBoundingClientRect();
+      const rZ = ziel.getBoundingClientRect();
+      const sx = rB.left + rB.width / 2, sy = rB.top + 14;
+      const ex = rZ.left + rZ.width / 2, ey = sy + 30;
+      bEl.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', pointerId: 1, clientX: sx, clientY: sy }));
+      document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse', pointerId: 1, clientX: sx + 12, clientY: sy + 8 }));
+      document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse', pointerId: 1, clientX: ex, clientY: ey }));
+      const zeitText = (bEl.querySelector('.dragzeit') || {}).textContent || '';
+      document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse', pointerId: 1, clientX: ex, clientY: ey }));
+      const verschoben = state.blocks.find(x => x.id === 'p7-drag');
+      return { day: verschoben.day, date: verschoben.date, zeitText };
+    });
+    ok(dragRes.day === 3 && dragRes.zeitText.includes('Do'), 'P7e) Horizontaler Desktop-Drag verschiebt Block auf Do (' + JSON.stringify(dragRes) + ')');
+
+    // Plan als Link teilen (#teilen=) & Import als neuer Plan
+    const teilenRes = await p.evaluate(() => {
+      const beforeBlocks = state.blocks.length;
+      const beforeAreas = state.areas.filter(a => !a.kalender).length;
+      const url = planLinkBauen(null);
+      const hash = '#' + url.split('#')[1];
+      const parsed = planLinkLesen(hash);
+      planLinkImportSheet(parsed);
+      document.querySelector('.sheet .btn--primary').click();
+      const afterMainAreas = state.areas.filter(a => !a.kalender).length;
+      const extraPlans = plaene().filter(x => x.id);
+      const okImport = parsed && extraPlans.length > 0 && afterMainAreas === beforeAreas && state.blocks.length > beforeBlocks;
+      planMerken(null); renderAll();
+      return { okImport, urlLen: url.length };
+    });
+    ok(teilenRes.okImport && teilenRes.urlLen > 40, 'P7f) #teilen=-Link exportiert & importiert sauber als eigener neuer Plan');
+
+    // Mehrstufiges Strg+Z Undo (2 Schritte hintereinander)
+    const undoRes = await p.evaluate(() => {
+      const n0 = state.tasks.length;
+      state.tasks.push({ id: 'p7-u1', title: 'Undo Eins', areaId: 'a1', done: false, frog: false, dauer: 30 });
+      save();
+      state.tasks.push({ id: 'p7-u2', title: 'Undo Zwei', areaId: 'a1', done: false, frog: false, dauer: 30 });
+      save();
+      renderAll();
+      return { n0, n2: state.tasks.length };
+    });
+    await p.keyboard.press('Control+z');
+    const nach1 = await p.evaluate(() => state.tasks.length);
+    await p.keyboard.press('Control+z');
+    const nach2 = await p.evaluate(() => state.tasks.length);
+    ok(undoRes.n2 === undoRes.n0 + 2 && nach1 === undoRes.n0 + 1 && nach2 === undoRes.n0, 'P7g) Mehrstufiges Strg+Z macht 2 Aenderungen der Reihe nach rueckgaengig');
+
+    // Schwere-Tage-Begleitsatz bei Tagesform „Wenig"
+    await p.click('.energy__opt[data-lvl="low"]');
+    const lowRes = await p.evaluate(() => {
+      const hint = document.getElementById('energyHint');
+      const txt = hint ? hint.textContent : '';
+      const nm = nutzerName();
+      return {
+        sichtbar: hint && !hint.hidden,
+        txt,
+        inPool: ENERGY_LOW_TEXTE.some(html =>
+          txt.includes(html.replace('{n}', nm ? ', ' + nm : '').replace(/<[^>]+>/g, '').slice(0, 28))
+        ),
+        keinDuplikat: !/Das Wichtigste:/.test(txt)
+      };
+    });
+    ok(lowRes.sichtbar && lowRes.inPool && lowRes.keinDuplikat, 'P7h) Tagesform „Wenig" zeigt warmherzigen Begleitsatz aus ENERGY_LOW_TEXTE');
+
+    ok(errs.length === 0, 'P7i) Keine Konsolenfehler');
+    alleErrs.push(...errs);
+    await ctx.close();
+  }
+
   await br.close();
   console.log('\n' + (fehler.length || alleErrs.length ? 'FEHLER: ' + fehler.length : 'ALLES GRUEN'));
   process.exit(fehler.length || alleErrs.length ? 1 : 0);
