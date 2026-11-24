@@ -12,7 +12,7 @@
    Plan wäre schlimmer als kein Plan.
 */
 
-const V = "wp-v1.62";
+const V = "wp-v1.63";
 const SCHALE = [
   "./",
   "./index.html",

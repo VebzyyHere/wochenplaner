@@ -4175,10 +4175,29 @@ input.field[type="time"] {
   min-width: 0;
   width: 100%;
   max-width: 100%;
-  display: block;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  display: flex;
+  align-items: center;
+  text-align: left;
   -webkit-appearance: none;
   appearance: none;
-  line-height: normal;
+  line-height: 1.25;
+}
+input.field[type="date"]::-webkit-date-and-time-value,
+input.field[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  min-height: 1.25em;
+  width: 100%;
+}
+@media (pointer: coarse) {
+  input.field[type="date"],
+  input.field[type="time"] {
+    height: 46px;
+    min-height: 46px;
+  }
 }
 body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
 
@@ -4224,16 +4243,22 @@ body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
   35% { transform: scale(1.04) rotate(-2deg); }
   70% { transform: scale(1.03) rotate(2deg); }
 }
+@keyframes katzeRave {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-2.5deg); }
+}
 .katze-svg.is-schnurr { animation: katzeSchnurr .45s var(--feder); }
+.geheim.is-rave .katze-svg { animation: katzeRave .4s ease-in-out infinite; }
+.geheim.is-rave .geheim__karte { border-color: var(--ink); box-shadow: 0 0 0 2px color-mix(in oklab, var(--ink) 20%, transparent); }
 .geheim__spruch { margin: 0 0 6px; font-size: var(--t-body); font-weight: 650; line-height: 1.45; color: var(--text); }
 .geheim__hinweis { margin: 0; font-size: var(--t-xs); color: var(--text-faint); }
-.geheim__eq { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 22px; margin: 10px auto 4px; }
-.geheim__eq i { display: block; width: 5px; height: 6px; border-radius: 3px; background: var(--ink); opacity: .28; transform-origin: bottom; }
+.geheim__eq { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 28px; margin: 12px auto 6px; }
+.geheim__eq i { display: block; width: 6px; height: 28px; border-radius: 3px; background: var(--ink); opacity: .3; transform: scaleY(.22); transform-origin: bottom; }
 @keyframes raveTakt {
-  0%, 100% { height: 6px; opacity: .55; }
-  50% { height: 20px; opacity: 1; }
+  0%, 100% { transform: scaleY(.24); opacity: .65; }
+  50% { transform: scaleY(1); opacity: 1; }
 }
-.geheim.is-rave .geheim__eq i { animation: raveTakt .4s ease-in-out infinite; animation-delay: calc(var(--bi, 0) * 65ms); }
+.geheim.is-rave .geheim__eq i { animation: raveTakt .4s ease-in-out infinite; animation-delay: calc(var(--bi, 0) * 55ms); }
 .geheim.is-rave .geheim__eq i:nth-child(even) { background: var(--honig); }
 .geheim__aktionen { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2); margin-top: var(--s-2); }
 #geheimRave[aria-pressed="true"], #geheimPlayerBtn[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
@@ -4242,8 +4267,18 @@ body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
 .geheim__offline { margin: 0; font-size: var(--t-xs); color: var(--text-muted); }
 .geheim__link { display: inline-block; margin-top: var(--s-2); font-size: var(--t-xs); font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 @media (pointer: coarse) { #geheimRave, #geheimPlayerBtn { min-height: 44px; padding: 0 var(--s-4); } }
+[data-geheim-wired="1"], .geheim__karte, #geheimRave, #geheimPlayerBtn {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (pointer: coarse) {
+  .agenda__kopfzeile[data-geheim-wired="1"] { padding: 6px 0; margin: -6px 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .katze-svg.is-schnurr, .geheim.is-rave .geheim__eq i { animation: none !important; }
+  .katze-svg.is-schnurr, .geheim.is-rave .katze-svg, .geheim.is-rave .geheim__eq i { animation: none !important; }
 }
 @media print {
   body, .app { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
@@ -13431,8 +13466,8 @@ function renderAgenda() {
 
   box.innerHTML = html;
 
-  const grussEl = box.querySelector(".agenda__gruss");
-  if (grussEl) geheimTippRegistrieren(grussEl);
+  const kopfEl = box.querySelector(".agenda__kopfzeile");
+  if (kopfEl) geheimTippRegistrieren(kopfEl);
 
   $("#agendaFrog").onclick = () => { if (wichtig) taskSheet(wichtig); else setView("aufgaben"); };
   const hero = $("#agendaHero");
@@ -15670,8 +15705,51 @@ const GEHEIM_SPRUECHE = [
   "Kopfhörer auf, 150 BPM rein — manchmal spült ein einziger Track den Kopf frei."
 ];
 let geheimSpruchIdx = 0;
+let geheimRaveTimer = null;
+function geheimRaveStop() {
+  if (geheimRaveTimer) { clearInterval(geheimRaveTimer); geheimRaveTimer = null; }
+}
+function geheimRaveStart() {
+  geheimRaveStop();
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!fokusKlangCtx) fokusKlangCtx = new AC();
+    const ctx = fokusKlangCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const noten = [220, 261.6, 293.7, 329.6, 293.7, 261.6, 246.9, 196];
+    let step = 0;
+    const tick = () => {
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      if (step % 2 === 0) {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(165, t);
+        osc.frequency.exponentialRampToValueAtTime(48, t + 0.13);
+        gain.gain.setValueAtTime(0.16, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t + 0.14);
+      } else {
+        const f = noten[Math.floor(step / 2) % noten.length];
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.065, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t + 0.15);
+      }
+      step++;
+    };
+    tick();
+    geheimRaveTimer = setInterval(tick, 200);
+  } catch (e) {}
+}
 function geheimSheet() {
   modal((s, close) => {
+    modalOnCancel = geheimRaveStop;
+    const zuGeheim = o => { modalOnCancel = null; geheimRaveStop(); close(o); };
     s.classList.add("geheim");
     const nm = nutzerName();
     const spruch = () => GEHEIM_SPRUECHE[geheimSpruchIdx % GEHEIM_SPRUECHE.length];
@@ -15690,7 +15768,7 @@ function geheimSheet() {
         "<p class='geheim__hinweis'>Auf die graue Katze tippen für den nächsten Gedanken</p>" +
       "</button>" +
       "<div class='geheim__eq' aria-hidden='true'>" +
-        [0, 1, 2, 3, 4].map(i => "<i style='--bi:" + i + "'></i>").join("") +
+        [0, 1, 2, 3, 4, 5, 6].map(i => "<i style='--bi:" + i + "'></i>").join("") +
       "</div>" +
       "<div class='geheim__aktionen'>" +
         "<button type='button' class='btn btn--sm' id='geheimRave' aria-pressed='false'>150 BPM · Kurz-Rave</button>" +
@@ -15709,6 +15787,8 @@ function geheimSheet() {
     raveBtn.onclick = () => {
       const an = s.classList.toggle("is-rave");
       raveBtn.setAttribute("aria-pressed", String(an));
+      raveBtn.textContent = an ? "150 BPM · Stoppen" : "150 BPM · Kurz-Rave";
+      if (an) geheimRaveStart(); else geheimRaveStop();
     };
     const playerBtn = s.querySelector("#geheimPlayerBtn");
     const playerBox = s.querySelector("#geheimPlayer");
@@ -15719,6 +15799,12 @@ function geheimSheet() {
         playerBtn.setAttribute("aria-expanded", "false");
         playerBtn.textContent = "Playlist anhören";
         return;
+      }
+      if (s.classList.contains("is-rave")) {
+        s.classList.remove("is-rave");
+        raveBtn.setAttribute("aria-pressed", "false");
+        raveBtn.textContent = "150 BPM · Kurz-Rave";
+        geheimRaveStop();
       }
       playerBox.hidden = false;
       playerBtn.setAttribute("aria-expanded", "true");
@@ -15752,25 +15838,26 @@ function geheimSheet() {
     const sp = document.createElement("span"); sp.className = "spacer";
     const ok = document.createElement("button");
     ok.className = "btn btn--primary"; ok.type = "button"; ok.textContent = "Schließen";
-    ok.onclick = close;
+    ok.onclick = zuGeheim;
     foot.append(sp, ok);
     s.appendChild(foot);
   });
 }
+let geheimTippN = 0, geheimTippT0 = 0;
 function geheimTippRegistrieren(el) {
   if (!el || el.dataset.geheimWired) return;
   el.dataset.geheimWired = "1";
   if (!el.title) el.title = "Manchmal lohnt sich dreimaliges Tippen …";
-  let n = 0, t0 = 0;
   el.addEventListener("click", () => {
     const jetzt = Date.now();
-    if (!t0 || jetzt - t0 > 2500) { n = 0; t0 = jetzt; }
-    n++;
-    if (n === 2) {
+    if (!geheimTippT0 || jetzt - geheimTippT0 > 3500) geheimTippN = 0;
+    geheimTippT0 = jetzt;
+    geheimTippN++;
+    if (geheimTippN === 2) {
       const nm = nutzerName();
       toast(nm ? "Psst, " + nm + " … noch einmal tippen 🐾" : "Psst … noch einmal tippen 🐾");
     }
-    if (n >= 3) { n = 0; t0 = 0; geheimSheet(); }
+    if (geheimTippN >= 3) { geheimTippN = 0; geheimTippT0 = 0; geheimSheet(); }
   });
 }
 

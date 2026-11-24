@@ -454,16 +454,20 @@ async function boot(br, devName) {
       const fromR = document.getElementById('bFrom').getBoundingClientRect();
       const toR = document.getElementById('bTo').getBoundingClientRect();
       const datR = document.getElementById('bDatum').getBoundingClientRect();
+      const csOk = ['bDatum', 'bFrom', 'bTo'].every(id => {
+        const st = getComputedStyle(document.getElementById(id));
+        return st.display === 'flex' && st.alignItems === 'center' && st.textAlign === 'left';
+      });
       return {
         footBuendig: Math.abs(fr0.bottom - sr0.bottom) <= 1.5 && Math.abs(fr.bottom - sr.bottom) <= 1.5,
         keinDurchblitzer: Boolean(keinDurchblitzer),
-        zeitOk: fromR.right <= toR.left + 1 && toR.right <= sr.right + 1 && datR.right <= sr.right + 1,
+        zeitOk: fromR.right <= toR.left + 1 && toR.right <= sr.right + 1 && datR.right <= sr.right + 1 && csOk,
         quer: s.scrollWidth > s.clientWidth + 1,
         hasSwitch: getComputedStyle(document.getElementById('bSperrt')).appearance
       };
     });
     ok(modalCheck.footBuendig && modalCheck.keinDurchblitzer, 'P6c) Sticky-Footer buendig ohne 34px-Spalt / durchblitzende Chips');
-    ok(modalCheck.zeitOk && !modalCheck.quer, 'P6d) iOS Date/Time-Felder sauber innerhalb der Box');
+    ok(modalCheck.zeitOk && !modalCheck.quer, 'P6d) iOS Date/Time-Felder sauber innerhalb der Box und links/mittig ausgerichtet');
     await p.screenshot({ path: path.join(__dirname, 'sz-iphone16-neu.png') });
 
     // Klick auf „Oft geplant“ darf kein zweites Fenster (.blatt-abgang) erzeugen
@@ -489,7 +493,29 @@ async function boot(br, devName) {
     const hauptAfter = await p.evaluate(() => state.areas.filter(a => !a.kalender).map(a => a.id).join());
     ok(hauptBefore === hauptAfter, 'P6f) Bereich-Loeschen im zweiten Plan laesst „Meine Woche"-Bereiche unberuehrt');
 
-    ok(errs.length === 0, 'P6g) Keine Konsolenfehler');
+    // Mobiler 3x-Tipp auf .agenda__kopfzeile in Heute oeffnet Geheimpunkt
+    await p.evaluate(() => { closeModal(); planMerken(null); renderAll(); setView('heute'); });
+    await p.waitForSelector('.agenda__kopfzeile[data-geheim-wired="1"]');
+    const kopfTouch = await p.evaluate(() => {
+      const k = document.querySelector('.agenda__kopfzeile[data-geheim-wired="1"]');
+      const st = getComputedStyle(k);
+      return {
+        touch: st.touchAction,
+        select: st.userSelect || st.webkitUserSelect || '',
+        cursor: st.cursor
+      };
+    });
+    const kopfLoc = p.locator('.agenda__kopfzeile');
+    await kopfLoc.tap();
+    await kopfLoc.tap();
+    await kopfLoc.tap();
+    await p.waitForSelector('.sheet.geheim');
+    const mobilGeheimOffen = await p.locator('.sheet.geheim').isVisible();
+    await p.evaluate(() => { closeModal(); if (typeof geheimTippN !== 'undefined') { geheimTippN = 0; geheimTippT0 = 0; } });
+    ok(kopfTouch.touch === 'manipulation' && kopfTouch.select === 'none' && kopfTouch.cursor === 'pointer' && mobilGeheimOffen,
+      'P6g) Mobiler 3x-Tipp auf .agenda__kopfzeile oeffnet Geheimpunkt ohne Zoom/Markierung');
+
+    ok(errs.length === 0, 'P6h) Keine Konsolenfehler');
     alleErrs.push(...errs);
     await ctx.close();
   }
@@ -563,7 +589,12 @@ async function boot(br, devName) {
     const spruch2 = await p.textContent('#geheimSpruch');
     await p.click('#geheimRave');
     await p.waitForTimeout(150);
-    const raveAn = await p.evaluate(() => document.querySelector('.sheet.geheim').classList.contains('is-rave'));
+    const raveAn = await p.evaluate(() => {
+      const btn = document.getElementById('geheimRave');
+      return document.querySelector('.sheet.geheim').classList.contains('is-rave')
+        && btn && btn.textContent.includes('Stoppen')
+        && geheimRaveTimer !== null;
+    });
     await p.evaluate(() => { const t = document.querySelector('#toasts'); if (t) t.innerHTML = ''; });
     await p.screenshot({ path: path.join(__dirname, 'sz-geheim.png') });
     await p.click('#geheimPlayerBtn');
@@ -571,10 +602,14 @@ async function boot(br, devName) {
     const playerOffen = await p.evaluate(() => {
       const ifr = document.querySelector('#geheimPlayer iframe');
       const lnk = document.querySelector('#geheimPlayer .geheim__link');
+      const raveBtn = document.getElementById('geheimRave');
       return {
         src: ifr ? ifr.getAttribute('src') || '' : '',
         allow: ifr ? ifr.getAttribute('allow') || '' : '',
-        href: lnk ? lnk.getAttribute('href') || '' : ''
+        href: lnk ? lnk.getAttribute('href') || '' : '',
+        raveGestoppt: !document.querySelector('.sheet.geheim').classList.contains('is-rave')
+          && geheimRaveTimer === null
+          && raveBtn && !raveBtn.textContent.includes('Stoppen')
       };
     });
     await p.click('#geheimPlayerBtn');
@@ -582,15 +617,15 @@ async function boot(br, devName) {
       document.querySelector('#geheimPlayer').hidden && document.querySelectorAll('#geheimPlayer iframe').length === 0
     );
     await p.evaluate(() => closeModal());
-    const stateUnberuehrt = await p.evaluate(v => JSON.stringify(state) === v, preStateJson);
+    const stateUnberuehrt = await p.evaluate(v => JSON.stringify(state) === v && geheimRaveTimer === null, preStateJson);
     ok(
       hinweis2.includes('noch einmal tippen') && geheimTitel.includes('Sunny')
       && keinAutoIframe && spruch1 !== spruch2 && raveAn
       && playerOffen.src.includes('77s5XxTYzzIx4piW1nVIbb')
       && !/autoplay/i.test(playerOffen.src) && !/autoplay/i.test(playerOffen.allow)
       && playerOffen.href.includes('https://open.spotify.com/playlist/77s5XxTYzzIx4piW1nVIbb')
-      && playerZu && stateUnberuehrt,
-      'P7c) Geheimpunkt (graue Katze + Name + 150 BPM Rave + On-Demand Spotify) via 3x-Tipp, speichert nichts in state'
+      && playerOffen.raveGestoppt && playerZu && stateUnberuehrt,
+      'P7c) Geheimpunkt (graue Katze + Name + 150 BPM Rave-Beat + On-Demand Spotify) via 3x-Tipp, speichert nichts in state'
     );
 
     // #bFokus im Eintrags-Blatt + Offline-Klang im Fokus-Blatt

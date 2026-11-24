@@ -7,6 +7,14 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.63 vom 2026-11-24
+
+PWA-Cache `wp-v1.63`, Datenschema 10, Kette 76 Skripte.
+
+- iPhone-Eingabefelder (`date` & `time`): `display: flex; align-items: center; text-align: left` samt `::-webkit-date-and-time-value`, damit Datum, „Von“ und „Bis“ linksbündig und vertikal mittig sitzen.
+- „150 BPM · Kurz-Rave“: Offline-WebAudio-Beat im Achteltakt (entsperrt per Tipp für iOS Safari, stoppt automatisch beim Schließen oder Öffnen des Spotify-Players), 7-Balken-Equalizer per `scaleY(...)`, Katze-Wippen, Karten-Rahmen und Statuswechsel auf „150 BPM · Stoppen“.
+- Mobiler Geheimpunkt: ganze `.agenda__kopfzeile` als zoom- und markierungsfreie Trefferfläche (`touch-action: manipulation`, `user-select: none`) mit vergrößertem Touch-Bereich und `3500 ms`-Tippzähler zwischen den Tipps.
+
 ### Release v1.62 vom 2026-11-24
 
 PWA-Cache `wp-v1.62`, Datenschema 10, Kette 76 Skripte.
