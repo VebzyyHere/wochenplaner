@@ -26,7 +26,7 @@ const AUSGENOMMEN = new Set([SELBST, 'mockserver.js', 'serve.js']);
 const EXKLUSIV = new Set(['pwatest.js', 'pwaupd.js']);
 // Längere Läufe zuerst einreihen, damit kein Nachzügler den Pool aufhält.
 const SCHWER = [
-  'test3.js', 'kontrastlauf.js', 'szenarien.js', 'audit.js',
+  'importfuzz.js', 'test3.js', 'feedback.js', 'kontrastlauf.js', 'szenarien.js', 'audit.js',
   'wochenzeilen.js', 'freiwoche.js', 'frei.js', 'kontrast.js',
   'plaene.js', 'release.js'
 ];

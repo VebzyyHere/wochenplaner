@@ -239,7 +239,6 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 1
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 .num { font-variant-numeric: tabular-nums; }
 .sr {
@@ -998,7 +997,7 @@ html[data-theme="dark"] .agenda__loading {
   font: inherit; font-size: var(--t-sm); text-align: left; line-height: 1.45; cursor: pointer;
 }
 .zusage__einstieg b { color: var(--text); font-weight: 600; }
-.zusage__einstieg > span:last-child { font-size: var(--t-h1); color: var(--text-faint); flex: none; }
+.zusage__einstieg > span:last-child { font-size: var(--t-h1); line-height: 1; color: var(--text-faint); flex: none; }
 @media (hover: hover) { .zusage__einstieg:hover b { text-decoration: underline; text-underline-offset: 3px; } }
 .zusage__intro { margin: 0 0 var(--s-4); color: var(--text-muted); font-size: var(--t-body); line-height: 1.55; }
 .zusage { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
@@ -2510,7 +2509,7 @@ html[data-theme="dark"] {
    nur der Farbton (--h) gehört dem Bereich. html[data-theme] hebt die
    Spezifität über die alte Dunkel-Regel, damit ein Satz für beide reicht. */
 html[data-theme] :is(.block, .block__ghost, .chip, .arearow, .task__meta, .dayswitch__btn, .goal, .goalrow, .reliefrow,
-.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow, .wochenzeile__seg, .loosechip) {
+.hakenrow, .zielrow, .agenda__hero, .agenda__row, .abschlussrow, .wochenzeile__seg, .loosechip, .idee) {
   --area-bg:   oklch(var(--soft-L) var(--soft-C) var(--h));
   --area-bg-2: oklch(var(--soft2-L) var(--soft2-C) var(--h));
   --area-edge: oklch(var(--edge-L) var(--edge-C) var(--h));
@@ -3340,7 +3339,7 @@ html[data-theme="dark"] .dayswitch__btn[aria-pressed="true"]:not(.is-today) { bo
 /* ---- Woche: Blöcke als kleine Aufkleber ------------------------------ */
 .block { border-radius: 12px; box-shadow: var(--hart-klein); }
 .block:hover { box-shadow: var(--hart-klein); }
-.block.is-sug { box-shadow: none; border-color: var(--ol); }
+.block.is-sug { box-shadow: none; border-color: var(--area-line); }
 .loosechip { box-shadow: 2px 2px 0 0 var(--schlag); }
 
 /* ---- Knöpfe: Kontur, Versatz, beim Drücken in den Schatten ------------ */
@@ -3549,8 +3548,8 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
 }
 .tipp__name { font-family: "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 0;
   font-size: var(--t-h1); font-weight: 680; line-height: 1.25; margin-bottom: 4px; }
-.tipp__opt { padding: 8px 0; background: transparent; border-top: 1px solid var(--border); }
-.tipp__name + .tipp__opt { border-top: 0; }
+.tipp__opt { padding: 8px 0; background: transparent; box-shadow: inset 0 1px 0 var(--border); }
+.tipp__name + .tipp__opt { box-shadow: none; }
 .tipp__zahl {
   flex: none; width: 74px; display: flex; flex-direction: column; align-items: center;
   font-size: var(--t-xs); font-weight: 700; color: var(--text-muted);
@@ -3766,7 +3765,7 @@ html[data-theme="dark"] .kopf { box-shadow: 0 1px 0 var(--border); }
   border-color: var(--ink);
 }
 .chip[aria-pressed="true"] { box-shadow: none; border-color: var(--ink); }
-.btn:not(.btn--ghost):not(.btn--primary) { border-color: var(--rand); }
+.btn:not(.btn--ghost):not(.btn--primary):not(.btn--leise) { border-color: var(--rand); }
 .taskadd { box-shadow: inset 0 0 0 1.5px var(--rand); }
 .taskadd:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
 .taskadd .btn--primary { box-shadow: none; }
@@ -3882,7 +3881,7 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
   .brand__mark { width: 24px; height: 24px; color: var(--ink); }
   .brand__name {
     font-family: var(--font-display);
-    font-variation-settings: "SOFT" 50, "WONK" 0;
+    font-variation-settings: normal;
     font-size: 1.15rem;
     font-weight: 680;
     letter-spacing: -0.02em;
@@ -3890,7 +3889,7 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
   }
   .planbtn {
     margin-right: auto;
-    min-height: 36px;
+    min-height: 38px;
     padding: 0 11px;
     background: var(--surface);
     border: 1px solid var(--rand);
@@ -3907,15 +3906,15 @@ html[data-theme="dark"] .toast { border: 1px solid var(--border); }
     border-radius: var(--r-ctl);
   }
   .weeknav .btn--icon {
-    min-height: 34px;
-    min-width: 34px;
+    min-height: 32px;
+    min-width: 32px;
     border-color: transparent;
     background: transparent;
     border-radius: 7px;
   }
   .weeknav__label {
     min-width: 0;
-    min-height: 34px;
+    min-height: 32px;
     padding: 0 12px;
     display: inline-flex;
     align-items: center;
@@ -3971,7 +3970,7 @@ html[data-theme="dark"] .btn.wuerfel {
   .btn.wuerfel .ui-icon { transition: transform .2s var(--feder); }
 }
 @media (max-width: 1100px) {
-  .btn.wuerfel { min-width: 44px; min-height: 44px; padding: 0 11px; margin: -4px 0; }
+  .btn.wuerfel { min-width: 44px; min-height: 44px; padding: 0 11px; margin: 0; }
   .wuerfel > span { display: inline; }
 }
 @media (max-width: 640px) {
@@ -3984,7 +3983,7 @@ html[data-theme="dark"] .btn.wuerfel {
 }
 .idee {
   border-radius: 14px;
-  border: 1.5px solid var(--area-line);
+  border: 1.5px solid var(--area-line, var(--border-strong));
   padding: 20px 18px;
 }
 .idee__meta {
@@ -4041,7 +4040,7 @@ html, .kopf, html[data-app="1"] .kopf {
 .waage button.waage__item, .waage button.waage__sum { border-radius: var(--r-xs); }
 .field, .planbtn, .syncbadge, .dayswitch__btn, .dayswitch__heute,
 .kommt__wann, .fremd, .monatcell, .monatweek, .hakenrow, .arearow__swatch { border-radius: var(--r-sm); }
-:focus-visible { border-radius: var(--r-sm); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .field:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .agenda__hero, .agenda__list, .agenda__row, .agenda__row.is-vorschlag,
 .card, .task, .goal, .idee, .tipp, .kommt__row, .ausblick__leer,
@@ -4281,12 +4280,152 @@ body:has(#modalRoot > .scrim) .toasts { z-index: 55; }
   .katze-svg.is-schnurr, .geheim.is-rave .katze-svg, .geheim.is-rave .geheim__eq i { animation: none !important; }
 }
 @media print {
+  html, html[data-theme="dark"] {
+    color-scheme: light !important;
+    --bg: white;
+    --surface: white;
+    --surface-2: oklch(0.955 0.008 170);
+    --surface-3: oklch(0.930 0.010 170);
+    --border: oklch(0.840 0.012 170);
+    --border-strong: oklch(0.720 0.014 170);
+    --text: oklch(0.180 0.020 170);
+    --text-muted: oklch(0.360 0.020 170);
+    --text-faint: oklch(0.450 0.018 170);
+    --rand: oklch(0.680 0.016 170);
+    --stone-L: 0.565; --stone-C: 0.105;
+    --soft-L: 0.905; --soft-C: 0.042;
+    --soft2-L: 0.870; --soft2-C: 0.062;
+    --edge-L: 0.840; --edge-C: 0.050;
+    --atext-L: 0.300; --atext-C: 0.045;
+  }
   body, .app { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
   .main, .gridwrap { height: auto !important; max-height: none !important; overflow: visible !important; }
-  .kopf { position: static !important; box-shadow: none !important; }
+  .panel { padding-top: var(--s-4) !important; }
+  .planwrap { padding-top: 0 !important; }
+  .kopf { position: static !important; box-shadow: none !important; background: white !important; }
   .tabbar, .sugbar, .panelnav, .toasts, .scrim, .wuerfel, .fab, .banner,
-  .tagesform, #restTagBtn, .topbar .btn, #planBtn .weeknav__caret { display: none !important; }
+  .tagesform, .freischalter, #restTagBtn, .topbar .btn, .syncbadge,
+  .dayswitch, .planhead__actions, .taskadd, #goalsEdit, #wochenkarteBtn, #zusageBtn,
+  #planBtn .weeknav__caret { display: none !important; }
   .block, .goal, .task { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+}
+/* ============================================================
+   v1.64 Finales Release-Polishing (Handy, iPhone, Querformat, Typo)
+   ============================================================ */
+/* Zahlenspannen einheitlich mit Tabellenziffern (tabular-nums) */
+.fokus__mitte b, .agenda__time, .hakenrow__zeit, .zielrow__ist, .stepper__val,
+.reliefrow__time, .abschlussrow__zeit, .wegrow__min, .task__dur, .agenda__fort,
+.tipp__zahl b, .dragzeit { font-variant-numeric: tabular-nums; }
+.sheet__mehr-kopf::after, .tipp__pfeil { line-height: 1; }
+.goalrow__name { text-overflow: ellipsis; }
+.fokus__klang { flex-wrap: wrap; }
+.monatcell.is-today.is-feiertag::after { top: 2px; right: calc(50% - 17px); }
+.loosechip { align-items: center; }
+.chipset--leiste { padding-right: var(--s-3); }
+.reliefrow { flex-wrap: wrap; }
+.reliefrow__time { white-space: nowrap; }
+#bGenau { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#bGenau > .chip { justify-content: center; min-width: 0; padding: 0 6px; }
+.sheet__foot { align-items: stretch; }
+.freischalter { padding: 6px 0; min-height: 44px; }
+html[data-theme="dark"] .agenda__fort circle { stroke: var(--border-strong); }
+
+/* Desktop-Waage: Fokusring nicht abschneiden und bündig mit Balken */
+@media (min-width: 1101px) {
+  .planhead .waage__leg { padding: 2px 0; height: calc(1.45em + 4px); margin: -2px 0; }
+  .waage button.waage__item { margin: 0; padding: 0 6px; }
+  .waage button.waage__item:first-child { margin-left: -6px; }
+}
+
+/* Waage im Wochen-Blatt: umgebrochene Zeilen linksbündig am Textrand */
+.waage--blatt .waage__leg { margin-left: -12px; margin-right: -12px; gap: 0 2px; }
+.waage--blatt button.waage__item, .waage--blatt button.waage__sum {
+  min-height: 44px; padding: 0 12px; margin: 0;
+}
+.waage--blatt button.waage__item + button.waage__item { margin-left: 0; }
+
+/* Runde Mulden-Checkbox auch im Wochenstart-Rückblick */
+.hakenrow input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; position: relative;
+  width: 22px; height: 22px; margin: 0; flex: none;
+  border-radius: 50%; border: 1.5px solid var(--rand); background: var(--mulde);
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.hakenrow input[type="checkbox"]:checked {
+  background: var(--area-line, var(--ink));
+  border-color: var(--area-line, var(--ink));
+}
+.hakenrow input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 6.5px; top: 3px;
+  width: 5px; height: 9px; border: solid var(--on-stone);
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
+/* Mobile & iPhone Korrekturen */
+@media (max-width: 1100px) {
+  .planwrap { --gutter: 44px; }
+  .weeknav__label { padding: 0 4px; }
+  body[data-mview="aufgaben"] .card[data-card="aufgaben"] > .agenda__foot { padding-bottom: var(--s-3); }
+}
+@media (max-width: 640px) {
+  body[data-tage="3"] .block__sug { display: none; }
+  body[data-tage="3"] .block.is-sug .block__title { padding-right: 0; }
+}
+@media (max-width: 440px) {
+  .planhead__weekday { display: none; }
+  .planhead h1 { font-size: 1.2rem; }
+}
+@media (max-width: 360px) {
+  .goalrow__wert { gap: 3px; }
+  .goalrow__h { width: 54px; padding: 0 6px; }
+  .goalrow__unit { font-size: var(--t-xs); margin-right: 0; white-space: nowrap; }
+  .goalrow__halb, .goalrow__more { width: 44px; height: 44px; min-height: 44px; }
+  .sheet__foot > .btn { padding: 0 10px; }
+  .reliefrow__txt { flex: 1 0 100%; }
+  .reliefrow > .btn { flex: 1 1 auto; }
+}
+
+/* Querformat am Handy (iPhone Landscape): nur ein „+", sauberer Kopf, mittige Dialoge */
+@media (max-height: 500px) and (max-width: 1000px) {
+  .syncbadge__txt { display: none; }
+  .dayswitch { padding-right: var(--safe-right); }
+  body[data-mview="plan"] .tabbar .tabbar__plus { display: none; }
+  body:not([data-mview="plan"]) .tabbar .tabbar__plus {
+    display: flex; align-items: center; justify-content: center;
+    order: 9; margin-top: auto; width: 52px; height: 52px; min-height: 52px; padding: 0;
+    border: 0; border-radius: var(--r-ctl);
+    background: var(--ink) !important; color: var(--on-ink);
+    box-shadow: var(--shadow-2) !important;
+  }
+  body:not([data-mview="plan"]) .tabbar .tabbar__plus svg { width: 22px; height: 22px; stroke-width: 2.3; }
+  body[data-sugoben="1"] .sugbar__text {
+    flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .scrim {
+    align-items: center;
+    padding: max(var(--s-3), var(--safe-top)) max(var(--s-4), var(--safe-right)) max(var(--s-3), var(--safe-bottom)) max(var(--s-4), var(--safe-left));
+  }
+  .sheet {
+    margin: 0; border-radius: var(--r-lg);
+    max-height: calc(var(--sicht-hoehe) - max(16px, var(--safe-top) + var(--safe-bottom)));
+  }
+}
+
+/* Touch-Trefferflächen & Häkchen-Zentrierung */
+@media (pointer: coarse) {
+  .tagesform .energy__opt { min-height: 44px; }
+  .block__done::before { inset: -14px; }
+  .block.is-short .block__done::before { inset: -15px; }
+  .task__area { min-height: 0; padding: 0; }
+  .task__frog, .task__plan { min-height: 44px; min-width: 44px; }
+  .task__check:checked::after { left: 7.5px; top: 3.5px; width: 5.5px; height: 10px; }
+  .hakenrow input[type="checkbox"]::before { content: ""; position: absolute; inset: -11px; border-radius: 50%; }
+  .geheim__link { min-height: 44px; display: inline-flex; align-items: center; }
+  .waage--blatt button.waage__item, .waage--blatt button.waage__sum { min-height: 44px; }
+}
+@media (pointer: coarse) and (max-height: 500px) and (max-width: 1000px) {
+  body[data-sugoben="1"] .sugbar__accept,
+  body[data-sugoben="1"] .sugbar__close { min-height: 44px; min-width: 44px; }
 }
 </style>
 </head>
@@ -5295,11 +5434,13 @@ function planLinkLesen(hashStr) {
   if (typeof hashStr !== "string" || !hashStr.startsWith("#teilen=") || hashStr.length > 32000) return null;
   try {
     const raw = JSON.parse(b64UrlDec(hashStr.slice(8)));
-    if (!raw || raw.v !== 1 || !Array.isArray(raw.a) || !raw.a.length || raw.a.length > 24 || !Array.isArray(raw.b) || raw.b.length > 100) return null;
+    if (!raw || raw.v !== 1 || !Array.isArray(raw.a) || raw.a.length > 24 || !Array.isArray(raw.b) || raw.b.length > 100) return null;
+    const areas = raw.a.filter(x => Array.isArray(x) && x.length >= 3);
+    if (!areas.length) return null;
     return {
       name: String(raw.n || "Geteilter Plan").slice(0, 40),
       emoji: String(raw.e || "✨").slice(0, 8),
-      areas: raw.a.filter(x => Array.isArray(x) && x.length >= 3),
+      areas,
       blocks: raw.b.filter(x => Array.isArray(x) && x.length >= 6)
     };
   } catch (e) { return null; }
@@ -5338,21 +5479,32 @@ function planLinkImportSheet(daten) {
         const a = { id: nid, name: String(name || "Bereich").slice(0, 32), hue: clamp(+hue || 150, 0, 359), plan: defaultPlan(), kalender: kal };
         a.plan.art = artRaten(a);
         if (+goal > 0) a.plan.goal = clamp(+goal, 0, 80);
-        if (Array.isArray(ideen) && ideen.length) a.ideen = ideen.slice(0, 20).map(i => ({ t: String(i.t || "").slice(0, 60), min: clamp(+i.min || 30, 15, 240) })).filter(i => i.t);
+        if (Array.isArray(ideen) && ideen.length) a.ideen = ideen.slice(0, 20)
+          .filter(i => i && typeof i === "object")
+          .map(i => ({ t: String(i.t || "").slice(0, 60), min: clamp(+i.min || 30, 15, 240) }))
+          .filter(i => i.t);
         state.areas.push(a);
       });
       const fallbackArea = map.values().next().value || state.areas[0].id;
+      const isoRe = /^\d{4}-\d{2}-\d{2}$/;
       daten.blocks.forEach(([title, altArea, day, date, start, end, grob, ganztag, repeat, bis, teil, dauer, ort, notiz, schritte, sperrt]) => {
+        const cleanDate = typeof date === "string" && isoRe.test(date) ? date : "";
+        let st = clamp(+start || 0, 0, 1440);
+        let en = clamp(+end || 0, 0, 1440);
+        if (!grob) {
+          if (st >= 1440) st = 1410;
+          if (en <= st) en = Math.min(1440, st + 30);
+        }
         const blk = {
           id: uid(), title: String(title || "Eintrag").slice(0, 80), areaId: map.get(altArea) || fallbackArea,
-          day: clamp(+day || 0, 0, 6), date: typeof date === "string" ? date : "",
-          start: clamp(+start || 0, 0, 1440), end: clamp(+end || 0, 0, 1440),
+          day: clamp(+day || 0, 0, 6), date: cleanDate,
+          start: st, end: en,
           grob: !!grob, ganztag: !!ganztag,
           repeat: repeat === "weekly" || repeat === "2wochen" ? repeat : "none",
           frog: false
         };
         if (blk.repeat !== "none" && blk.date) blk.since = blk.date;
-        if (bis) blk.bis = String(bis).slice(0, 10);
+        if (typeof bis === "string" && isoRe.test(bis)) blk.bis = bis;
         if (teil) blk.teil = String(teil).slice(0, 6);
         if (+dauer > 0) blk.dauer = clamp(+dauer, 15, 480);
         if (ort) blk.ort = String(ort).slice(0, 80);
@@ -5608,9 +5760,10 @@ function schluckeNaechstenClick() {
 }
 function modal(builder, opts = {}) {
   document.querySelectorAll(".blatt-abgang").forEach(el => el.remove());
+  const alterOpener = opts.sofort && openModal ? modalOpener : null;
   closeModal({ sofort: true });
-  modalOpener = document.activeElement && document.activeElement !== document.body
-    ? document.activeElement : null;
+  modalOpener = alterOpener || (document.activeElement && document.activeElement !== document.body
+    ? document.activeElement : null);
   const scrim = document.createElement("div");
   scrim.className = "scrim" + (opts.sofort ? " is-zurueck" : "");
   const sheet = document.createElement("div");
@@ -5665,6 +5818,12 @@ function blattZiehenEinrichten(sheet) {
     if (dy > 110) { closeModal(); schluckeNaechstenClick(); }
     else sheet.style.transform = "";
     dy = 0;
+  });
+  sheet.addEventListener("touchcancel", () => {
+    if (y0 === null) return;
+    y0 = null; x0 = null; dy = 0;
+    sheet.style.transition = "";
+    sheet.style.transform = "";
   });
 }
 // Tab läuft nicht hinter den Scrim — gilt für modal() wie für modalPush(),
@@ -5984,7 +6143,11 @@ function planSheet() {
                 "<input class='field' id='teilenFeld' readonly>";
               const f = m.querySelector("#teilenFeld");
               f.value = link;
-              setTimeout(() => { f.focus(); f.select(); }, 30);
+              setTimeout(() => {
+                f.focus();
+                f.select();
+                try { f.setSelectionRange(0, f.value.length); } catch (e) {}
+              }, 30);
               const ft = document.createElement("div");
               ft.className = "sheet__foot";
               ft.innerHTML = "<span class='spacer'></span>";
@@ -6143,7 +6306,7 @@ function freizeitZeile(day, todayKey) {
   const gaps = freeGaps(day, {}, null, {});
   const gruende = gaps.gruende || [];
 
-  const grobeHeute = state.blocks.filter(b => b.grob && onDay(b, day.key, day.i));
+  const grobeHeute = state.blocks.filter(b => b.grob && imPlan(b) && onDay(b, day.key, day.i));
   const hinweis = grobeHeute.length
     ? " · " + grobeHeute.map(b => b.ganztag ? escapeHtml(b.title) + " <b>ganztägig</b>"
         : "<b>" + fmtDur(b.dauer) + "</b> " + escapeHtml(b.title) + " offen").join(", ")
@@ -7499,7 +7662,7 @@ function areaGrobOffen(areaId) {
 
 function hasSuggestions() {
   const keys = new Set(weekDays().map(d => d.key));
-  return state.blocks.some(b => b.sug && keys.has(b.date));
+  return state.blocks.some(b => b.sug && imPlan(b) && keys.has(b.date));
 }
 
 /* Stunden lesbar: 90 → „1,5 h", 45 → „45 min" */
@@ -7679,7 +7842,7 @@ function wochenKapazitaet() {
   // bereits verplanter Block deckt das Ziel, egal ob sein Termin vergangen
   // oder künftig ist.
   let offen = 0, pausen = 0;
-  state.areas.forEach(a => {
+  planBereiche().forEach(a => {
     const rest = Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false));
     if (!rest) return;
     offen += rest;
@@ -7693,7 +7856,7 @@ function wochenKapazitaet() {
   // stehen. Schon verplante Aufgaben zählen bereits über "fest" mit (ihr
   // Block trägt die echte areaId), hier also nur die noch offenen.
   state.tasks.forEach(t => {
-    if (t.done || t.geplant || !t.dauer) return;
+    if (t.done || t.geplant || !t.dauer || !bereichImPlan(t.areaId)) return;
     offen += t.dauer;
     const A = artOf(areaById(t.areaId));
     pausen += Math.ceil(t.dauer / A.max) * A.pause;
@@ -8546,7 +8709,7 @@ function buildSuggestions() {
   // Lücke zu füllen, die das Wegfallen ungültiger Vorschläge gerissen hat.
   // Teil F: "×" im Vorschlags-Blatt (plan.keinVorschlag) — der Bereich bleibt
   // planbar, bekommt vom Verteiler nur nichts mehr vorgeschlagen.
-  const todo = state.areas
+  const todo = planBereiche()
     .filter(a => !a.plan.keinVorschlag)
     .map(a => ({ a, open: a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true),
       kandidatentage: weekDays().filter(d => a.plan.days.includes(d.i) && fensterErlaubtTag(a.regeln, d.i)).length }))
@@ -8570,7 +8733,7 @@ function buildSuggestions() {
   // ohne Dauer ist eine Aufgabe nicht verteilbar — das bleibt so und ist
   // nur an der fehlenden Dauer-Anzeige zu erkennen, kein Fehler.
   state.tasks
-    .filter(t => !t.done && !t.geplant && t.dauer)
+    .filter(t => !t.done && !t.geplant && t.dauer && bereichImPlan(t.areaId))
     .filter(t => { const ar = areaById(t.areaId); return !ar || !ar.plan.keinVorschlag; })
     // Das Wichtigste zuerst, danach die frühere Frist (ohne Frist zuletzt).
     .sort((x, y) => y.frog - x.frog || (x.frist || "9999").localeCompare(y.frist || "9999"))
@@ -8593,7 +8756,7 @@ function clearSuggestions(warm) {
   const keys = new Set(weekDays().map(d => d.key));
   const heuteKey = iso(new Date());
   state.blocks = state.blocks.filter(b => {
-    if (!(b.sug && keys.has(b.date))) return true;
+    if (!(b.sug && imPlan(b) && keys.has(b.date))) return true;
     if (!warm) { unlinkTask(b); return false; }
     if (b.fix) return true;
     if (b.date === heuteKey) return true;   // der laufende Tag wird nie automatisch umgeplant
@@ -8662,7 +8825,7 @@ function mcsHinweis(area) {
 function acceptSuggestions() {
   const keys = new Set(weekDays().map(d => d.key));
   let n = 0;
-  state.blocks.forEach(b => { if (b.sug && keys.has(b.date)) { delete b.sug; n++; } });
+  state.blocks.forEach(b => { if (b.sug && imPlan(b) && keys.has(b.date)) { delete b.sug; delete b.alternativen; n++; } });
   return n;
 }
 
@@ -8671,7 +8834,7 @@ function acceptSuggestions() {
 // sug-Flags schon löscht. Wird VOR dem Aufruf gesammelt, für den Toast danach.
 function sugBlockeDieserWoche() {
   const keys = new Set(weekDays().map(d => d.key));
-  return state.blocks.filter(b => b.sug && keys.has(b.date));
+  return state.blocks.filter(b => b.sug && imPlan(b) && keys.has(b.date));
 }
 
 // Baut aus den gerade übernommenen Blöcken einen aussprechbaren Toast-Satz
@@ -8731,7 +8894,7 @@ function restDesTagesBauen() {
   // ueberschritten ist). Bis dahin brauchte es hier eine eigene Sicherung
   // und Rueckschreibung dafuer — seit growSuggestions() die Regel selbst
   // kennt, ist das ueberfluessig.
-  const todo = state.areas
+  const todo = planBereiche()
     .filter(a => !a.plan.keinVorschlag)
     .filter(a => a.plan.days.includes(day.i) && fensterErlaubtTag(a.regeln, day.i))
     .map(a => ({ a: { ...a, plan: { ...a.plan, days: [day.i] } },
@@ -8773,7 +8936,7 @@ function restDesTagesMoeglich() {
 function fruehesterVorschlag() {
   let best = null, bestStart = 0;
   state.blocks.forEach(b => {
-    if (!b.sug) return;
+    if (!b.sug || !imPlan(b)) return;
     const start = b.grob ? abschnittVon(b.teil).von : b.start;
     if (!best || b.date < best.date || (b.date === best.date && start < bestStart)) {
       best = b; bestStart = start;
@@ -9254,7 +9417,7 @@ function wochenBilanz() {
   const tage = weekDays();
   const bereiche = [];
   let ist = 0, geplant = 0, haken = 0;
-  state.areas.forEach(a => {
+  planBereiche().forEach(a => {
     let aIst = 0, aPlan = 0;
     tage.forEach(d => state.blocks.forEach(b => {
       if (b.areaId !== a.id || b.sug || !onDay(b, d.key, d.i)) return;
@@ -9392,7 +9555,9 @@ async function wochenkarteZeichnen() {
 
 function wochenkarteSheet() {
   let karte = null, url = null;
+  const revoken = () => { if (url) { URL.revokeObjectURL(url); url = null; } };
   modal((s, close) => {
+    modalOnCancel = revoken;
     s.innerHTML =
       "<h2 class='sheet__title'>Deine Woche als Karte</h2>" +
       "<p class='zusage__intro'>Zum Teilen oder Aufheben. Gezählt wird, was du abgehakt hast.</p>" +
@@ -9401,7 +9566,7 @@ function wochenkarteSheet() {
     foot.className = "sheet__foot";
     const zu = document.createElement("button");
     zu.className = "btn"; zu.type = "button"; zu.textContent = "Schließen";
-    zu.onclick = () => { if (url) URL.revokeObjectURL(url); close(); };
+    zu.onclick = close;
     const sp = document.createElement("span"); sp.className = "spacer";
     const speichern = document.createElement("button");
     speichern.className = "btn"; speichern.type = "button"; speichern.id = "wkSpeichern";
@@ -9413,7 +9578,7 @@ function wochenkarteSheet() {
     s.appendChild(foot);
 
     speichern.onclick = () => {
-      if (!karte) return;
+      if (!karte || !url) return;
       const a = document.createElement("a");
       a.href = url; a.download = karte.dateiname;
       document.body.appendChild(a); a.click(); a.remove();
@@ -9429,7 +9594,7 @@ function wochenkarteSheet() {
     };
 
     wochenkarteZeichnen().then(k => {
-      if (!s.isConnected) return;
+      if (!s.isConnected || !k || !k.blob) return;
       karte = k;
       url = URL.createObjectURL(k.blob);
       const bild = s.querySelector("#wkBild");
@@ -9762,8 +9927,8 @@ function regelnEditor(wrap, obj, selbstId, opts) {
   const aHint = wrap.querySelector("[data-hint='a']");
 
   if (zeigeFenster) {
-    vonIn.value = fmtTime(von);
-    bisIn.value = fmtTime(bis);
+    vonIn.value = fmtTime(Math.min(von, 1439));
+    bisIn.value = fmtTime(Math.min(bis, 1439));
   }
 
   const paintFHint = () => {
@@ -10138,8 +10303,8 @@ function goalsSheet() {
       // stillschweigend aufgeweitet: im Konfliktfall bleibt das Trio unverändert.
       const zeitKonflikt = !!fensterAlt &&
         Math.max(planFrom, fensterAlt.von) >= Math.min(planTo, fensterAlt.bis);
-      from.value = fmtTime(fensterAlt && !zeitKonflikt ? Math.max(planFrom, fensterAlt.von) : planFrom);
-      to.value   = fmtTime(fensterAlt && !zeitKonflikt ? Math.min(planTo,   fensterAlt.bis) : planTo);
+      from.value = fmtTime(Math.min(fensterAlt && !zeitKonflikt ? Math.max(planFrom, fensterAlt.von) : planFrom, 1439));
+      to.value   = fmtTime(Math.min(fensterAlt && !zeitKonflikt ? Math.min(planTo,   fensterAlt.bis) : planTo, 1439));
 
       const tageSchnitt = fensterAlt ? p.days.filter(i => fensterAlt.tage.includes(i)) : p.days;
       const tageKonflikt = !!fensterAlt && !tageSchnitt.length;
@@ -10425,7 +10590,7 @@ function renderGrid() {
     const waehlen = () => {
       selectedDayIdx = i;
       grid.querySelectorAll(".dayhead[aria-pressed]").forEach((k, j) => k.setAttribute("aria-pressed", String(dayIdxs[j] === i)));
-      renderEnergy(); renderDaySwitch(); renderAgenda(); if (!mehrTage) { renderGrid(); renderLoose(); }
+      renderEnergy(); renderDaySwitch(); renderAgenda(); if (!mehrTage || einTag) { renderGrid(); renderLoose(); }
     };
     h.onclick = waehlen;
     h.addEventListener("keydown", e => {
@@ -10761,7 +10926,13 @@ function blockEl({ b, col, of }, hourH, dayKey, visStart) {
     done.addEventListener("click", e => e.stopPropagation());
     done.addEventListener("keydown", e => e.stopPropagation());
     done.onchange = () => {
-      abhaken(b, dayKey || b.date, done.checked, done);
+      const kTag = dayKey || b.date;
+      abhaken(b, kTag, done.checked, done);
+      const paar = nachtPaar(b);
+      if (paar) {
+        const istErst = paar.erst.id === b.id;
+        setzeErledigt(istErst ? paar.zweit : paar.erst, istErst ? tagDanach(kTag) : tagDavor(kTag), done.checked);
+      }
       // renderAll() statt nur diesen Block anzufassen: am Desktop stehen
       // Agenda und Raster nebeneinander, sonst zeigt der Haken in der
       // Agenda-Zeile den alten Stand, bis irgendetwas anderes neu zeichnet.
@@ -10807,6 +10978,7 @@ function acceptOne(id, fest) {
   const b = state.blocks.find(x => x.id === id);
   if (!b) return;
   delete b.sug;
+  delete b.alternativen;
   if (fest) b.repeat = "weekly";
   save(); renderAll();
   toast(fest ? "Übernommen — steht ab jetzt jede Woche" : "Übernommen");
@@ -10858,14 +11030,16 @@ function attachColumnHandlers(col, hourH, visStart, visEnd) {
   };
 
   col.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     const blockNode = e.target.closest(".block");
     const handle = e.target.closest(".block__resize");
     const fine = e.pointerType === "mouse";
 
     /* --- Größe ändern --- */
     if (handle && blockNode && fine) {
-      e.preventDefault();
       const b = state.blocks.find(x => x.id === blockNode.dataset.id);
+      if (!b || nachtPaar(b)) return;
+      e.preventDefault();
       const move = ev => {
         const end = Math.max(b.start + SNAP, minAt(ev.clientY));
         blockNode.style.height = Math.max(18, (end - b.start) / 60 * hourH - 2) + "px";
@@ -10889,6 +11063,8 @@ function attachColumnHandlers(col, hourH, visStart, visEnd) {
     /* --- Block verschieben (nur Maus, waagerecht zwischen Tagen & senkrecht in Zeit) --- */
     if (blockNode && fine) {
       const b = state.blocks.find(x => x.id === blockNode.dataset.id);
+      if (!b) return;
+      if (nachtPaar(b)) { editBlock(b.id, col.dataset.date); return; }
       const startX = e.clientX, startY = e.clientY, origStart = b.start, len = b.end - b.start;
       const colRect = col.getBoundingClientRect();
       const darfQuer = !isMobile && !b.nacht;
@@ -11322,6 +11498,9 @@ let fokusKlangCtx = null;
 let fokusKlangStopRef = null;
 function fokusKlangStop() {
   if (fokusKlangStopRef) { try { fokusKlangStopRef(); } catch (e) {} fokusKlangStopRef = null; }
+  if (fokusKlangCtx && fokusKlangCtx.state === "running" && geheimRaveTimer === null) {
+    fokusKlangCtx.suspend().catch(() => {});
+  }
 }
 function fokusKlangStart(art) {
   fokusKlangStop();
@@ -11355,8 +11534,16 @@ function fokusKlangStart(art) {
 }
 
 function fokusSheet(id, dayKey) {
-  const b = state.blocks.find(x => x.id === id);
+  let b = state.blocks.find(x => x.id === id);
   if (!b || b.grob) return;
+  const paar = nachtPaar(b);
+  let erstTag = dayKey || b.date;
+  if (paar) {
+    if (paar.zweit.id === b.id && erstTag) erstTag = tagDavor(erstTag);
+    b = paar.erst;
+  }
+  const spanne = paar ? (1440 - paar.erst.start + paar.zweit.end) : Math.max(1, b.end - b.start);
+  const endeMin = paar ? paar.zweit.end : b.end;
   const a = areaById(b.areaId);
   const ortText = b.ortId ? ortName(b.ortId) : (b.ort || "");
   const R = 86, UMFANG = 2 * Math.PI * R;
@@ -11382,17 +11569,21 @@ function fokusSheet(id, dayKey) {
       (b.schritte && b.schritte.length ? "<div class='sheet__row'><span class='label' id='fokusSchritteLab'></span><div class='schritte' id='fokusSchritte'></div></div>" : "");
 
     const malen = () => {
-      const istHeute = (dayKey || b.date) === iso(new Date());
+      const heuteKey = iso(new Date());
       const jetzt = new Date().getHours() * 60 + new Date().getMinutes();
+      const istErsterTag = erstTag === heuteKey;
+      const istZweiterTag = paar && tagDanach(erstTag) === heuteKey;
+      const jetztRel = istZweiterTag ? 1440 + jetzt : jetzt;
+      const endeRel = paar ? 1440 + paar.zweit.end : b.end;
       let restText = "", bisText = "", anteil = 1;
-      if (istHeute && jetzt >= b.start) {
-        const rest = Math.max(0, b.end - jetzt);
-        anteil = clamp(rest / Math.max(1, b.end - b.start), 0, 1);
+      if ((istErsterTag && jetzt >= b.start) || (istZweiterTag && jetztRel <= endeRel)) {
+        const rest = Math.max(0, endeRel - jetztRel);
+        anteil = clamp(rest / spanne, 0, 1);
         restText = rest > 0 ? "noch " + fmtDur(rest) : "Zeit ist um";
-        bisText = (rest > 0 ? "bis " : "geplant bis ") + fmtTime(b.end % 1440);
+        bisText = (rest > 0 ? "bis " : "geplant bis ") + fmtTime(endeMin);
       } else {
-        restText = fmtDur(Math.max(1, b.end - b.start));
-        bisText = fmtTime(b.start) + "–" + fmtTime(b.end % 1440);
+        restText = fmtDur(spanne);
+        bisText = fmtTime(b.start) + "–" + fmtTime(endeMin);
       }
       s.querySelector("#fokusBogen").setAttribute("stroke-dasharray", (UMFANG * anteil).toFixed(1) + " " + UMFANG.toFixed(1));
       // Runde Enden zeichnen auch bei Länge 0 einen Punkt — dann ganz weg.
@@ -11416,14 +11607,14 @@ function fokusSheet(id, dayKey) {
     const schritteMalen = () => {
       if (!liste) return;
       liste.innerHTML = "";
-      const fertig = b.schritte.filter(x => schrittOk(b, x, dayKey)).length;
+      const fertig = b.schritte.filter(x => schrittOk(b, x, erstTag)).length;
       s.querySelector("#fokusSchritteLab").textContent = "Checkliste · " + fertig + " von " + b.schritte.length;
       b.schritte.forEach(x => {
         const lab = document.createElement("label");
         lab.className = "switch schritt";
         const cb = document.createElement("input");
-        cb.type = "checkbox"; cb.className = "task__check"; cb.checked = schrittOk(b, x, dayKey);
-        cb.onchange = () => { schrittSetzen(b, x, dayKey, cb.checked); save(); schritteMalen(); };
+        cb.type = "checkbox"; cb.className = "task__check"; cb.checked = schrittOk(b, x, erstTag);
+        cb.onchange = () => { schrittSetzen(b, x, erstTag, cb.checked); save(); schritteMalen(); };
         const t = document.createElement("span"); t.textContent = x.t;
         lab.append(cb, t);
         liste.appendChild(lab);
@@ -11438,13 +11629,17 @@ function fokusSheet(id, dayKey) {
     zu.onclick = () => zuFokus();
     const edit = document.createElement("button");
     edit.className = "btn"; edit.type = "button"; edit.textContent = "Ändern";
-    edit.onclick = () => { zuFokus({ sofort: true }); blockSheet({ ...b }, dayKey, { sofort: true }); };
+    edit.onclick = () => { zuFokus({ sofort: true }); blockSheet({ ...b }, erstTag, { sofort: true }); };
     const sp = document.createElement("span"); sp.className = "spacer";
     foot.append(zu, edit, sp);
-    if (!istErledigt(b, dayKey)) {
+    if (!istErledigt(b, erstTag)) {
       const ok = document.createElement("button");
       ok.className = "btn btn--primary"; ok.type = "button"; ok.id = "fokusOk"; ok.textContent = "Erledigt";
-      ok.onclick = () => { abhaken(b, dayKey, true, ok); save(); zuFokus(); renderAll(); };
+      ok.onclick = () => {
+        abhaken(b, erstTag, true, ok);
+        if (paar) setzeErledigt(paar.zweit, tagDanach(erstTag), true);
+        save(); zuFokus(); renderAll();
+      };
       foot.appendChild(ok);
     }
     s.appendChild(foot);
@@ -11458,6 +11653,7 @@ function fokusSheet(id, dayKey) {
    Passen die zwei nicht mehr zusammen (einzeln verschoben), gelten sie als
    zwei normale Blöcke. */
 function tagDanach(dateIso) { return dateIso ? iso(addDays(new Date(dateIso + "T12:00:00"), 1)) : dateIso; }
+function tagDavor(dateIso) { return dateIso ? iso(addDays(new Date(dateIso + "T12:00:00"), -1)) : dateIso; }
 function nachtPaar(b) {
   if (!b || !b.nacht || b.grob) return null;
   const p = state.blocks.find(x => x.id === b.nacht);
@@ -11760,7 +11956,7 @@ function ideeSheet() {
         + meta
         + "<div class='idee__titel'>" + escapeHtml(wurf.idee.t) + "</div>"
         + "<div class='idee__wann'><b>" + DAY_LONG[wurf.day.i] + ", " + d.getDate() + "." + (d.getMonth() + 1) + ".</b> · "
-        + fmtTime(wurf.start) + "–" + fmtTime(wurf.end) + " · " + fmtDur(wurf.idee.min) + "</div></div>";
+        + fmtTime(wurf.start) + "–" + fmtTime(wurf.end) + " · " + fmtDur(wurf.idee.min).replace(/ /g, "\u00A0") + "</div></div>";
     };
     nochmal.onclick = () => { wurf = ideeWuerfeln(wurf && wurf.idee); zeichnen(true); };
     zu.onclick = close;
@@ -11862,7 +12058,7 @@ function blockSheet(draft, dayKey, opts = {}) {
         "<div id='bDaysHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px' hidden></div>" +
         "<div style='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:8px'>" +
           "<label class='label' for='bDatum' style='margin:0;flex:none'>Datum</label>" +
-          "<input class='field' id='bDatum' type='date' style='min-width:0;flex:1 1 160px;max-width:190px'></div>" +
+          "<input class='field' id='bDatum' type='date' style='min-width:0;flex:1 1 160px'></div>" +
       "</div>" +
       "<div class='sheet__row'><span class='label'>Wie genau?</span>" +
         "<div class='chipset' id='bGenau'></div>" +
@@ -11879,7 +12075,7 @@ function blockSheet(draft, dayKey, opts = {}) {
         "<div class='chipset' id='bDauer'></div>" +
       "</div>" +
       "<div class='sheet__row' id='bBisRow' hidden><label class='label' for='bBis' id='bBisLab'>Endet am</label>" +
-        "<input class='field' id='bBis' type='date' style='max-width:190px'>" +
+        "<input class='field' id='bBis' type='date'>" +
         "<div id='bBisHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:6px;line-height:1.45'></div>" +
         "<p class='field-error' id='bBisError' role='status' hidden></p></div>" +
       "<div class='sheet__row' id='bSperrtRow' hidden>" +
@@ -12107,7 +12303,9 @@ function blockSheet(draft, dayKey, opts = {}) {
       return !falsch;
     };
     from.addEventListener("input", () => pruefeZeit());
+    from.addEventListener("change", () => pruefeZeit());
     to.addEventListener("input", () => pruefeZeit());
+    to.addEventListener("change", () => pruefeZeit());
 
     const genauWrap = s.querySelector("#bGenau");
     const zeitRow = s.querySelector("#bZeitRow");
@@ -12318,7 +12516,10 @@ function blockSheet(draft, dayKey, opts = {}) {
       pruefeBis();
     }
     function pruefeBis() {
-      const falsch = !bisRow.hidden && !!bisFeld.value && bisFeld.value < datumFeld.value;
+      const minBis = (isNew && repeatMode !== "none" && days.size > 1)
+        ? [...days].map(d => iso(addDays(mon, d))).sort().pop()
+        : datumFeld.value;
+      const falsch = !bisRow.hidden && !!bisFeld.value && bisFeld.value < minBis;
       bisFehler.hidden = !falsch;
       bisFehler.textContent = falsch ? "Das Ende liegt vor dem Datum. Bitte passe es an." : "";
       bisFeld.setAttribute("aria-invalid", String(falsch));
@@ -12361,7 +12562,7 @@ function blockSheet(draft, dayKey, opts = {}) {
           // push: true — bei „Abbrechen" bleibt der halb ausgefüllte Editor
           // dahinter erhalten statt zu verschwinden.
           confirmSheet(draft.repeat === "2wochen" ? "Zweiwöchentlicher Eintrag" : "Wöchentlicher Eintrag",
-            "„" + (draft.title || "Ohne Titel") + "\" steht " + rhythmus + ". Nur diesen Termin (" + tagText + ") " +
+            "„" + (draft.title || "Ohne Titel") + "“ steht " + rhythmus + ". Nur diesen Termin (" + tagText + ") " +
             "überspringen, oder ihn aus allen Wochen löschen — auch aus den kommenden?",
             "Aus allen Wochen löschen", weg, { push: true, extra: hakenTag ? { label: "Nur diesen Termin", onClick: nur } : null });
         } else weg();
@@ -12430,10 +12631,13 @@ function blockSheet(draft, dayKey, opts = {}) {
       const notizText = notizFeld.value.trim().slice(0, 2000);
       // Ein getippter, noch nicht hinzugefügter Schritt zählt mit.
       schrittDazu();
+      const zielTag = isNew
+        ? iso(addDays(mon, list[0]))
+        : (repeatMode === "none" || list[0] !== draft.day ? iso(addDays(mon, list[0])) : (hakenTag || iso(addDays(mon, list[0]))));
       const textFelder = () => ({
         schritte: schritte.length ? schritte.map(x => {
           const o = { t: x.t };
-          if (x.ok) o.ok = repeatMode !== "none" ? (hakenTag || true) : true;
+          if (x.ok) o.ok = repeatMode !== "none" ? (zielTag || true) : true;
           return o;
         }) : undefined,
         bis,
@@ -12491,6 +12695,11 @@ function blockSheet(draft, dayKey, opts = {}) {
         }
       } else {
         const b = state.blocks.find(x => x.id === draft.id);
+        if (!b) {
+          close(); renderAll();
+          toast("Dieser Eintrag wurde inzwischen entfernt");
+          return;
+        }
         b.title = title.value.trim() || "Ohne Titel";
         b.areaId = draft.areaId;
         b.day = list[0];
@@ -12519,11 +12728,12 @@ function blockSheet(draft, dayKey, opts = {}) {
         // Wer einen Vorschlag von Hand bearbeitet, hat ihn angenommen.
         // Sonst entsteht ein Vorschlag, den keine Aufräumfunktion mehr findet.
         delete b.sug;
+        delete b.alternativen;
         // fix (Stufe 11): im Editor bearbeitet — der Verteiler rührt den
         // Block beim nächsten Durchlauf nicht mehr an.
         b.fix = true;
-        if (doneBox) abhaken(b, hakenTag, doneBox.checked, doneBox);
-        if (doneBox && nacht) setzeErledigt(state.blocks.find(x => x.id === b.nacht), tagDanach(hakenTag), doneBox.checked);
+        if (doneBox) abhaken(b, zielTag, doneBox.checked, doneBox);
+        if (doneBox && nacht) setzeErledigt(state.blocks.find(x => x.id === b.nacht), tagDanach(zielTag), doneBox.checked);
         const tk = state.tasks.find(t => t.id === b.taskId && t.geplant === b.id);
         if (tk) { tk.title = b.title; tk.areaId = b.areaId; }
       }
@@ -12972,7 +13182,7 @@ function taskSheet(t) {
         dWrap.appendChild(c);
       });
       dHint.textContent = dauer
-        ? "„In den Wochenplan legen\" nimmt " + fmtDur(dauer) + " statt einer Stunde."
+        ? "„In den Wochenplan legen“ nimmt " + fmtDur(dauer) + " statt einer Stunde."
         : "Ohne Angabe wird beim Einplanen eine Stunde angenommen.";
       if (aufgabenBlock(t)) dHint.textContent = "Das ist deine Schätzung. Die Dauer des bestehenden Termins änderst du direkt im Plan.";
     };
@@ -13522,6 +13732,11 @@ function renderAgenda() {
       const b = state.blocks.find(x => x.id === cb.dataset.id);
       if (!b) return;
       abhaken(b, dayKey, cb.checked, cb);
+      const paar = nachtPaar(b);
+      if (paar) {
+        const istErst = paar.erst.id === b.id;
+        setzeErledigt(istErst ? paar.zweit : paar.erst, istErst ? tagDanach(dayKey) : tagDavor(dayKey), cb.checked);
+      }
       const lab = cb.closest(".agenda__row");
       if (lab) lab.classList.toggle("is-on", cb.checked);
       save();
@@ -13618,7 +13833,7 @@ function renderAgenda() {
     };
     row.addEventListener("pointerdown", e => {
       if (e.pointerType === "mouse" || e.target.closest(".agenda__check")) return;
-      wx = e.clientX; wy = e.clientY; wachse = null; wdx = 0; wAktiv = true;
+      wx = e.clientX; wy = e.clientY; wachse = null; wdx = 0; gewischt = false; wAktiv = true;
       row.dataset.wischZiel = cb.checked ? "zurueck" : "ab";
     });
     row.addEventListener("pointermove", e => {
@@ -13699,7 +13914,7 @@ function optionalToday() {
   const key = currentDayIso();
   const idx = selectedDayIdx;
   return state.blocks.filter(b => {
-    if (b.sug) return false;
+    if (b.sug || !imPlan(b)) return false;
     // onDay() statt einer eigenen weekly-Abfrage: die hätte bei "2wochen"
     // jede Woche "hier" gesagt statt nur jede zweite — onDay kennt die
     // Parität bereits, ein zweites Mal von Hand nachbauen wäre die nächste
@@ -13810,7 +14025,7 @@ function moveSheet(id) {
       "<p style='margin:0 0 6px;font-size:var(--t-body)'><b>" + escapeHtml(blk.title) + "</b></p>" +
       "<p style='margin:0 0 18px;color:var(--text-muted);font-size:var(--t-body)'>" +
       "Dauer " + fmtDur(blk.end - blk.start + (paar ? paar.zweit.end : 0)) + " · auf welchen Tag?</p>" +
-      "<div class='chipset' id='mvDays'></div>" +
+      "<div class='chipset chipset--tage' id='mvDays'></div>" +
       "<div id='mvHint' style='font-size:var(--t-sm);color:var(--text-faint);margin-top:14px;min-height:18px'></div>";
 
     const wrap = s.querySelector("#mvDays");
@@ -13874,7 +14089,7 @@ function moveSheet(id) {
           // push: true — bei „Abbrechen" bleibt die Tagesauswahl dahinter
           // erhalten statt zu verschwinden.
           confirmSheet(blk.repeat === "2wochen" ? "Zweiwöchentlicher Eintrag" : "Wöchentlicher Eintrag",
-            "„" + (blk.title || "Ohne Titel") + "\" steht " + rhythmus + ". Verschieben " +
+            "„" + (blk.title || "Ohne Titel") + "“ steht " + rhythmus + ". Verschieben " +
             "macht daraus einen einzelnen Termin — aus den anderen Wochen verschwindet er.",
             "Trotzdem verschieben", schieben, { push: true });
         } else schieben();
@@ -14084,7 +14299,7 @@ function ritualSheet() {
          Satz statt als Diagramm. Nur Bereiche mit Wochenziel — ohne Ziel gibt
          es nichts, wogegen man "vorgenommen" vergleichen könnte. Ohne solche
          Bereiche bleibt der Abschnitt ganz weg statt als leere Trennlinie. */
-      if (!state.areas.some(a => a.plan.goal > 0)) return;
+      if (!planBereiche().some(a => a.plan.goal > 0)) return;
       const musterVerworfen = new Set();
       const rueckblick = document.createElement("div");
       rueckblick.className = "rueckblick";
@@ -14092,7 +14307,7 @@ function ritualSheet() {
 
       const zeichnenRueckblick = () => {
         rueckblick.innerHTML = "";
-        state.areas.filter(a => a.plan.goal > 0).forEach(a => {
+        planBereiche().filter(a => a.plan.goal > 0).forEach(a => {
           const geplant = eintraege
             .filter(x => x.b.areaId === a.id)
             .reduce((n, x) => n + dauerVon(x.b), 0);
@@ -14162,7 +14377,7 @@ function ritualSheet() {
         // "Nach der Arbeit" braucht einen Bereich dieses Namens — fehlt er
         // (umbenannt, gelöscht) oder ist es der Bereich selbst, gibt es die
         // Option nicht, statt ins Leere zu zeigen.
-        const arbeit = state.areas.find(x => x.id !== a.id &&
+        const arbeit = planBereiche().find(x => x.id !== a.id &&
           String(x.name || "").trim().toLowerCase() === "arbeit");
         const anker = a.regeln && a.regeln.anker;
         const aktuell = anker && anker.ref ? "arbeit" : anker && anker.tageszeit ? anker.tageszeit : "egal";
@@ -14193,7 +14408,7 @@ function ritualSheet() {
 
       const zeichnen = () => {
         liste.innerHTML = "";
-        state.areas.forEach(a => {
+        planBereiche().forEach(a => {
           const ist = istVorwoche(a.id, vorwoche);
           const row = document.createElement("div");
           row.className = "zielrow" + (a.plan.goal > 0 ? " is-on" : "");
@@ -14234,7 +14449,7 @@ function ritualSheet() {
         box.innerHTML = "";
         const lead = document.createElement("p");
         lead.className = "ritual__lead";
-        const zieleAreas = state.areas.filter(a => a.plan.goal > 0);
+        const zieleAreas = planBereiche().filter(a => a.plan.goal > 0);
         const offenJeArea = a => Math.max(0, a.plan.goal * 60 - areaMinutes(a.id, false) - areaMinutes(a.id, true));
         const offen = zieleAreas.reduce((n, a) => n + offenJeArea(a), 0);
         // Kennzahl (Stufe 13 Teil D): nicht mehr "wie viel ist offen", sondern
@@ -14387,7 +14602,7 @@ function rueckblickMuster(a, mon) {
 }
 
 /* ============================================================ Einstellungen */
-$("#settingsBtn").onclick = () => {
+function settingsSheet(startSeite) {
   modal((s, close) => {
     s.innerHTML =
       "<h2 class='sheet__title'>Einstellungen</h2>" +
@@ -14684,7 +14899,7 @@ $("#settingsBtn").onclick = () => {
     s.querySelector("#sReset").onclick = () => {
       close();
       confirmSheet("Wirklich alles löschen?",
-        "Alle Einträge, Aufgaben und Bereiche werden entfernt. Das lässt sich nicht rückgängig machen — mach vorher eine Sicherung, wenn du unsicher bist.",
+        "Alle Einträge, Aufgaben und Bereiche werden entfernt. Direkt danach kannst du es mit „Rückgängig“ noch zurückholen — mach vorher eine Sicherung, wenn du unsicher bist.",
         "Alles löschen",
         () => { state = freshState(); save(); renderAll(); toastUndo("Alles zurückgesetzt"); });
     };
@@ -14757,9 +14972,10 @@ $("#settingsBtn").onclick = () => {
     foot.appendChild(ok);
     s.appendChild(foot);
 
-    baueEinstellungsMenue(s, uebernehmen, ok);
+    baueEinstellungsMenue(s, uebernehmen, ok, startSeite);
   }, { wide: true });
-};
+}
+$("#settingsBtn").onclick = () => settingsSheet();
 
 /* ============================================================
    Einstellungen als Menü statt als eine lange Rolle
@@ -14829,7 +15045,7 @@ function appAnleitung() {
   ];
 }
 
-function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
+function baueEinstellungsMenue(s, uebernehmen, fertigKnopf, startSeite) {
   const titel = s.querySelector(".sheet__title");
   if (titel) geheimTippRegistrieren(titel);
   const abschnitte = {};
@@ -14861,6 +15077,12 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   zurueck.hidden = true;
   titel.after(zurueck);
 
+  const fokussiereSichtbar = sel => {
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    const el = s.querySelector(sel);
+    if (el && el.offsetParent !== null) setTimeout(() => { if (el.isConnected && el.offsetParent !== null) el.focus(); }, 40);
+  };
+
   const zeigeMenue = () => {
     uebernehmen();                       // Eingaben nicht verlieren beim Wechseln
     titel.textContent = "Einstellungen";
@@ -14871,6 +15093,7 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
     Object.values(abschnitte).flat().forEach(r => { r.hidden = true; });
     baueListe();
     s.scrollTop = 0;
+    fokussiereSichtbar(".setmenu__item");
   };
 
   const zeigeSeite = seite => {
@@ -14883,6 +15106,7 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
       rows.forEach(r => { r.hidden = id !== seite.id; });
     });
     s.scrollTop = 0;
+    fokussiereSichtbar(".sheet__row[data-page='" + seite.id + "'] input, .sheet__row[data-page='" + seite.id + "'] button, .setback");
   };
 
   const baueListe = () => {
@@ -14903,7 +15127,9 @@ function baueEinstellungsMenue(s, uebernehmen, fertigKnopf) {
   };
 
   zurueck.onclick = zeigeMenue;
-  zeigeMenue();
+  const direkt = startSeite && SETTINGS_SEITEN.find(x => x.id === startSeite && abschnitte[x.id] && (!x.wennVerfuegbar || x.wennVerfuegbar()));
+  if (direkt) zeigeSeite(direkt);
+  else zeigeMenue();
 }
 
 /* ============================================================ Konto */
@@ -15515,6 +15741,8 @@ const Sync = (() => {
     migrate(state);
     lastSnap = snapshot(state);
     lastSavedJson = JSON.stringify(state);
+    undoStapel.length = 0;
+    prevSavedJson = null;
     setStatus("signedout");
     renderAll();
   }
@@ -15547,6 +15775,8 @@ const Sync = (() => {
     migrate(state);
     lastSnap = snapshot(state);
     lastSavedJson = JSON.stringify(state);
+    undoStapel.length = 0;
+    prevSavedJson = null;
     Store.save(state);
     renderAll();
     await pull();
@@ -15708,6 +15938,9 @@ let geheimSpruchIdx = 0;
 let geheimRaveTimer = null;
 function geheimRaveStop() {
   if (geheimRaveTimer) { clearInterval(geheimRaveTimer); geheimRaveTimer = null; }
+  if (fokusKlangCtx && fokusKlangCtx.state === "running" && !fokusKlangStopRef) {
+    fokusKlangCtx.suspend().catch(() => {});
+  }
 }
 function geheimRaveStart() {
   geheimRaveStop();
@@ -15716,7 +15949,6 @@ function geheimRaveStart() {
     if (!AC) return;
     if (!fokusKlangCtx) fokusKlangCtx = new AC();
     const ctx = fokusKlangCtx;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const noten = [220, 261.6, 293.7, 329.6, 293.7, 261.6, 246.9, 196];
     let step = 0;
     const tick = () => {
@@ -15742,8 +15974,12 @@ function geheimRaveStart() {
       }
       step++;
     };
-    tick();
     geheimRaveTimer = setInterval(tick, 200);
+    if (ctx.state === "suspended") {
+      ctx.resume().then(() => { if (geheimRaveTimer !== null) tick(); }).catch(() => {});
+    } else {
+      tick();
+    }
   } catch (e) {}
 }
 function geheimSheet() {
@@ -15892,7 +16128,7 @@ function wischenEinrichten() {
   let x0 = 0, y0 = 0, t0 = 0, aktiv = false, achse = null;
 
   wrap.addEventListener("pointerdown", e => {
-    if (e.pointerType === "mouse") return;      // Maus zieht Blöcke, nicht Tage
+    if (e.pointerType === "mouse" || !e.isPrimary) { aktiv = false; return; } // Maus zieht Blöcke, Mehr-Finger zoomt
     if (!einTag) return;                        // in der Wochenansicht wechselt nichts
     x0 = e.clientX; y0 = e.clientY; t0 = e.timeStamp;
     aktiv = true; achse = null;
@@ -15902,7 +16138,7 @@ function wischenEinrichten() {
     // Über Blöcken erlaubt, solange kein Drag läuft — erst holdToMove
     // (blockDragAktiv) hat Vorrang, ein bloßes Antippen eines Blocks
     // wischt weiterhin ganz normal den Tag weiter.
-    if (!aktiv || blockDragAktiv) return;
+    if (!aktiv || !e.isPrimary || blockDragAktiv) return;
     const dx = e.clientX - x0, dy = e.clientY - y0;
 
     // Achse erst ab 10px festlegen, danach bis pointerup nicht mehr
@@ -15928,7 +16164,7 @@ function wischenEinrichten() {
     const breite = wrap.clientWidth || 1;
     const t = e.timeStamp - t0;
     const v = t > 0 ? Math.abs(dx) / t : 0;   // px/ms
-    if (Math.abs(dx) / breite >= 0.25 || v >= 0.4) {
+    if (Math.abs(dx) / breite >= 0.25 || (v >= 0.4 && Math.abs(dx) >= 28)) {
       aktiv = false;
       if (grid) grid.style.transform = "";
       tagWechseln(dx < 0 ? 1 : -1);
@@ -16254,7 +16490,7 @@ function maybeWelcome() {
 
       const zeichnen = () => {
         liste.innerHTML = "";
-        state.areas.forEach(a => {
+        planBereiche().forEach(a => {
           const wert = ein.ziele[a.id] || 0;
           const row = document.createElement("div");
           row.className = "zielrow" + (wert > 0 ? " is-on" : "");
@@ -16586,9 +16822,23 @@ setInterval(() => {
 }, 60000);
 // Beim Zurückkommen auf den Tab: kurz nachsehen, ob woanders was passiert ist
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && Sync.active()) Sync.pull();
-  if (!document.hidden) sucheNeueFassung();
+  if (document.hidden) {
+    fokusKlangStop();
+    geheimRaveStop();
+    const gh = document.querySelector(".sheet.geheim");
+    if (gh) {
+      gh.classList.remove("is-rave");
+      const rb = gh.querySelector("#geheimRave");
+      if (rb) { rb.setAttribute("aria-pressed", "false"); rb.textContent = "150 BPM · Kurz-Rave"; }
+    }
+    const fk = document.querySelectorAll("#fokusKlang button");
+    if (fk.length) fk.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.klang === "aus")));
+    return;
+  }
+  if (Sync.active()) Sync.pull();
+  sucheNeueFassung();
 });
+window.addEventListener("hashchange", () => { if (!openModal) pruefeTeilenLink(); });
 
 /* ============================================================
    Vom Homescreen starten

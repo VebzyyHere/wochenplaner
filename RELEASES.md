@@ -7,6 +7,14 @@ Regeln daraus stehen in `CLAUDE.md` unter „Kopplungen & Fallen", „Verträge"
 
 ---
 
+### Release v1.64 vom 2026-11-25
+
+PWA-Cache `wp-v1.64`, Datenschema 10, Kette 76 Skripte.
+
+- Funktions- & iOS-Korrekturen: `settingsSheet(startSeite)` benannt herausgezogen (Ziele → „Bereiche & Farben verwalten“ springt direkt auf Bereiche), vollständige Mehrplan-Isolation für Vorschläge/Kapazität/Tagesform/Bilanz/Rückblick, `#teilen=`-Validierung & `hashchange`-Listener, `blockSheet`-Zieltag/`pruefeBis`/iOS-`change`-Handler, Mitternachtsblöcke (`tagDavor`, gepaartes Abhaken, Fokus-Spanne, Drag-Schutz) sowie WebAudio-Stopp bei Tab-Wechsel, Undo-Reset bei Konto-Wechsel und Objekt-URL-Freigabe.
+- Handy-, iPhone- & Desktop-Polishing: einzelnes `+` im Querformat, ungekürztes Datum auf iPhone 13–16 Pro, 320-px-SE ohne Quer-Overflow in `Wochenziele` (44×44-Buttons), sauber umbrochene `.reliefrow` („Was kann heute weg?“), gleich hohe Fuß-Buttons & Bereichsfarben im `Idee`-Blatt, linksbündige `Waage`-Legende, 44-px-Gutter im 3-Tage-`#looseBand`, 3-Spalten-Chipgrid `#bGenau`, runde Rückblick-Checkboxen, sichtbarer Dunkelmodus-Fortschrittsring, `tabular-nums`, Touch-Trefferflächen ≥ 44 px und bereinigtes `@media print`.
+- Prüfkette erweitert: `kontrastlauf.js` um 6 fehlende Blätter/Ansichten (Hell/Dunkel, Handy/Desktop), `szenarien.js` um Persona 8 (`P8a`–`P8k`) und `alles.js` um `importfuzz.js`/`feedback.js` im Schwer-Pool; 76/76 Skripte grün.
+
 ### Release v1.63 vom 2026-11-24
 
 PWA-Cache `wp-v1.63`, Datenschema 10, Kette 76 Skripte.

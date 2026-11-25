@@ -713,6 +713,199 @@ async function boot(br, devName) {
     await ctx.close();
   }
 
+  /* ---- 8. Persona: Finales Release-Polishing & Regressions-Tor ---- */
+  console.log('\n=== Persona 8: Release-Polishing (SE Ziele, Mehrplan-Isolation, #teilen=, Nacht-Fokus, Querformat, iPhone 16 Pro) ===');
+  {
+    // 8a-c) 320px iPhone SE: Ziele-Sheet ohne Quer-Overflow, Bereiche-Direkteinstieg, Idee-Fuss & Runden Haken
+    const { ctx: ctxSe, p: pSe, errs: errSe } = await boot(br, 'iPhone SE');
+    await pSe.evaluate(() => {
+      state = freshState(); migrate(state);
+      state.areas.forEach(a => { a.plan.goal = 2; });
+      save(); renderAll();
+      goalsSheet();
+    });
+    await pSe.waitForSelector('.goalrow');
+    await pSe.waitForTimeout(200);
+    const seZiele = await pSe.evaluate(() => {
+      const s = document.querySelector('.sheet');
+      return {
+        quer: s.scrollWidth - s.clientWidth,
+        btnDa: !![...s.querySelectorAll('button')].find(b => b.textContent.includes('Bereiche & Farben verwalten'))
+      };
+    });
+    ok(seZiele.quer <= 1 && seZiele.btnDa, 'P8a) goalsSheet auf 320px iPhone SE ohne Quer-Overflow (' + seZiele.quer + ' px)');
+    await pSe.click('.sheet button:has-text("Bereiche & Farben verwalten")');
+    await pSe.waitForSelector('#sAreas');
+    await pSe.waitForTimeout(150);
+    const seBereiche = await pSe.evaluate(() => !!document.querySelector('#sAreas') && !document.querySelector('.sheet__row[data-page="bereiche"]').hidden);
+    ok(seBereiche && errSe.length === 0, 'P8b) „Bereiche & Farben verwalten ->" oeffnet Einstellungen direkt auf Bereiche ohne ReferenceError');
+    await pSe.evaluate(() => { closeModal(); ideeSheet(); });
+    await pSe.waitForSelector('#ideeNochmal');
+    await pSe.waitForTimeout(200);
+    const seIdee = await pSe.evaluate(() => {
+      const btns = [...document.querySelectorAll('.sheet__foot button')].filter(b => getComputedStyle(b).display !== 'none');
+      const r0 = btns[0].getBoundingClientRect(), r1 = btns[1].getBoundingClientRect();
+      return { h0: Math.round(r0.height), h1: Math.round(r1.height), topDiff: Math.abs(r0.top - r1.top) };
+    });
+    ok(seIdee.h0 === seIdee.h1 && seIdee.topDiff <= 1, 'P8c) ideeSheet Fussknoepfe auf 320px SE gleich hoch (' + seIdee.h0 + ' vs ' + seIdee.h1 + ')');
+    await pSe.screenshot({ path: path.join(__dirname, 'sz-polish-se-idee.png') });
+    await pSe.evaluate(() => closeModal());
+    await ctxSe.close();
+    alleErrs.push(...errSe);
+
+    // 8d-g) iPhone 16 Pro (393x852 + Safe Areas): Mehrplan-Isolation, #teilen=, Nacht-Fokus, 3-Tage-Tap, Planhead, #bDatum, Waage, Idee-Farbe
+    const ctx16 = await br.newContext({
+      viewport: { width: 393, height: 852 },
+      hasTouch: true, isMobile: true, deviceScaleFactor: 3,
+      timezoneId: 'Europe/Berlin', locale: 'de-DE'
+    });
+    const p16 = await ctx16.newPage();
+    const err16 = [];
+    p16.on('pageerror', e => err16.push('PAGEERROR: ' + e.message));
+    p16.on('console', m => { if (m.type() === 'error') err16.push('CONSOLE: ' + m.text()); });
+    await p16.clock.setFixedTime(new Date('2026-11-25T10:20:00+01:00'));
+    await p16.goto(F + '?beispiel');
+    await p16.waitForFunction(() => typeof syncSettled !== 'undefined' && syncSettled);
+    await p16.evaluate(() => {
+      if (typeof closeModal === 'function') closeModal();
+      document.documentElement.style.setProperty('--safe-top', '59px');
+      document.documentElement.style.setProperty('--safe-bottom', '34px');
+      kopfhoeheMessen(); fussbereichMessen();
+    });
+
+    // Mehrplan-Isolation + #teilen= Haertung
+    const planIso = await p16.evaluate(() => {
+      const zweit = plaene().find(x => x.id);
+      planWechseln(zweit.id);
+      const hasMainSug = hasSuggestions();
+      const cap = wochenKapazitaet(mondayOf(anchor));
+      const opt = optionalToday();
+      const acc = acceptSuggestions();
+      planWechseln(null);
+      const kaputtHash = '#teilen=' + b64UrlEnc(JSON.stringify({ v: 1, n: 'Kaputt', a: ['x'], b: [['T', 'a1', 0, '2026-11-25', 600, 660]] }));
+      const parsedKaputt = planLinkLesen(kaputtHash);
+      const vorherAreas = state.areas.filter(a => !a.kalender).length;
+      const mitNullIdee = planLinkLesen('#teilen=' + b64UrlEnc(JSON.stringify({
+        v: 1, n: 'Sauber', e: '✨', a: [['x1', 'Test', 140, 0, [null, { t: 'Kaffee', min: 15 }]]],
+        b: [['Probe', 'x1', 2, 'bad-date', 600, 500, 0, 0, 'none']]
+      })));
+      planLinkImportSheet(mitNullIdee);
+      document.querySelector('.sheet .btn--primary').click();
+      const nachherAreas = state.areas.filter(a => !a.kalender).length;
+      return { hasMainSug, offen: cap.offen, optLen: opt.length, acc, parsedKaputt, gleich: vorherAreas === nachherAreas };
+    });
+    ok(!planIso.hasMainSug && planIso.offen === 0 && planIso.optLen === 0 && planIso.acc === 0,
+      'P8d) Zweitplan isoliert Vorschlaege, Ziele-Kapazitaet & Tagesform-Entlastung vollstaendig (' + JSON.stringify(planIso) + ')');
+    ok(planIso.parsedKaputt === null && planIso.gleich, 'P8e) #teilen= weist kaputte Bereiche ab und importiert null-Ideen/Datumsfehler ohne Leck');
+
+    // Nacht-Fokus
+    const nachtFokus = await p16.evaluate(() => {
+      closeModal(); planMerken(null);
+      const mon = mondayOf(new Date());
+      const sa = iso(addDays(mon, 5));
+      const so = iso(addDays(mon, 6));
+      const b1 = { id: 'nf-1', title: 'Mitternacht-Session', areaId: 'a5', day: 5, date: sa, repeat: 'none', start: 22 * 60, end: 1440, nacht: 'nf-2', frog: false };
+      const b2 = { id: 'nf-2', title: 'Mitternacht-Session', areaId: 'a5', day: 6, date: so, repeat: 'none', start: 0, end: 120, nacht: 'nf-1', frog: false };
+      state.blocks.push(b1, b2); save(); renderAll();
+      fokusSheet('nf-2', so);
+      const bis = document.getElementById('fokusBis').textContent;
+      document.getElementById('fokusOk').click();
+      const done1 = istErledigt(state.blocks.find(x => x.id === 'nf-1'), sa);
+      const done2 = istErledigt(state.blocks.find(x => x.id === 'nf-2'), so);
+      return { bis, done1, done2 };
+    });
+    ok(nachtFokus.bis.includes('22:00–02:00') && nachtFokus.done1 && nachtFokus.done2,
+      'P8f) fokusSheet bei b.nacht zeigt volle Spanne & hakt beide Haelften ab (' + JSON.stringify(nachtFokus) + ')');
+
+    // 3-Tage .dayhead Tap + 44px Gutter + Planhead ungekuerzt
+    await p16.evaluate(() => {
+      selectedDayIdx = 0; mobilTage = 3; tagModusSync(); setView('plan'); renderAll();
+    });
+    await p16.waitForTimeout(150);
+    await p16.click('#grid .dayhead[role="button"] >> nth=2');
+    await p16.waitForTimeout(150);
+    const dreitage = await p16.evaluate(() => {
+      const heads = [...document.querySelectorAll('#grid .dayhead:not(.dayhead--gutter)')].map(h => h.querySelector('.dayhead__name').textContent);
+      const looseGutter = getComputedStyle(document.getElementById('looseBand')).getPropertyValue('--gutter').trim();
+      const gridGutter = getComputedStyle(document.getElementById('grid')).getPropertyValue('--gutter').trim();
+      mobilTage = 1; tagModusSync(); renderAll();
+      const h1 = document.querySelector('.planhead h1');
+      return { heads: heads.join(','), looseGutter, gridGutter, h1Clip: h1.scrollWidth > h1.clientWidth + 1, h1Text: h1.textContent };
+    });
+    ok(dreitage.heads === 'Mi,Do,Fr' && dreitage.looseGutter === dreitage.gridGutter,
+      'P8g) 3-Tage-.dayhead-Tipp schiebt Raster weiter & #looseBand teilt 44px-Gutter (' + JSON.stringify(dreitage) + ')');
+    ok(!dreitage.h1Clip, 'P8h) .planhead h1 auf 393px iPhone 16 Pro ungekuerzt (' + dreitage.h1Text + ')');
+
+    // Waage--blatt linksbuendig + idee Dunkel-Bereichsfarbe
+    await p16.evaluate(() => { state.settings.theme = 'dark'; applyTheme(); freizeitGesicht = 'belegt'; freizeitSheet(); });
+    await p16.waitForTimeout(200);
+    const waageLeft = await p16.evaluate(() => {
+      const items = [...document.querySelectorAll('.waage--blatt .waage__item')];
+      const barLeft = Math.round(document.querySelector('.waage--blatt .waage__bar').getBoundingClientRect().left);
+      const firstTextLeft = Math.round(items[0].querySelector('.waage__dot').getBoundingClientRect().left);
+      return { diff: Math.abs(firstTextLeft - barLeft), count: items.length };
+    });
+    ok(waageLeft.diff <= 14 && waageLeft.count >= 2, 'P8i) .waage--blatt Legende linksbuendig am Balken (' + JSON.stringify(waageLeft) + ')');
+    await p16.evaluate(() => { closeModal(); ideeSheet(); });
+    await p16.waitForTimeout(200);
+    const ideeFarbe = await p16.evaluate(() => {
+      const card = document.querySelector('.idee');
+      const dot = document.querySelector('.idee__meta-dot');
+      return {
+        border: getComputedStyle(card).borderTopColor,
+        dot: getComputedStyle(dot).backgroundColor,
+        bg: getComputedStyle(card).backgroundColor
+      };
+    });
+    ok(ideeFarbe.dot !== ideeFarbe.bg && !/0,\s*0,\s*0\)/.test(ideeFarbe.border),
+      'P8j) .idee erbt im Dark Mode echte Bereichsfarben (' + JSON.stringify(ideeFarbe) + ')');
+    await p16.screenshot({ path: path.join(__dirname, 'sz-polish-16-dark-idee.png') });
+    await p16.evaluate(() => { closeModal(); state.settings.theme = 'light'; applyTheme(); });
+    await ctx16.close();
+    alleErrs.push(...err16);
+
+    // 8k) iPhone 15 Pro Querformat: genau EIN sichtbares + in plan und heute, kein Topbar-Overflow
+    const ctxQ = await br.newContext({
+      viewport: { width: 852, height: 393 },
+      hasTouch: true, isMobile: true, deviceScaleFactor: 2,
+      timezoneId: 'Europe/Berlin', locale: 'de-DE'
+    });
+    const pQ = await ctxQ.newPage();
+    const errQ = [];
+    pQ.on('pageerror', e => errQ.push('PAGEERROR: ' + e.message));
+    pQ.on('console', m => { if (m.type() === 'error') errQ.push('CONSOLE: ' + m.text()); });
+    await pQ.clock.setFixedTime(new Date('2026-11-25T10:20:00+01:00'));
+    await pQ.goto(F + '?beispiel');
+    await pQ.waitForFunction(() => typeof syncSettled !== 'undefined' && syncSettled);
+    await pQ.evaluate(() => { if (typeof closeModal === 'function') closeModal(); setView('plan'); renderAll(); });
+    await pQ.waitForTimeout(200);
+    const querPlan = await pQ.evaluate(() => {
+      const vis = el => !!el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+      const tb = document.querySelector('.topbar');
+      return {
+        fab: vis(document.getElementById('fabAdd')),
+        tabPlus: vis(document.getElementById('tabAdd')),
+        topbarOverflow: tb.scrollWidth > tb.clientWidth + 1
+      };
+    });
+    await pQ.evaluate(() => { setView('heute'); renderAll(); });
+    await pQ.waitForTimeout(150);
+    const querHeute = await pQ.evaluate(() => {
+      const vis = el => !!el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+      const plus = document.getElementById('tabAdd');
+      return {
+        fab: vis(document.getElementById('fabAdd')),
+        tabPlus: vis(plus),
+        plusBg: getComputedStyle(plus).backgroundColor,
+        plusColor: getComputedStyle(plus).color
+      };
+    });
+    ok(querPlan.fab && !querPlan.tabPlus && !querPlan.topbarOverflow && !querHeute.fab && querHeute.tabPlus && querHeute.plusBg !== querHeute.plusColor,
+      'P8k) Querformat zeigt exakt ein sichtbares „+" (Plan=FAB, Heute=Tab-Plus mit Kontrast) ohne Topbar-Overflow');
+    await ctxQ.close();
+    alleErrs.push(...errQ);
+  }
+
   await br.close();
   console.log('\n' + (fehler.length || alleErrs.length ? 'FEHLER: ' + fehler.length : 'ALLES GRUEN'));
   process.exit(fehler.length || alleErrs.length ? 1 : 0);

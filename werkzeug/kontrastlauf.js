@@ -367,6 +367,24 @@ function befuellen(theme) {
       await p.evaluate(v => { setView(v); renderAll(); }, v); await p.waitForTimeout(200);
       await messe('Ansicht ' + v);
     }
+    if (g.handy) {
+      await p.evaluate(() => {
+        const mon = mondayOf(new Date());
+        state.blocks.push({
+          id: 'kl-fest', title: 'Festival-Test', areaId: 'a5', day: 4,
+          date: iso(addDays(mon, 4)), bis: iso(addDays(mon, 6)),
+          repeat: 'none', start: 0, end: 0, grob: true, ganztag: true, teil: 'mo', dauer: 0, sperrt: true
+        });
+        selectedDayIdx = 4; mobilTage = 3; tagModusSync(); setView('plan'); renderAll();
+      });
+      await p.waitForTimeout(200);
+      await messe('Ansicht plan 3-Tage + Festivalband');
+      await p.evaluate(() => {
+        state.blocks = state.blocks.filter(x => x.id !== 'kl-fest');
+        selectedDayIdx = 2; mobilTage = 1; tagModusSync(); setView('heute'); renderAll();
+      });
+      await p.waitForTimeout(150);
+    }
     // Aufgaben mit aufgeklapptem „Erledigt" (abgehakter Haken, erledigte Aufgabe)
     await p.evaluate(() => { setView('aufgaben'); renderAll(); const t = document.querySelector('.tasks__toggle'); if (t) t.click(); });
     await p.waitForTimeout(150);
@@ -387,6 +405,14 @@ function befuellen(theme) {
       () => p.evaluate(() => { const c = document.querySelector('#zDauer .chip:nth-child(6)'); if (c) c.click(); }));
     await blatt('Blatt Monat', () => document.querySelector('#monthBtn').click());
     await blatt('Blatt Woche', () => document.querySelector('#weekLabel').click());
+    await blatt('Blatt Idee', () => ideeSheet());
+    await blatt('Blatt Fokus', () => {
+      const b = state.blocks.find(x => x.title === 'Sprint-Review vorbereiten') || state.blocks[0];
+      if (b) { b.schritte = [{ t: 'Kaffee', ok: true }, { t: 'Starten', ok: false }]; fokusSheet(b.id, b.date); }
+    });
+    await blatt('Blatt Plaene', () => planSheet());
+    await blatt('Blatt Ausblick', () => ausblickSheet());
+    await blatt('Blatt Geheimpunkt', () => geheimSheet());
     // Einstellungen: Menü und jede Seite
     await p.evaluate(() => document.querySelector('#settingsBtn').click()); await p.waitForTimeout(250);
     await messe('Einstellungen Menü', '#modalRoot .scrim:last-child .sheet');
